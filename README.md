@@ -1,0 +1,1 @@
+This is a template used by [`create-cloudinary-next`](https://github.com/cloudinary-devs/create-cloudinary-next) to scaffold out Next + Cloudinary projects. It is not meant to be used on its own.
