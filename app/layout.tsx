@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Cloudinary Next.js Starter Kit",
-  description: "A ready-to-use development environment with Cloudinary integration.",
+  title: "Snap2Shelf",
+  description: "One photo. A whole shelf. AI builds the stage — your product stays real.",
 };
 
 export default function RootLayout({
@@ -13,9 +13,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>
-        {children}
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

@@ -1,12 +1,17 @@
 {
-  "name": "create-cloudinary-next-template",
+  "name": "snap2shelf",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "secret-scan": "node scripts/secret-scan.mjs",
+    "spikes": "node scripts/spikes/run-all.mjs",
+    "setup:cloudinary": "node scripts/setup-cloudinary.mjs",
+    "seed:showcase": "node scripts/seed-showcase.mjs"
   },
   "dependencies": {
     "next": "16.2.7",
