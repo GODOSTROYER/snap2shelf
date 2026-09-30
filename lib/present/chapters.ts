@@ -61,7 +61,8 @@ export const CHAPTERS: ChapterMeta[] = [
     title: "The pipeline",
     seconds: () => 8,
     light: { x: 0.5, y: 0.5 },
-    cue: (d) => `Snap2Shelf turns that one photo into a finished kit in six steps. On the live site, photo to ZIP took ${d.pipeline.totalSeconds} seconds.`,
+    cue: (d) =>
+      `Snap2Shelf turns that one photo into a finished kit in six steps, in ${d.pipeline.headline}: our timed live runs took ${d.pipeline.range[0]} to ${d.pipeline.range[1]} seconds from photo to ZIP, and most of that spread is upload time.`,
   },
   {
     id: "cutout",
@@ -124,7 +125,7 @@ export const CHAPTERS: ChapterMeta[] = [
     seconds: () => 9,
     light: { x: 0.45, y: 0.5 },
     cue: (d) =>
-      `This kit spent ${d.cost.generationCredits} new generation credits: it reused the ${d.cost.sceneTitle} scene, which cost ${plural(d.cost.sceneCredits, "credit")} once. The ${mb(d.cost.bytesOriginal)} PNG photo is delivered as a ${kb(d.cost.bytesDeliveredFallback)} WebP at the same size, and a basic studio shoot is about ${inr(d.cost.photoshootInr)}, as an estimate.`,
+      `This kit spent ${d.cost.generationCredits} new generation credits: it reused the ${d.cost.sceneTitle} scene, which cost ${plural(d.cost.sceneCredits, "credit")} once. The ${mb(d.cost.weight.original)} photo upload becomes a ${kb(d.cost.weight.delivered)} hero: ${d.cost.weight.conditions}. A basic studio shoot is about ${inr(d.cost.photoshootInr)}, as an estimate.`,
   },
   {
     id: "shelf",
@@ -172,7 +173,7 @@ export function chapterAssets(id: ChapterId, d: PresentData): string[] {
     case "xray":
       return [d.hero.url];
     case "cost":
-      return [d.cost.deliveredUrl];
+      return [];
     case "shelf":
       return [...d.shelf.products.map((p) => p.image.url), d.shelf.share.image.url];
     case "closing":

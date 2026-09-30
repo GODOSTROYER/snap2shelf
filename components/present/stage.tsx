@@ -116,11 +116,34 @@ export function Wordmark({ size = 28 }: { size?: number }) {
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: size * 0.3 }}>
       <Mark size={size * 1.15} />
-      <span className="pz-display" style={{ fontSize: size, fontWeight: 720, letterSpacing: "-0.03em", lineHeight: 1 }}>
+      <span className="pz-display" style={{ fontSize: size, fontWeight: 720, letterSpacing: "-0.018em", lineHeight: 1 }}>
         Snap2Shelf
       </span>
     </span>
   );
+}
+
+/** True once every image is decoded (or after `maxMs`), so a build never starts on missing pixels. */
+export function useImagesReady(urls: readonly string[], maxMs = 2500) {
+  const [ready, setReady] = useState(false);
+  const key = urls.join("|");
+  useEffect(() => {
+    let live = true;
+    const done = () => live && setReady(true);
+    const timer = window.setTimeout(done, maxMs);
+    Promise.all(
+      key.split("|").map((u) => {
+        const img = new Image();
+        img.src = u;
+        return img.decode().catch(() => {});
+      }),
+    ).then(done);
+    return () => {
+      live = false;
+      window.clearTimeout(timer);
+    };
+  }, [key, maxMs]);
+  return ready;
 }
 
 /** Number of beats (timestamps in seconds since mount) that have passed. */

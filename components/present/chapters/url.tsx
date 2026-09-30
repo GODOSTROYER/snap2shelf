@@ -3,9 +3,8 @@
 import { ExternalLink } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
-import { measureDelivered } from "@/lib/present/preload";
 import { XRAY_KINDS, xrayLegend } from "@/lib/transform/xray";
-import type { XraySegment } from "@/lib/types";
+import { PLATE, type XraySegment } from "@/lib/types";
 import { CountUp, EASE, Mark, useBeat } from "../stage";
 import { abs, fmtBytes, fmtFormat, fmtInt, Rise, type ChapterProps } from "./common";
 
@@ -80,7 +79,7 @@ export function Xray({ d }: ChapterProps) {
       <div style={abs(120, 90, { width: 1680, display: "flex", justifyContent: "space-between", alignItems: "flex-end" })}>
         <div>
           <Rise as="h1" className="pz-display pz-h1" style={{ margin: 0 }}>
-            It&rsquo;s just a URL.
+            It<span className="pz-apos">&rsquo;</span>s just a URL.
           </Rise>
           <Rise delay={0.2} as="p" className="pz-lede" style={{ margin: "20px 0 0", maxWidth: "none" }}>
             Every image in this deck is a Cloudinary delivery URL. This one renders the hero.
@@ -139,7 +138,7 @@ export function Xray({ d }: ChapterProps) {
         )}
         {done && beat >= 1 && (
           <Rise y={6} style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 22, color: "var(--pz-dim)" }}>
-            <ExternalLink width={20} height={20} /> {fmtInt(built.url.length)} characters. Open it and Cloudinary renders the same image.
+            <ExternalLink width={20} height={20} /> {fmtInt(built.url.length)} characters: the full-size {PLATE.width} × {PLATE.height} hero URL. Open it and Cloudinary renders the same image.
           </Rise>
         )}
       </div>
@@ -193,27 +192,16 @@ function Meter({ label, value, ratio, delay, color, dim }: { label: string; valu
 
 export function Cost({ d }: ChapterProps) {
   const c = d.cost;
-  const [delivered, setDelivered] = useState<{ bytes: number; format: string | null }>({ bytes: c.bytesDeliveredFallback, format: c.formatDeliveredFallback });
-  const [measured, setMeasured] = useState(false);
-  useEffect(() => {
-    let live = true;
-    measureDelivered(c.deliveredUrl).then((m) => {
-      if (live && m && m.bytes > 0) {
-        setDelivered({ bytes: m.bytes, format: m.format ?? c.formatDeliveredFallback });
-        setMeasured(true);
-      }
-    });
-    return () => {
-      live = false;
-    };
-  }, [c.deliveredUrl, c.formatDeliveredFallback]);
+  // upload → hero: the same measured figure as the studio and kit receipts (lib/claims MEASURED_HERO_WEIGHT)
+  const w = c.weight;
+  const fmt = w.format ? fmtFormat(w.format) : null;
 
-  // 1 credit = 1,000 transformations; generation credits are 0 for an Exact kit
+  // transformations only: 1 credit = 1,000 transformations; generation credits are 0 for an Exact kit.
+  // AI Vision tokens (product reading, QA) are billed separately and are NOT in this figure.
   const kitCredits = c.generationCredits + c.transformations / 1000;
   const kitInr = Math.max(1, Math.round(kitCredits * c.inrPerCredit));
   const reelSeconds = d.reel ? Math.round(d.reel.seconds) : null;
   const credits = (n: number) => `${n} ${n === 1 ? "credit" : "credits"}`;
-  const fmt = delivered.format ? fmtFormat(delivered.format) : null;
 
   const RECEIPT_H = 700;
   return (
@@ -247,7 +235,7 @@ export function Cost({ d }: ChapterProps) {
           What it cost.
         </Rise>
         <Rise delay={0.3} as="p" className="pz-lede" style={{ margin: "18px 0 0", maxWidth: "none", fontSize: 26 }}>
-          And how fast: {d.pipeline.claim}.
+          And how fast: {d.pipeline.range[0]}–{d.pipeline.range[1]} s photo → ZIP in our timed live runs.
         </Rise>
       </div>
 
@@ -266,29 +254,29 @@ export function Cost({ d }: ChapterProps) {
 
         <Rise delay={1.6} style={{ display: "grid", gap: 12 }}>
           <div className="pz-display" style={{ fontSize: 44 }}>
-            {fmtBytes(c.bytesOriginal)} → <CountUp key={delivered.bytes} to={delivered.bytes / 1024} from={c.bytesOriginal / 1024} delay={1.9} duration={1.6} format={(v) => `${Math.round(v)} KB`} />
-            <span style={{ color: "var(--pz-faint)" }}>, the same photo</span>
+            {fmtBytes(w.original)} upload → <CountUp to={w.delivered / 1024} from={w.original / 1024} delay={1.9} duration={1.6} format={(v) => fmtBytes(v * 1024)} />
+            {fmt ? ` ${fmt}` : ""}
+            <span style={{ color: "var(--pz-faint)" }}>, the hero</span>
           </div>
-          {/* the conditions sit next to the number: same pixels, which format f_auto chose, where it was measured */}
-          <Meter label={`${d.product.raw.source}, ${d.product.raw.format} upload`} value={fmtBytes(c.bytesOriginal)} ratio={1} delay={1.9} color="rgb(244 236 224 / 0.28)" dim />
-          <Meter label={`Delivered${fmt ? ` as ${fmt}` : ""}, f_auto`} value={fmtBytes(delivered.bytes)} ratio={delivered.bytes / c.bytesOriginal} delay={2.2} color="var(--pz-marigold)" />
+          {/* the conditions sit next to the number: which image, its size, which format f_auto chose */}
+          <Meter label={`${d.product.raw.source}, ${d.product.raw.format} upload`} value={fmtBytes(w.original)} ratio={1} delay={1.9} color="rgb(244 236 224 / 0.28)" dim />
+          <Meter label={`Hero, delivered${fmt ? ` as ${fmt}` : ""}`} value={fmtBytes(w.delivered)} ratio={w.delivered / w.original} delay={2.2} color="var(--pz-marigold)" />
           <span className="pz-small">
-            Both {d.product.raw.width} × {d.product.raw.height} px, same pixels; f_auto,q_auto picks the format and quality.{" "}
-            {measured ? `Measured in this browser just now${fmt ? `: ${fmt}` : ""}.` : `Measured in Chrome on 30 Sep${fmt ? `: ${fmt}` : ""}, ${fmtInt(delivered.bytes)} bytes.`}
+            The photo as uploaded vs {w.conditions}, as a browser downloads it. Measured in Chrome on 30 Sep, {fmtInt(w.delivered)} bytes.
           </span>
         </Rise>
 
         <Rise delay={2.8} style={{ display: "grid", gap: 12 }}>
           <div className="pz-display" style={{ fontSize: 44 }}>
             ≈ ₹<CountUp to={kitInr} delay={3} duration={1} format={(v) => fmtInt(v)} />
-            <span style={{ color: "var(--pz-faint)" }}> vs ≈ ₹{fmtInt(c.photoshootInr)} for a photoshoot</span>
+            <span style={{ color: "var(--pz-faint)" }}> in transformation credits</span>
           </div>
           <Meter label="Studio photoshoot" value={`≈ ₹${fmtInt(c.photoshootInr)}`} ratio={1} delay={3} color="rgb(244 236 224 / 0.28)" dim />
-          <Meter label="This kit, in credits" value={`≈ ₹${fmtInt(kitInr)}`} ratio={kitInr / c.photoshootInr} delay={3.3} color="var(--pz-marigold)" />
+          <Meter label="This kit, transformations" value={`≈ ₹${fmtInt(kitInr)}`} ratio={kitInr / c.photoshootInr} delay={3.3} color="var(--pz-marigold)" />
           <span className="pz-small">
-            {c.photoshootNote}.
+            ≈ ₹{fmtInt(kitInr)} in transformation credits; AI Vision tokens not included. ≈{fmtInt(c.transformations)} transformations ≈ {kitCredits.toFixed(2)} credits, {c.inrNote}.
             <br />
-            This kit: ≈{fmtInt(c.transformations)} transformations ≈ {kitCredits.toFixed(2)} credits, {c.inrNote}.
+            {c.photoshootNote}.
           </span>
         </Rise>
       </div>

@@ -172,15 +172,18 @@
 .pz-display {
   font-family: var(--pz-font-display), ui-sans-serif, system-ui, sans-serif;
   font-weight: 760;
-  /* wdth 92 / -0.022em: tighter than this and glyphs touch at 1920×1080 ("ts", "ss", "p.") */
+  /* wdth 92 / -0.006em: at -0.022em glyphs touched at 1920×1080 ("elf" in "shelf.", "ts", "ss", "re", "ct");
+     checked by rendering every chapter headline and counting ink components per word */
   font-variation-settings: "opsz" 96, "wdth" 92;
-  letter-spacing: -0.022em;
+  letter-spacing: -0.006em;
   line-height: 0.95;
   text-wrap: balance;
 }
 .pz-h1 { font-size: 120px; }
+/* Bricolage kerns t + ’ into contact at display sizes ("it’s", "It’s"): a hair of space keeps them apart */
+.pz-apos { margin-left: 0.03em; }
 .pz-h2 { font-size: 84px; line-height: 0.98; }
-.pz-h3 { font-size: 56px; line-height: 1.02; letter-spacing: -0.02em; }
+.pz-h3 { font-size: 56px; line-height: 1.02; letter-spacing: -0.01em; }
 .pz-lede {
   font-size: 28px;
   line-height: 1.42;

@@ -5,6 +5,7 @@
  */
 const images = new Map<string, HTMLImageElement>();
 const videos = new Map<string, Promise<string>>();
+const videoReady = new Map<string, string>();
 
 export function preloadImages(urls: readonly string[]) {
   if (typeof window === "undefined") return;
@@ -49,27 +50,17 @@ export function preloadVideo(url: string): Promise<string> {
     p = fetch(url)
       .then((r) => (r.ok ? r.blob() : Promise.reject(new Error(String(r.status)))))
       .then((b) => URL.createObjectURL(b))
-      .catch(() => url);
+      .catch(() => url)
+      .then((u) => {
+        videoReady.set(url, u);
+        return u;
+      });
     videos.set(url, p);
   }
   return p;
 }
 
-/**
- * Size the browser actually downloaded for an image already on the page,
- * from Resource Timing (Cloudinary sends Timing-Allow-Origin: *). Falls back
- * to fetching it with the same Accept header an <img> sends.
- */
-export async function measureDelivered(url: string): Promise<{ bytes: number; format: string | null } | null> {
-  if (typeof window === "undefined") return null;
-  const entry = performance.getEntriesByName(url).find((e): e is PerformanceResourceTiming => "encodedBodySize" in e && (e as PerformanceResourceTiming).encodedBodySize > 0);
-  try {
-    const res = await fetch(url, { headers: { Accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8" } });
-    if (!res.ok) return entry ? { bytes: entry.encodedBodySize, format: null } : null;
-    const type = res.headers.get("content-type");
-    const bytes = entry?.encodedBodySize || (await res.blob()).size;
-    return { bytes, format: type ? type.replace(/^image\//, "").toUpperCase() : null };
-  } catch {
-    return entry ? { bytes: entry.encodedBodySize, format: null } : null;
-  }
+/** The object URL of a video preloadVideo already finished, else null (so a player can start on it at mount). */
+export function preloadedVideo(url: string): string | null {
+  return videoReady.get(url) ?? null;
 }
