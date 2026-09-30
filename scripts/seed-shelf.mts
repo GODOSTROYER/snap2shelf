@@ -19,7 +19,7 @@ const { values } = parseArgs({
     scene: { type: "string", default: "snap2shelf/scenes/diwali/final-59f4388a" },
     shop: { type: "string", default: "demo-studio" },
     title: { type: "string", default: "Demo Studio" },
-    tagline: { type: "string", default: "The Diwali edit · real products, one festive stage" },
+    tagline: { type: "string", default: "The Diwali edit · sample products, one festive stage" },
     photos: { type: "string", default: "Z:/Projects/Cloudinary/photos/decent" },
     out: { type: "string", default: "scripts/spikes/out/shelf" },
   },
