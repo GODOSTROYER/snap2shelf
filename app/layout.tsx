@@ -55,6 +55,8 @@ export const metadata: Metadata = {
     template: "%s · Snap2Shelf",
   },
   description,
+  // inline (732 bytes): a favicon.ico is one more request racing the hero on a phone
+  icons: { icon: [{ url: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAB7ElEQVR42s2XP2sacRjHP9eW9gYzVsEEx/6Jbr6AjuIUikJGx4pj6RtIIFnEtdLBvYuKeRs6lUChWzgXQaRwlyEJP54uv4NgPO+eU1O/8CzHPc/3ew/3/HuJDq+Bj8An4BT4CXwDDoC3wAvgL2DYMo6BC+AXcAdIhN3Zdy6sz8Y4Ar4D/hrSKPOt71Fa8s/ATQriZbuxsVT4CjxsgTy0BxszMbnsyGJFnGz5y1dl4iSKPA94OyQPbQocrhLQ1QYrl8vSaDTSiOguk78HAm2g0Wgk8/lccrmcVsAt8OGxgEsteaVSEWOMiIh0Op00WbgMyd8A1xpn13VlPB5LiCAIpFQqaQVcW26KwL3GudlsyjKGw6E4jqMRcG+5qWvIs9mseJ73RIAxRqrVqjYLdYAzjVO73ZYoTCYTcV1XI+AcYJbUoVgsiu/7sg6tVksjYKYS0O/3JQ7T6VRTljNsGlRlFwdFWZ4l+gmXyy4OirKsJyrDVWUXh8FgkLgM1zaiQqEgi8VC0qBWq8U2old2j7sK1TwZkfk8vV4PY3R7puM4ZDKZda9cWW6wg+H2GUZxaIEdgJuN4w2suyolh3ZZ2DW5F7WQ/PeVbC+W0r1Yy/fiMNmL0+xZjlMnxXn+zp7oJeCLff7DttbfwB/b5xPhH9+pA62ocGa7AAAAAElFTkSuQmCC", type: "image/png", sizes: "32x32" }] },
   openGraph: {
     title: "Snap2Shelf",
     description,
