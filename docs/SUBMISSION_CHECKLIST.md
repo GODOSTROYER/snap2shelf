@@ -4,6 +4,20 @@
 
 Work top to bottom. Nothing in this file is secret, and nothing secret may be added to it.
 
+## Where things stand (Wed 30 Sep)
+
+| Item | State |
+|---|---|
+| Live site | **Live:** https://snap2shelf.vercel.app (sample replay, kits, `/present`, `/shelf/demo-studio`) |
+| Repository | **Public:** https://github.com/GODOSTROYER/snap2shelf, MIT `LICENSE` at the root |
+| README | **Final pass done:** demo GIF at the top, a `## How it's built` section (anchor `#how-its-built`) with the architecture diagram and the key Cloudinary techniques, every number checked against `lib/claims.ts`, `SPIKES.md`, `data/showcase.json` and the code. One open slot: the video link. |
+| Demo GIF and social clip | **Rendered** from the live site: `docs/media/demo.gif` (800 px, 12 fps, loops, under 6 MB), `docs/media/demo-social.mp4` (1280×720 H.264, silent, about 20 s), `docs/media/poster.png`. Re-render after the final deploy: `npm run media:gif`. |
+| Demo video | **Pending, due Sat 3 Oct.** Script and shot list: `docs/VIDEO_SCRIPT.md`. |
+| Social posts | **Drafted, not posted:** `docs/SOCIAL_POSTS.md` (attach the MP4). |
+| Cloudinary survey | **Drafted, not submitted:** `docs/SURVEY_ANSWERS.md`. |
+| create-cloudinary-next bug reports | **Drafted, not filed:** `docs/UPSTREAM_ISSUES.md`. |
+| Submission form | **Pending:** section 1 below. |
+
 ---
 
 ## 1. Submission form: what to paste
@@ -33,9 +47,9 @@ Work top to bottom. Nothing in this file is secret, and nothing secret may be ad
 ### Code and repo
 - [ ] Feature freeze respected: only fixes after Fri 2 Oct 20:00.
 - [ ] `npm run lint`, `npm run typecheck` and `npm run build` pass.
-- [ ] `npm test` passes (110 tests on 30 Sep; update the count in `README.md` "Scripts" if tests were added).
+- [ ] `npm test` passes (137 tests on 30 Sep; update the count in `README.md` "Scripts" if tests were added).
 - [ ] `npm run secret-scan` prints **clean** (it checks tracked files, the staged diff and the whole git history).
-- [ ] `grep -rn "TODO(final)" README.md docs/` shows only the owner slots listed in section 3 (they are HTML comments, invisible on github.com); fill the README video slot before submitting.
+- [ ] `grep -rn "TODO" README.md` shows only the video slot (`TODO(video)`), and `grep -rn "TODO(final)" docs/` only the owner slots in section 3 (all are HTML comments, invisible on github.com). Fill the README video slot before submitting.
 - [ ] README renders on github.com in **both** light and dark themes: every image loads, every table renders.
 - [ ] Architecture diagram: after the docs branch is merged, re-upload it so the hosted PNG matches `docs/architecture.svg` (`node --import tsx scripts/docs/upload-diagram.mts`; it overwrites `snap2shelf/docs/architecture` on the main cloud). Then open `https://res.cloudinary.com/nyxyma1i/image/upload/f_png,w_1600/snap2shelf/docs/architecture` and check it shows the new route list.
 - [ ] Every number on the site, in `/present` and in the README matches `lib/claims.ts` (36 s photo → ZIP measured; ₹2,500 labelled as an estimate; credits per model).
@@ -63,6 +77,7 @@ Work top to bottom. Nothing in this file is secret, and nothing secret may be ad
 - [ ] `/present`, `/video/title` and `/video/outro` load, and `/present` autoplays with `?auto=1`.
 
 ### Content
+- [ ] After the final deploy, re-render the demo media from production: `npm run media:gif` (needs Python with `playwright` and `pillow`, and ffmpeg on PATH; about 2 minutes). It prints each file's size and length and fails if the GIF would exceed 6 MB or the clip 30 s. Look at `docs/media/poster.png` and the GIF once, then commit the three files.
 - [ ] Demo video uploaded (2:45–3:15), public or unlisted, plays while logged out, captions on. Script: `docs/VIDEO_SCRIPT.md`.
 - [ ] LinkedIn post live, with Jen Looper, Cloudinary and HackIndia tagged as real mentions. Draft: `docs/SOCIAL_POSTS.md`.
 - [ ] X post live, tagging @jenlooper, @cloudinary and HackIndia's handle.
@@ -85,10 +100,10 @@ Work top to bottom. Nothing in this file is secret, and nothing secret may be ad
 
 | Where | What |
 |---|---|
-| `README.md` "Demo video" | the video link (`<!-- TODO(final): video link -->`) |
-| `README.md` "How we built it with AI" | links to the two create-cloudinary-next GitHub issues, once filed |
-| `docs/SOCIAL_POSTS.md` | `<VIDEO_URL>`, `<GIF>`, `<HACKINDIA_OFFICIAL_HANDLE>` |
-| `docs/SURVEY_ANSWERS.md` | team name, contact email, ratings, "AI Power Start Prompt" tick, Skills Pack usage note, video link, follow-up answer, the two issue links |
+| `README.md` "Video" (under the tip box) | replace the visible "Video: coming Sat 3 Oct." line and its `<!-- TODO(video): add YouTube link -->` comment with the link |
+| `docs/UPSTREAM_ISSUES.md` | fill in the two version lines, file both reports, then link them from `README.md` ("How we built it with AI") and `docs/SURVEY_ANSWERS.md` |
+| `docs/SOCIAL_POSTS.md` | `<VIDEO_URL>`, `<HACKINDIA_OFFICIAL_HANDLE>` (the `<GIF>` attachment is ready: `docs/media/demo-social.mp4`) |
+| `docs/SURVEY_ANSWERS.md` | team name, contact email, ratings, "AI Power Start Prompt" tick, Skills Pack usage note, video link, follow-up answer, the two issue links (once filed) |
 | `docs/VIDEO_SCRIPT.md` | `<YOUR_NAME>` in the title-card line |
 | this file | form field names, video / post URLs, survey date and screenshot |
 
