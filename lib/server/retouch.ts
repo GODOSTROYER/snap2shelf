@@ -7,9 +7,9 @@ import { assertLivePipeline } from "./budget";
 import { deliveryUrl, probe, uploadToMain, type AssetInfo } from "./cld";
 import { loadProduct, updateProduct } from "./facts";
 import { HttpError } from "./http";
-import { offloadRetouch } from "./offload";
+import { offloadRetouch, prewarmCutout } from "./offload";
 import { readOnly } from "./protect";
-import { analysisSourceUrl, rawId, retouchedId, skuTag } from "./products";
+import { CUTOUT_CHAIN, analysisSourceUrl, rawId, retouchedId, skuTag } from "./products";
 import { RETOUCH_TAGS, bmpMeanLuma, planRetouch, retouchChain, retouchStateFromContext, retouchXray, type RetouchPlan } from "./retouch-plan";
 
 /**
@@ -186,6 +186,8 @@ export async function retouchProduct(sku: Sku, opts: { budgetMs?: number; before
       { critical: false },
     );
     console.info(`[retouch] ${sku}: saved ${state.chain} in ${Date.now() - t0} ms`);
+    // ── [offload] the cutout starts from this snapshot next: start its key-pool render now (≤ 2.5 s; no-op when off)
+    await prewarmCutout(up.publicId, CUTOUT_CHAIN, 2500);
     return done(up.publicId);
   };
 
