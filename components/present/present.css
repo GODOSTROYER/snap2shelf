@@ -35,18 +35,11 @@
   --pz-bubble: #2a231d;
   --pz-bubble-out: #3a2c1d;
 
-  /* X-ray kinds (tokens named by lib/transform/xray.ts), tuned for the dark stage */
-  --xray-crop: #83b4ff;
-  --xray-layer: #4fd7a5;
-  --xray-placement: #4fd3c4;
-  --xray-shadow: #b8a3ff;
-  --xray-reflection: #62d8ee;
-  --xray-effect: #f8bd52;
-  --xray-gen-ai: #f58ac0;
-  --xray-text: #ff9f63;
-  --xray-format: #a9b5c6;
-  --xray-asset: #d8cebf;
-  --xray-video: #ff8585;
+  /*
+   * X-ray kinds: no overrides here. The deck reads the site's own --xray-* tokens
+   * (app/globals.css :root, the names lib/transform/xray.ts XRAY_KINDS expects),
+   * so a colour means the same thing on the stage as in the studio.
+   */
 
   --pz-ease: cubic-bezier(0.16, 1, 0.3, 1);
 
@@ -141,12 +134,18 @@
   background: radial-gradient(ellipse 78% 72% at 50% 46%, transparent 55%, rgb(0 0 0 / 0.5) 100%);
 }
 
+/*
+ * Grain lives UNDER the artboard (z 1 < 2): it textures the dark studio and
+ * never paints noise on a product. Still (no jitter) in the recorded feed
+ * (clean=1) and on the video cards: animated noise turns into blocky
+ * shimmer after a video re-encode.
+ */
 .pz-grain {
   position: absolute;
   inset: -12%;
   pointer-events: none;
-  z-index: 4;
-  opacity: 0.055;
+  z-index: 1;
+  opacity: 0.03;
   background-repeat: repeat;
   animation: pz-grain 0.9s steps(1) infinite;
 }
@@ -160,6 +159,10 @@
   75% { transform: translate3d(7%, -4%, 0); }
   87% { transform: translate3d(-6%, -7%, 0); }
 }
+.pz-root[data-clean="true"] .pz-grain,
+.pz-video-root .pz-grain {
+  animation: none;
+}
 @media (prefers-reduced-motion: reduce) {
   .pz-grain { animation: none; }
 }
@@ -169,14 +172,15 @@
 .pz-display {
   font-family: var(--pz-font-display), ui-sans-serif, system-ui, sans-serif;
   font-weight: 760;
-  font-variation-settings: "opsz" 96, "wdth" 88;
-  letter-spacing: -0.035em;
+  /* wdth 92 / -0.022em: tighter than this and glyphs touch at 1920×1080 ("ts", "ss", "p.") */
+  font-variation-settings: "opsz" 96, "wdth" 92;
+  letter-spacing: -0.022em;
   line-height: 0.95;
   text-wrap: balance;
 }
 .pz-h1 { font-size: 120px; }
 .pz-h2 { font-size: 84px; line-height: 0.98; }
-.pz-h3 { font-size: 56px; line-height: 1.02; letter-spacing: -0.03em; }
+.pz-h3 { font-size: 56px; line-height: 1.02; letter-spacing: -0.02em; }
 .pz-lede {
   font-size: 28px;
   line-height: 1.42;

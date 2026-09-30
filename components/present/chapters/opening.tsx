@@ -267,6 +267,10 @@ export function Cutout({ d }: ChapterProps) {
           transition={{ delay: D0, duration: DUR, times, ease: [0.65, 0, 0.35, 1] }}
         >
           <Img src={raw.url} alt={raw.alt} className="pz-fill" fade={false} />
+          {/* the label rides on the photo, so it is on screen exactly as long as the photo is (samples are AI-generated test images) */}
+          <span className="pz-chip" style={{ position: "absolute", right: 22, top: 22 }}>
+            {raw.disclosure ? `${raw.source} · AI test image` : raw.source}
+          </span>
         </motion.div>
         {!reduced && (
           <motion.div
@@ -278,13 +282,8 @@ export function Cutout({ d }: ChapterProps) {
           />
         )}
 
-        <motion.div
-          style={{ position: "absolute", left: 22, right: 22, top: 22, display: "flex", justifyContent: "space-between", pointerEvents: "none" }}
-          animate={{ opacity: beat === 2 ? 1 : 0 }}
-          transition={{ duration: 0.35 }}
-        >
+        <motion.div style={{ position: "absolute", left: 22, top: 22, pointerEvents: "none" }} initial={{ opacity: 0 }} animate={{ opacity: beat === 2 ? 1 : 0 }} transition={{ duration: 0.35 }}>
           <span className="pz-chip">Cutout</span>
-          <span className="pz-chip">{raw.source}</span>
         </motion.div>
       </div>
     </>

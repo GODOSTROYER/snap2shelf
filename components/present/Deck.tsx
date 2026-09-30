@@ -249,6 +249,7 @@ export function Deck({ data, initial }: DeckProps) {
       <main
         className="pz-root"
         data-idle={idle && !help && !notes}
+        data-clean={clean}
         aria-roledescription="presentation"
         aria-label="Snap2Shelf, director's cut"
         onPointerDown={onPointerDown}
