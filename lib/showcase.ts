@@ -38,6 +38,8 @@ export interface SampleProduct {
   heroPublicId: string; // the approved composite, saved once as its own asset
   /** The phone photo cropped (and extended) so its product sits exactly where the hero places it, 1080×1350. */
   beforePublicId?: string;
+  /** Same, as a ready delivery URL (seeded data: beforeAfter[].rawAlignedUrl). */
+  beforeUrl?: string;
   offer: { hindi: string; english: string };
   swatches: string[];
   qa: QaResult; // the verdict the replay shows (measured)
@@ -424,6 +426,7 @@ interface SeededShowcase {
   kits: SeededKit[];
   beforeAfter?: { sku: Sku; rawAlignedUrl?: string }[];
 }
+const seededBefore = (data: SeededShowcase, sku: Sku) => data.beforeAfter?.find((b) => b.sku === sku)?.rawAlignedUrl;
 const SEEDED: SeededShowcase | null = null;
 
 function fromSeeded(data: SeededShowcase): SampleProduct[] {
@@ -440,6 +443,7 @@ function fromSeeded(data: SeededShowcase): SampleProduct[] {
         controls: k.controls!,
         heroPublicId: k.hero.publicId!,
         beforePublicId: undefined,
+        beforeUrl: seededBefore(data, k.sku),
         offer: { hindi: "", english: "" },
         swatches: k.assets.filter((a) => a.id.startsWith("recolor-")).map((a) => a.id.slice(8)),
         qa: k.hero.qa ?? last?.qa ?? QA_OK(k.createdAt),
@@ -470,6 +474,8 @@ export function heroAt(kit: Kit, w: number) {
 /** The phone photo, aligned with the hero for the wipe slider (falls back to a centre crop). */
 export function beforeAt(s: SampleProduct, w: number) {
   if (s.beforePublicId) return stored(s.beforePublicId, w);
+  if (s.beforeUrl?.includes("/f_auto,q_auto/")) return s.beforeUrl.replace("/f_auto,q_auto/", `/c_scale,w_${w}/f_auto,q_auto/`);
+  if (s.beforeUrl) return s.beforeUrl;
   return `${deliveryBase(SHOWCASE_CLOUD)}/c_fill,ar_4:5,g_auto,w_${w}/f_auto,q_auto/${s.product.rawPublicId}`;
 }
 
