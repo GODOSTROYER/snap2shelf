@@ -54,7 +54,7 @@ export function XraySteps({ segments, withCode, className }: { segments: XraySeg
               <span className="text-paper/90">{s.label}</span>
             </p>
             {withCode ? (
-              <code className="mt-1 block truncate font-mono text-[0.72rem] text-faint" title={s.text}>
+              <code className="mt-1 block truncate font-mono text-[0.75rem] text-faint" title={s.text}>
                 {s.text}
               </code>
             ) : null}

@@ -86,7 +86,7 @@ export function PipelineRail({ status, notes, fixed }: { status: Record<Pipeline
                   />
                 ) : null}
               </motion.span>
-              <span className={cn("text-[0.7rem] leading-tight font-semibold transition-colors duration-300 sm:text-[0.78rem]", st === "waiting" ? "text-faint" : "text-paper")}>
+              <span className={cn("text-[0.75rem] leading-tight font-semibold transition-colors duration-300 sm:text-[0.78rem]", st === "waiting" ? "text-faint" : "text-paper")}>
                 {s.label}
                 <span className="sr-only">: {st === "waiting" ? "not started" : st === "active" ? "in progress" : st === "done" ? "done" : "failed"}</span>
               </span>

@@ -40,7 +40,7 @@ export function HowItWorks({ kit }: { kit: Kit }) {
         <div className="relative size-full">
           <CloudImg src={publicUrl(CREATIVE_REJECTED.publicId!, { w: 480, h: 600, crop: "c_fill,g_auto" })} alt={CREATIVE_REJECTED.alt} width={480} height={600} className="size-full object-cover" />
           <QaBadge qa={CREATIVE_REJECTED.qa!} className="absolute top-3 left-3 bg-studio/85 backdrop-blur-sm" />
-          <ul className="absolute inset-x-0 bottom-0 grid gap-1 bg-gradient-to-t from-black/85 via-black/60 to-transparent px-3 pt-10 pb-3 text-[0.74rem] leading-snug font-semibold text-white">
+          <ul className="absolute inset-x-0 bottom-0 grid gap-1 bg-gradient-to-t from-black/85 via-black/60 to-transparent px-3 pt-10 pb-3 text-[0.75rem] leading-snug font-semibold text-white">
             {CREATIVE_REJECTED.qa!.reasons.map((r) => (
               <li key={r} className="flex gap-1.5">
                 <span aria-hidden className="mt-[0.4em] size-1.5 shrink-0 rounded-full bg-sindoor" />

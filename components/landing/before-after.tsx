@@ -85,7 +85,7 @@ export function BeforeAfter({ before, after, sizes, width, height }: { before: I
         alt={before.alt}
         width={width}
         height={height}
-        fetchPriority="high"
+        fetchPriority="auto"
         decoding="async"
         onLoad={onImg}
         style={before.placeholder ? { backgroundImage: `url("${before.placeholder}")` } : undefined}
@@ -95,10 +95,13 @@ export function BeforeAfter({ before, after, sizes, width, height }: { before: I
       <span className="pointer-events-none absolute top-3.5 left-3.5 rounded-full bg-black/55 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-sm sm:top-4 sm:left-4">Your phone photo</span>
       <span className="pointer-events-none absolute top-3.5 right-3.5 rounded-full bg-marigold px-3 py-1.5 text-xs font-semibold text-marigold-ink sm:top-4 sm:right-4">Shelf-ready hero</span>
 
-      <div aria-hidden className="pointer-events-none absolute inset-y-0 left-(--pos) z-10 w-0.5 -translate-x-1/2 bg-white/90 shadow-[0_0_20px_rgb(0_0_0/0.6)]">
-        <span className="absolute top-1/2 left-1/2 grid size-12 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-white text-studio shadow-[0_8px_24px_rgb(0_0_0/0.45)] transition-transform duration-200 group-has-[input:focus-visible]:ring-4 group-has-[input:focus-visible]:ring-marigold group-active:scale-95">
-          <ChevronsLeftRight className="size-5" />
-        </span>
+      {/* a full-width layer moved by transform (never layout), so the handle can follow --pos without shifting anything */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 z-10 translate-x-(--pos) will-change-transform">
+        <div className="absolute inset-y-0 left-0 w-0.5 -translate-x-1/2 bg-white/90 shadow-[0_0_20px_rgb(0_0_0/0.6)]">
+          <span className="absolute top-1/2 left-1/2 grid size-12 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-white text-studio shadow-[0_8px_24px_rgb(0_0_0/0.45)] transition-transform duration-200 group-has-[input:focus-visible]:ring-4 group-has-[input:focus-visible]:ring-marigold group-active:scale-95">
+            <ChevronsLeftRight className="size-5" />
+          </span>
+        </div>
       </div>
 
       <input

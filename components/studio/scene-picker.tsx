@@ -45,7 +45,7 @@ export function ScenePicker({ scenes, selected, onSelect, disabled }: { scenes: 
               alt=""
               className="aspect-[4/5] w-full object-cover transition-transform duration-500 ease-(--ease-out-expo) group-hover:scale-[1.04]"
             />
-            <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-2 pt-6 pb-1.5 text-[0.72rem] leading-tight font-semibold text-white">{s.title}</span>
+            <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-2 pt-6 pb-1.5 text-[0.75rem] leading-tight font-semibold text-white">{s.title}</span>
             {on ? (
               <span className="absolute top-1.5 right-1.5 grid size-5 place-items-center rounded-full bg-marigold text-marigold-ink">
                 <Check className="size-3.5" aria-hidden />

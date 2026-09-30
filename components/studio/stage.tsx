@@ -102,7 +102,7 @@ export const Stage = React.forwardRef<
           ) : null}
         </AnimatePresence>
         {busyLabel ? (
-          <span className="inline-flex items-center gap-2 rounded-full bg-studio/85 px-2.5 py-1 text-[0.74rem] leading-none font-semibold text-paper backdrop-blur-sm">
+          <span className="inline-flex items-center gap-2 rounded-full bg-studio/85 px-2.5 py-1 text-[0.75rem] leading-none font-semibold text-paper backdrop-blur-sm">
             <span className="size-1.5 animate-pulse rounded-full bg-marigold" />
             {busyLabel}
           </span>

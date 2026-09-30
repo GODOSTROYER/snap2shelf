@@ -114,6 +114,7 @@ function dealCards(root: HTMLElement, cards: HTMLElement[], from: () => DOMRect 
     state.cancelled = true;
     state.layer?.remove();
     cards.forEach((c) => (c.style.opacity = ""));
+    cards.forEach((c) => tagOf(c)?.style.removeProperty("opacity"));
   };
   const done = flyCards(root, cards, from, state).then(
     () => !state.cancelled,
@@ -128,6 +129,14 @@ function dealCards(root: HTMLElement, cards: HTMLElement[], from: () => DOMRect 
 async function flyCards(root: HTMLElement, cards: HTMLElement[], from: () => DOMRect | null, state: { cancelled: boolean; layer: HTMLElement | null }) {
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   cards.forEach((c) => (c.style.opacity = "0"));
+  // shelf-edge tags arrive with their card
+  cards.forEach((c) => tagOf(c)?.style.setProperty("opacity", "0"));
+  const showTag = (c: HTMLElement) => {
+    const t = tagOf(c);
+    if (!t) return;
+    t.style.removeProperty("opacity");
+    void animate(t, { opacity: [0, 1], y: [-4, 0] }, { duration: 0.35, ease: [0.16, 1, 0.3, 1] });
+  };
   // Load every card's image while we scroll, so no card is dealt face-down.
   const imgs = cards.flatMap((c) => Array.from(c.querySelectorAll("img")));
   imgs.forEach((i) => (i.loading = "eager"));
@@ -141,6 +150,7 @@ async function flyCards(root: HTMLElement, cards: HTMLElement[], from: () => DOM
       cards.map((c) =>
         animate(c, { opacity: [0, 1] }, { duration: 0.25 }).then(() => {
           c.style.opacity = "";
+          showTag(c);
         }),
       ),
     );
@@ -205,12 +215,15 @@ async function flyCards(root: HTMLElement, cards: HTMLElement[], from: () => DOM
     ).then(() => {
       if (state.cancelled) return;
       g.card.style.opacity = "";
+      showTag(g.card);
       g.ghost.remove();
     }),
   );
   await Promise.all(flights);
   layer.remove();
 }
+
+const tagOf = (card: HTMLElement) => card.parentElement?.querySelector<HTMLElement>("[data-tag]") ?? null;
 
 /** Scroll the shelves to the top of the viewport (if they aren't already) and wait for it to settle. */
 function bringIntoView(el: HTMLElement, reduced: boolean) {

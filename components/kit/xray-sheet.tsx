@@ -51,7 +51,7 @@ function XrayBody({ asset }: { asset: KitAsset }) {
           <XraySteps segments={x.segments} withCode />
         </>
       ) : (
-        <pre className="overflow-x-auto rounded-xl bg-studio p-4 font-mono text-[0.74rem] leading-relaxed text-dim ring-1 ring-line">
+        <pre className="overflow-x-auto rounded-xl bg-studio p-4 font-mono text-[0.75rem] leading-relaxed text-dim ring-1 ring-line">
           {JSON.stringify(x.json, null, 2)}
         </pre>
       )}
@@ -87,7 +87,7 @@ function QaPanel({ qa }: { qa: QaResult }) {
           </li>
         ) : null}
       </ul>
-      {qa.matched.length ? <p className="mt-3 font-mono text-[0.72rem] text-faint">AI Vision tags: {qa.matched.join(", ")}</p> : null}
+      {qa.matched.length ? <p className="mt-3 font-mono text-[0.75rem] text-faint">AI Vision tags: {qa.matched.join(", ")}</p> : null}
     </div>
   );
 }

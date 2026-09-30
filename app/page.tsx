@@ -86,6 +86,7 @@ export default async function Home() {
                     alt=""
                     width={a.width}
                     height={a.height}
+                    loading="lazy"
                     decoding="async"
                     className="fan-card absolute rounded-xl bg-stage-2 shadow-[0_30px_60px_-20px_rgb(0_0_0/0.95)] ring-1 ring-white/10"
                     style={{ left: pose.left, top: pose.top, width: pose.w, rotate: pose.r, zIndex: pose.z, "--i": i } as React.CSSProperties}
@@ -111,7 +112,7 @@ export default async function Home() {
             {/* the hero stands on the same lit shelf as everything it produces */}
             <div aria-hidden className="shelf-ledge relative z-10 -mx-3 -mt-1 sm:-mx-6" />
             <figcaption className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-dim sm:mt-3.5">
-              <span className="hidden rounded-t-[2px] rounded-b-[5px] bg-paper px-2 py-1 text-[0.74rem] leading-none font-semibold text-studio shadow-[0_6px_14px_-6px_rgb(0_0_0/0.8)] sm:inline">
+              <span className="hidden rounded-t-[2px] rounded-b-[5px] bg-paper px-2 py-1 text-[0.75rem] leading-none font-semibold text-studio shadow-[0_6px_14px_-6px_rgb(0_0_0/0.8)] sm:inline">
                 Hero 4:5 <span className="tabular ml-1 font-medium text-studio/60">1080 × 1350</span>
               </span>
               <span className="sm:hidden">Drag to compare. Same sneaker, new stage.</span>
@@ -140,7 +141,7 @@ export default async function Home() {
         </section>
 
         {/* The shelf */}
-        <section aria-labelledby="shelf-title" className="mx-auto max-w-[90rem] pb-24">
+        <section aria-labelledby="shelf-title" className="below-fold mx-auto max-w-[90rem] pb-24 [contain-intrinsic-size:auto_1500px]">
           <div className="flex flex-col gap-4 px-4 sm:flex-row sm:items-end sm:justify-between sm:px-8">
             <div className="max-w-[40rem]">
               <h2 id="shelf-title" className="text-[clamp(2rem,5vw,3.25rem)] leading-[1] font-bold tracking-[-0.03em]">
@@ -159,7 +160,7 @@ export default async function Home() {
         </section>
 
         {/* How it works */}
-        <section id="how" aria-labelledby="how-title" className="scroll-mt-4 border-t border-line">
+        <section id="how" aria-labelledby="how-title" className="below-fold scroll-mt-4 border-t border-line [contain-intrinsic-size:auto_900px]">
           <div className="mx-auto max-w-[90rem] px-4 py-20 sm:px-8 lg:py-28">
             <h2 id="how-title" className="max-w-[40rem] text-[clamp(2rem,5vw,3.25rem)] leading-[1] font-bold tracking-[-0.03em]">
               How it works
@@ -172,7 +173,7 @@ export default async function Home() {
         </section>
 
         {/* All Cloudinary */}
-        <section aria-labelledby="url-title" className="border-t border-line">
+        <section aria-labelledby="url-title" className="below-fold border-t border-line [contain-intrinsic-size:auto_1400px]">
           <div className="mx-auto max-w-[90rem] px-4 py-20 sm:px-8 lg:py-28">
             <div className="max-w-[44rem]">
               <h2 id="url-title" className="text-[clamp(2rem,5vw,3.25rem)] leading-[1] font-bold tracking-[-0.03em]">

@@ -110,12 +110,12 @@ export function ReelVideo({ src, poster, label, ready = true, className }: { src
         className="size-full object-cover"
       />
       {phase === "rendering" ? (
-        <p role="status" className="absolute inset-x-3 bottom-16 flex items-center justify-center gap-2 rounded-lg bg-black/70 px-2 py-1.5 text-center text-[0.72rem] font-semibold text-white backdrop-blur-sm">
+        <p role="status" className="absolute inset-x-3 bottom-16 flex items-center justify-center gap-2 rounded-lg bg-black/70 px-2 py-1.5 text-center text-[0.75rem] font-semibold text-white backdrop-blur-sm">
           <span aria-hidden className="size-1.5 animate-pulse rounded-full bg-marigold" />
           Cloudinary is rendering the reel{waited ? ` (${waited} s)` : "…"}
         </p>
       ) : phase === "failed" ? (
-        <p role="status" className="absolute inset-x-3 bottom-16 rounded-lg bg-black/70 p-2 text-center text-[0.72rem] text-white">
+        <p role="status" className="absolute inset-x-3 bottom-16 rounded-lg bg-black/70 p-2 text-center text-[0.75rem] text-white">
           The reel is taking longer than usual. Tap play to try again.
         </p>
       ) : null}
