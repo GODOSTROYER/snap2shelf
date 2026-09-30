@@ -1,0 +1,37 @@
+import { z } from "zod";
+import type { PackResponse } from "@/lib/api-contract";
+import { mainCloud } from "@/lib/server/cld";
+import { checkMainImageUrl } from "@/lib/server/guard";
+import { badRequest, chargeOpenOp, readJson, route, skuSchema } from "@/lib/server/http";
+import { startPack } from "@/lib/server/pack";
+
+export const runtime = "nodejs";
+export const maxDuration = 30;
+
+const offerText = z
+  .string()
+  .trim()
+  .max(40)
+  .regex(/^[^\u0000-\u001f<>]*$/)
+  .optional();
+const schema = z.object({
+  sku: skuSchema,
+  heroUrl: z.string().min(1).max(2048),
+  sceneSlug: z.string().regex(/^[a-z0-9-]{1,40}$/),
+  offer: z.object({ hindi: offerText, english: offerText }).optional(),
+  recolor: z
+    .array(z.string().regex(/^#?[0-9a-fA-F]{6}$/).transform((h) => h.replace(/^#/, "").toLowerCase()))
+    .max(4)
+    .optional(),
+  textZone: z.enum(["top", "bottom", "left", "right", "top_left", "top_right", "none"]).optional(),
+});
+
+/** POST /api/pack → save the hero and start materialising the Channel Pack. Poll GET /api/pack/:sku. */
+export const POST = route("pack", async (req, session) => {
+  const body = await readJson(req, schema);
+  const check = checkMainImageUrl(body.heroUrl, mainCloud());
+  if (!check.ok) throw badRequest("The hero image must be one made in this app.");
+  const charged = chargeOpenOp(session);
+  const out = await startPack(body);
+  return { body: out satisfies PackResponse, session: charged };
+});
