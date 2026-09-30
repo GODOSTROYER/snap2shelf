@@ -43,7 +43,9 @@ interface Breaker {
   lastLimitedAt: number | null;
 }
 
-const breakers = new Map<string, Breaker>();
+/** Per Node process (globalThis), shared by every route bundle: one 420 pauses them all. */
+const G = globalThis as unknown as { __s2sAdminBreakers?: Map<string, Breaker> };
+const breakers: Map<string, Breaker> = (G.__s2sAdminBreakers ??= new Map());
 
 function breaker(account: string): Breaker {
   let b = breakers.get(account);
