@@ -166,7 +166,7 @@ export const CREATIVE_MODELS = [
 
 export function heroAlt(p: ProductRecord, scene: Scene) {
   const name = p.understanding?.name ?? "Your product";
-  return `${name}, staged on ${scene.title.toLowerCase()}`;
+  return `${name}, staged in the ${scene.title} scene`;
 }
 
 function sampleKit(s: SampleProduct): Kit {

@@ -49,7 +49,7 @@ export function reelUrl(i: ReelInput): { url: string; xray: BuiltUrl; seconds: n
 
   if (i.caption?.trim()) {
     push(
-      `l_text:Noto%20Sans%20Devanagari@google_64_700:${encodeOverlayText(i.caption.trim())},co_white/fl_layer_apply,g_north,y_90`,
+      `l_text:Noto%20Sans%20Devanagari@google_64_700:${encodeOverlayText(i.caption.trim())},co_white/fl_layer_apply,g_north,y_170`,
       "text",
       "Caption held across every shot (Google font, no upload)",
     );
