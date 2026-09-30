@@ -215,3 +215,15 @@ test("x-ray: describeTransformation splits our URLs into the same layer blocks",
   for (const k of Object.keys(XRAY_KINDS)) assert.match(XRAY_KINDS[k as keyof typeof XRAY_KINDS].token, /^--xray-/);
   assert.ok(xrayLegend(d.segments).length >= 4);
 });
+
+test("og image: up to 4 centred tiles, JPEG, Devanagari font for Hindi names", async () => {
+  const { ogImageUrl, OG } = await import("../lib/transform/og.ts");
+  const b = ogImageUrl({ heroes: ["h/1", "h/2", "h/3", "h/4", "h/5"], shopName: "Meera's, Home / Store" });
+  assert.equal(b.segments.filter((s) => s.kind === "layer").length, 4);
+  assert.match(b.url, /f_jpg,q_80\/h\/1$/);
+  const xs = [...b.transformation.matchAll(/g_north_west,x_(\d+),y_(\d+)/g)].map((m) => Number(m[1]));
+  assert.ok(xs[0] >= 0 && xs[3] + 272 <= OG.width);
+  assert.match(b.transformation, /Meera's%252C%20Home%20%252F%20Store/);
+  assert.match(ogImageUrl({ heroes: ["h/1"], shopName: "मीरा होम स्टोर" }).transformation, /Noto%20Sans%20Devanagari@google_64_700/);
+  assert.throws(() => ogImageUrl({ heroes: [], shopName: "x" }));
+});
