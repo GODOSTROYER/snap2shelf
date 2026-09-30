@@ -14,6 +14,8 @@ const SECURITY_HEADERS = [
 ];
 
 const nextConfig: NextConfig = {
+  // no dev badge in screen recordings
+  devIndicators: false,
   env: {
     // Analytics: Mark this project as created via create-cloudinary-next CLI
     CLOUDINARY_SOURCE: "cli",

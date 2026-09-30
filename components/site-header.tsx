@@ -35,7 +35,7 @@ export function SiteHeader({ current, children }: { current: Section; children?:
     <>
       <a
         href="#main"
-        className="sr-only z-50 rounded-full bg-marigold px-4 py-2.5 text-sm font-semibold text-marigold-ink focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
+        className="sr-only z-50 rounded-full bg-marigold px-4 py-2.5 text-sm font-semibold text-marigold-ink focus-visible:not-sr-only focus-visible:fixed focus-visible:top-3 focus-visible:left-3"
       >
         Skip to content
       </a>

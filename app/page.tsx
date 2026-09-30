@@ -161,7 +161,7 @@ export default async function Home() {
                 Open this kit
                 <ArrowUpRight />
               </Link>
-              <Link href={DEMO_SHELF.path} className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-paper underline decoration-marigold/60 underline-offset-4 hover:decoration-marigold">
+              <Link href={DEMO_SHELF.path} prefetch={false} className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-paper underline decoration-marigold/60 underline-offset-4 hover:decoration-marigold">
                 <Store aria-hidden className="size-4 text-marigold" />
                 See a shop built from the sample products
               </Link>
@@ -202,7 +202,8 @@ export default async function Home() {
                   built={hero.xray}
                   note={
                     <>
-                      Each <code className="font-mono text-[0.9em] break-all text-paper/90">l_{kit.product.cutout?.publicId.replaceAll("/", ":")}</code> layer is this sample
+                      Each <code className="font-mono text-[0.9em] break-all text-paper/90">l_{kit.product.cutout?.publicId.replaceAll("/", ":")}</code>{" "}
+                      layer is this sample
                       sneaker&apos;s cut-out, stored once on the demo cloud. A kit from your own photo layers your own cut-out.
                     </>
                   }
