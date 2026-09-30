@@ -581,17 +581,22 @@ export function fromKits(kits: Kit[], x: PresentExtras = EXTRAS, featuredSku?: s
   const stageKits = kits.filter((o) => o.product.cutout?.publicId === cut.publicId && o.scene);
   const stageScenes: Scene[] = [];
   for (const s of [sc, ...stageKits.map((o) => o.scene!), ...x.stageScenes]) if (!stageScenes.some((t) => t.publicId === s.publicId)) stageScenes.push(s);
+  // Product-locked: every stage is composited with the hero's own placement (the featured scene's
+  // anchor and this kit's controls), so the product lands on the same pixels in every scene and
+  // the deck can wipe between them without it moving. Each scene keeps its own light: cast
+  // shadow, reflection, contact shadows and light-match all still come from that scene's DNA.
+  const locked = (s: Scene): SceneDNA => ({ ...s.dna, anchor_x: sc.dna.anchor_x, anchor_y: sc.dna.anchor_y, surface_width: sc.dna.surface_width });
   const stages: StageShot[] = stageScenes.slice(0, 4).map((s) => {
-    const c = quantise(defaultControls(placement, s.dna, cut));
-    const b = compositeUrl({ scenePublicId: s.publicId, dna: s.dna, cutout: cut, placement, controls: c, format: VERIFIED_FMT, cloud });
+    const b = compositeUrl({ scenePublicId: s.publicId, dna: locked(s), cutout: cut, placement, controls, format: VERIFIED_FMT, cloud });
     return {
       scene: s,
       image: { url: b.url, width: PLATE.width, height: PLATE.height, alt: `${listingTitle} on the ${s.title} scene` },
-      baseY: geometry(cut, s.dna, c, placement).baseY / PLATE.height,
+      baseY: g.baseY / PLATE.height,
       credits: 0, // reused from the library: the scene's own cost (scene.credits) was paid once, when it was generated
     };
   });
 
+  // stages[0] is this same URL: the hero on screen, the X-ray and the pixel proof share one geometry (g)
   const heroBuilt = compositeUrl({ scenePublicId: sc.publicId, dna: sc.dna, cutout: cut, placement, controls, format: VERIFIED_FMT, cloud });
   const offerAsset = k.assets.find((a) => a.format === "offer");
   const offerText = { hindi: OFFER.hindi, english: OFFER.english };
@@ -680,7 +685,7 @@ export function fromKits(kits: Kit[], x: PresentExtras = EXTRAS, featuredSku?: s
       box: { x: g.px / PLATE.width, y: g.py / PLATE.height, w: g.pw / PLATE.width, h: g.ph / PLATE.height },
       textZone: { x: card.x / PLATE.width, y: card.y / PLATE.height, w: card.w / PLATE.width, h: card.h / PLATE.height },
     },
-    hero: { url: stages[0]?.image.url ?? k.hero.url, width: PLATE.width, height: PLATE.height, alt: k.hero.alt, built: heroBuilt },
+    hero: { url: heroBuilt.url, width: PLATE.width, height: PLATE.height, alt: k.hero.alt, built: heroBuilt },
     stages,
     qa: qaFromKits(kits) ?? x.qaFallback,
     pack,

@@ -73,17 +73,18 @@ export const CHAPTERS: ChapterMeta[] = [
   {
     id: "dna",
     title: "Scene DNA",
-    seconds: () => 12,
+    seconds: () => 15,
     light: { x: 0.7, y: 0.48 },
-    cue: () => "AI Vision reads each scene once: where the surface is, where the light comes from, where text fits. The product lands on that anchor and its shadow falls away from the light.",
+    cue: () =>
+      "AI Vision reads each scene once: where the surface is, where the light comes from, where text fits. The product lands on that anchor and its shadow falls away from the light. Lay the original cut-out over the render in difference mode and the product goes black: only the light changed.",
   },
   {
     id: "stages",
     title: "Every stage",
-    seconds: () => 9,
-    light: { x: 0.55, y: 0.5 },
+    seconds: () => 10,
+    light: { x: 0.6, y: 0.5 },
     cue: (d) =>
-      `The product is never regenerated. The same cutout goes onto ${plural(d.stages.length, "library scene")}. Each scene was generated once; reusing it costs 0 credits.`,
+      `The product never moves and is never regenerated: the same cutout, on the same pixels, goes onto ${plural(d.stages.length, "library scene")}, and only the light changes. Each scene was generated once; reusing it costs 0 credits.`,
   },
   {
     id: "qa",
