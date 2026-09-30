@@ -17,6 +17,7 @@ import { countAssets } from "@/lib/client/kit-view";
 import { loadKit } from "@/lib/client/kit-loader";
 import { sampleCost, sampleReadiness } from "@/lib/client/sample-data";
 import type { ReadinessReport } from "@/lib/readiness";
+import { zipUrl } from "@/lib/server/pack";
 import { measureReadiness } from "@/lib/shelf/measure";
 import { getSample, heroAt, heroLqip } from "@/lib/showcase";
 import { ogImageUrl } from "@/lib/transform/og";
@@ -45,6 +46,15 @@ export default async function KitPage({ params }: Props) {
   const name = kit.product.understanding?.name ?? "Your product";
   const sample = getSample(sku);
   const heroSrc = (w: number) => heroAt(kit, w);
+  // a saved kit's pack downloads as one zip: signed here (no API call), valid for an hour
+  let zip = kit.zipUrl;
+  if (!zip && !sample && kit.assets.length) {
+    try {
+      zip = zipUrl(kit.sku);
+    } catch {
+      zip = undefined;
+    }
+  }
 
   return (
     <>
@@ -74,8 +84,8 @@ export default async function KitPage({ params }: Props) {
               <Link href="/studio" className={buttonVariants({ size: "lg" })}>
                 Make a kit for your product
               </Link>
-              {kit.zipUrl ? (
-                <a href={kit.zipUrl} className={buttonVariants({ size: "lg", variant: "secondary" })}>
+              {zip ? (
+                <a href={zip} className={buttonVariants({ size: "lg", variant: "secondary" })}>
                   <Download />
                   Download all (.zip)
                 </a>
@@ -85,7 +95,7 @@ export default async function KitPage({ params }: Props) {
                 </Link>
               ) : null}
             </div>
-            {kit.zipUrl && sample ? (
+            {zip && sample ? (
               <p className="mt-4 text-sm text-dim">
                 <Link href={`/studio?sample=${kit.sku}`} className="font-medium text-paper underline decoration-marigold/60 hover:decoration-marigold">
                   Watch this kit being made

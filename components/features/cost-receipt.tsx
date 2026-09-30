@@ -209,12 +209,12 @@ function Printed({ data, photoshootInr }: { data: CostResponse; photoshootInr: n
           ) : null}
 
           <Rule />
-          <div className="flex items-end justify-between gap-3">
+          <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-1">
             <div>
               <p className="font-semibold">Photoshoot you skipped</p>
               <p className="text-[0.7rem] text-studio/60">Estimate, for scale</p>
             </div>
-            <p className="font-display text-[1.9rem] leading-none font-bold tracking-[-0.02em]">
+            <p className="font-display text-[1.9rem] leading-none font-bold tracking-[-0.02em] whitespace-nowrap">
               ≈ <CountUp value={photoshootInr} format={inr} delay={at(lines.length + 2)} duration={1300} />
             </p>
           </div>
