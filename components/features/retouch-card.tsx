@@ -26,6 +26,12 @@ export interface RetouchCardProps {
   onError?: (message: string) => void;
   client?: FeaturesClient;
   className?: string;
+  /**
+   * "always": the photo sits in the card while it's read (standalone use).
+   * "result": the host already shows the photo (the studio stage), so the card only
+   * brings in the before/after once a fix lands.
+   */
+  frame?: "always" | "result";
 }
 
 type Phase =
@@ -40,7 +46,7 @@ type Phase =
  * named while Cloudinary derives them, then a drag compare shows before and
  * after, what was fixed, and the exact transformation that did it.
  */
-export function RetouchCard({ sku, autoStart = true, onDone, onError, client = featuresClient, className }: RetouchCardProps) {
+export function RetouchCard({ sku, autoStart = true, onDone, onError, client = featuresClient, className, frame = "always" }: RetouchCardProps) {
   const [phase, setPhase] = React.useState<Phase>(autoStart ? { kind: "reading" } : { kind: "idle" });
   const [xrayOpen, setXrayOpen] = React.useState(false);
   const ac = React.useRef<AbortController | null>(null);
@@ -150,7 +156,7 @@ export function RetouchCard({ sku, autoStart = true, onDone, onError, client = f
         ) : null}
       </div>
 
-      <div className="mt-4">
+      <div className={cn("mt-4", frame === "result" && !(fixed && res) && phase.kind !== "idle" && phase.kind !== "error" && "hidden")}>
         {phase.kind === "idle" ? (
           <Button onClick={() => void start()} className="w-full">
             <WandSparkles />
@@ -158,7 +164,7 @@ export function RetouchCard({ sku, autoStart = true, onDone, onError, client = f
           </Button>
         ) : phase.kind === "error" ? (
           <div className="grid gap-3">
-            <Frame src={rawView} scanning={false} />
+            {frame === "always" ? <Frame src={rawView} scanning={false} /> : null}
             <Notice tone={phase.busy ? "busy" : "error"} title={phase.busy ? "Busy for a moment" : "Retouch failed"} onRetry={() => void start()}>
               {phase.busy ? "Cloudinary's limit refills shortly. Try again in a minute." : phase.message}
             </Notice>

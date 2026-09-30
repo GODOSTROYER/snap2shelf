@@ -6,17 +6,22 @@
  * results: no analyze, QA or pack call is made, and every image it shows is a
  * stored asset or an already-rendered transformation.
  *
+ * Two sources:
+ *  - the featured sneaker (hand-assembled below): the landing hero, with a
+ *    "before" photo aligned to the hero for the wipe slider;
+ *  - the seeded kits (scripts/seed-showcase.mts → data/showcase.json): full
+ *    live runs with a stored pack, reel, signed ZIP, step timings and every QA
+ *    attempt (including real rejections the replay retells).
+ *
  * Provenance of every number:
  *  - product reading (caption, focus, understanding): measured by the live
  *    analyze route on these exact photos (30 Sep, e2e runs);
  *  - cut-outs, heroes, story/banner/recolor: rendered live once, then stored;
  *  - QA verdicts: the live exact-QA route on the stored hero recipes (30 Sep);
  *  - "before" photos: the raw photo, cropped so the product sits exactly where
- *    the hero places it, the extra margin filled by b_gen_fill (stored once).
- *
- * Seeded kits (scripts/seed-showcase.mts → data/showcase.json) replace the
- * hand-assembled samples below with one change: set SEEDED to that data.
+ *    the hero places it (stored once).
  */
+import { SHOWCASE, type ShowcaseKit, type ShowcaseTimings } from "./showcase-data";
 import { channelAssets } from "./transform/channels";
 import { compositeUrl, defaultControls, deliveryBase, geometry, quantise } from "./transform/composite";
 import { ogImageUrl as ogUrl } from "./transform/og";
@@ -28,10 +33,22 @@ export const SHOWCASE_CLOUD = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "
 
 const stored = (publicId: string, w?: number) => `${deliveryBase(SHOWCASE_CLOUD)}/${w ? `c_limit,w_${w}/` : ""}f_auto,q_auto/${publicId}`;
 
+/** A real QA rejection from the seeded run, retold by the replay: caught → auto-fixed → approved. */
+export interface SampleQaStory {
+  rejected: QaResult; // the first attempt's verdict, as the live QA route wrote it
+  rejectedUrl: string; // that attempt's composite (rendered during the seed run, so cached)
+  rejectedControls: CompositeControls;
+  caught: string; // first sentence of the first reason
+  fix: string; // what changed between the rejected and the approved attempt
+  attempts: number; // how many checks the live run took
+}
+
 export interface SampleProduct {
   sku: Sku;
   title: string; // shown on the sample picker
   blurb: string; // what the photo is, in a few words
+  /** Shown in the studio's sample picker (false: a duplicate photo, still reachable by link). */
+  listed: boolean;
   product: ProductRecord;
   scene: Scene;
   controls: CompositeControls;
@@ -47,6 +64,12 @@ export interface SampleProduct {
   /** Replay pacing, ms per step (the live run's order of magnitude, compressed). */
   pace: { analyze: number; cutout: number; qa: number; pack: number };
   kit: Kit; // what the replay deals onto the shelves
+  /** Seeded runs: a QA rejection the live run fixed, retold by the replay. */
+  qaStory?: SampleQaStory;
+  /** Seeded runs: wall-clock per step on the live run (cost receipt). */
+  timings?: ShowcaseTimings;
+  /** Seeded runs: AI Vision tokens of the product reading (the rest went to QA). */
+  analyzeTokens?: number;
 }
 
 // ─── Scenes (from the shared library, tag s2s-scene) ─────────────────────────
@@ -187,46 +210,6 @@ const SPECS: SampleSpec[] = [
     analyzeTokens: 690,
     seconds: 44,
     pace: { analyze: 1400, cutout: 1500, qa: 1300, pack: 2200 },
-  },
-  {
-    sku: "bottle01",
-    title: "Steel water bottle",
-    blurb: "Phone photo on a kitchen counter",
-    product: {
-      sku: "bottle01",
-      rawPublicId: "snap2shelf/dev/bottle_decent/raw",
-      rawWidth: 1122,
-      rawHeight: 1402,
-      rawBytes: 1838375,
-      caption: "A stainless steel water bottle stands on a white countertop with a potted plant and a wooden block in the background.",
-      focus: 0.39,
-      understanding: {
-        name: "Stainless steel water bottle",
-        category: "drinkware",
-        primary_color: "silver",
-        material: "stainless steel",
-        recolorable_part: "bottle body",
-        placement: "standing",
-        suggested_themes: ["kitchen", "cafe", "marble"],
-      },
-      cutout: { publicId: "snap2shelf/dev/bottle_decent/cutout", width: 309, height: 1223 },
-    },
-    scene: kitchen,
-    heroPublicId: "snap2shelf/dev/heroes/bottle-kitchen",
-    beforePublicId: "snap2shelf/dev/before/bottle-kitchen",
-    storedFormats: {
-      story: "snap2shelf/dev/kit/bottle-kitchen/story",
-      banner: "snap2shelf/dev/kit/bottle-kitchen/banner",
-      "recolor-0f766e": "snap2shelf/dev/kit/bottle-kitchen/recolor-0f766e",
-    },
-    recolorPart: "bottle body",
-    offer: { hindi: "त्योहार ऑफ़र", english: "Festive offer: free engraving" },
-    swatches: ["0f766e"],
-    qa: QA_OK("2026-09-30T04:08:39.051Z"),
-    qaTokens: 676,
-    analyzeTokens: 690,
-    seconds: 20,
-    pace: { analyze: 1300, cutout: 1400, qa: 1200, pack: 2000 },
   },
 ];
 
@@ -399,6 +382,7 @@ function buildSample(s: SampleSpec): SampleProduct {
     sku: s.sku,
     title: s.title,
     blurb: s.blurb,
+    listed: true,
     product: p,
     scene: s.scene,
     controls,
@@ -413,48 +397,118 @@ function buildSample(s: SampleSpec): SampleProduct {
   };
 }
 
+// ─── Seeded kits (data/showcase.json) ─────────────────────────────────────────
+
 /**
- * Seeded showcase (data/showcase.json). When it lands, replace `null` with the
- * imported data (`import { SHOWCASE } from "./showcase-data"`) and the samples
- * below switch over; fromSeeded() maps its kits onto SampleProduct.
+ * How each seeded kit appears in the studio. Order = picker order. shsneakr is
+ * the same phone photo as the featured sneaker on the same scene, so it stays
+ * reachable by link but isn't listed twice.
  */
-interface SeededKit extends Kit {
-  title: string;
-  attempts?: { qa: QaResult; tokens: number }[];
-}
-interface SeededShowcase {
-  kits: SeededKit[];
-  beforeAfter?: { sku: Sku; rawAlignedUrl?: string }[];
-}
-const seededBefore = (data: SeededShowcase, sku: Sku) => data.beforeAfter?.find((b) => b.sku === sku)?.rawAlignedUrl;
-const SEEDED: SeededShowcase | null = null;
+const SEEDED_META: { sku: Sku; title?: string; blurb: string; listed: boolean }[] = [
+  { sku: "shbottle", blurb: "Phone photo on a kitchen counter", listed: true },
+  { sku: "shtrail1", blurb: "Phone photo beside a house plant", listed: true },
+  { sku: "shkurta1", title: "Chikankari kurta", blurb: "Laid flat on a patterned sheet", listed: true },
+  { sku: "shmessy1", title: "Bottle, busy counter", blurb: "Mug, fruit bowl and towels behind it", listed: true },
+  { sku: "shsneakr", blurb: "Phone photo on a marble floor", listed: false },
+];
 
-function fromSeeded(data: SeededShowcase): SampleProduct[] {
-  return data.kits
-    .filter((k) => k.scene && k.controls && k.hero.publicId && k.product.cutout)
-    .map((k) => {
-      const last = k.attempts?.[k.attempts.length - 1];
-      return {
-        sku: k.sku,
-        title: k.title,
-        blurb: "Sample phone photo",
-        product: k.product,
-        scene: k.scene!,
-        controls: k.controls!,
-        heroPublicId: k.hero.publicId!,
-        beforePublicId: undefined,
-        beforeUrl: seededBefore(data, k.sku),
-        offer: { hindi: "", english: "" },
-        swatches: k.assets.filter((a) => a.id.startsWith("recolor-")).map((a) => a.id.slice(8)),
-        qa: k.hero.qa ?? last?.qa ?? QA_OK(k.createdAt),
-        qaTokens: last?.tokens ?? 0,
-        pace: { analyze: 1300, cutout: 1400, qa: 1200, pack: 2000 },
-        kit: k,
-      };
-    });
+/** Offer lines as the pack wrote them onto the festive offer (its two l_text layers). */
+function offerOf(k: Kit): { hindi: string; english: string } {
+  const texts = (k.assets.find((a) => a.id === "offer")?.xray as { segments?: { kind: string; text: string }[] } | undefined)?.segments?.filter((s) => s.kind === "text") ?? [];
+  const read = (t: string) => {
+    const m = /^l_text:[^:]+:(.*?),co_/.exec(t);
+    if (!m) return "";
+    try {
+      return decodeURIComponent(decodeURIComponent(m[1]));
+    } catch {
+      return "";
+    }
+  };
+  const lines = texts.map((s) => read(s.text)).filter(Boolean);
+  const hindi = lines.find((l) => /[ऀ-ॿ]/.test(l)) ?? "";
+  const english = lines.find((l) => l !== hindi) ?? "";
+  return { hindi, english };
 }
 
-export const SAMPLES: SampleProduct[] = SEEDED ? fromSeeded(SEEDED) : SPECS.map(buildSample);
+/** What changed between two staging attempts, in the QA story's words ("We …"). */
+function describeFix(from: { controls: CompositeControls; sceneTitle: string }, to: { controls: CompositeControls; sceneTitle: string }): string {
+  if (from.sceneTitle !== to.sceneTitle) return `moved it to the ${to.sceneTitle} scene`;
+  const a = from.controls;
+  const b = to.controls;
+  const parts: string[] = [];
+  const dy = b.offsetY - a.offsetY;
+  if (dy > 0) parts.push(`set it ${dy} px lower, onto the surface`);
+  if (dy < 0) parts.push(`lifted it ${-dy} px`);
+  if (a.contact !== b.contact) parts.push(b.contact ? "turned on the contact shadow" : "turned the contact shadow off");
+  if (a.shadow !== b.shadow) parts.push(b.shadow ? "turned on the cast shadow" : "turned the cast shadow off");
+  if (Math.abs(b.scale - a.scale) >= 0.01) parts.push(b.scale < a.scale ? "made it a little smaller" : "made it a little larger");
+  if (b.offsetX !== a.offsetX) parts.push("re-centred it");
+  return parts.length ? parts.join(" and ") : "re-staged it";
+}
+
+function qaStoryOf(k: ShowcaseKit): SampleQaStory | undefined {
+  const first = k.attempts[0];
+  const last = k.attempts[k.attempts.length - 1];
+  if (!first || !last || first === last || first.qa.status !== "rejected" || last.qa.status !== "approved") return undefined;
+  return {
+    rejected: first.qa,
+    rejectedUrl: first.url,
+    rejectedControls: first.controls,
+    caught: (first.qa.reasons[0] ?? "Something looked off.").split(/(?<=\.)\s/)[0],
+    fix: describeFix(first, last),
+    attempts: k.attempts.length,
+  };
+}
+
+function fromSeeded(k: ShowcaseKit, meta: (typeof SEEDED_META)[number]): SampleProduct {
+  const last = k.attempts[k.attempts.length - 1];
+  const qaTokens = k.attempts.reduce((n, a) => n + a.tokens, 0);
+  // a plain Kit: the seed's extras (timings, attempts, overrides) stay out of the props that reach the browser
+  const kit: Kit = {
+    sku: k.sku,
+    product: k.product,
+    mode: k.mode,
+    scene: k.scene,
+    controls: k.controls,
+    hero: k.hero,
+    assets: k.assets,
+    reel: k.reel,
+    zipUrl: k.zipUrl,
+    cost: k.cost,
+    createdAt: k.createdAt,
+  };
+  return {
+    sku: k.sku,
+    title: meta.title ?? k.title,
+    blurb: meta.blurb,
+    listed: meta.listed,
+    product: k.product,
+    scene: k.scene!,
+    controls: k.controls!,
+    heroPublicId: k.hero.publicId!,
+    beforeUrl: SHOWCASE.beforeAfter.find((b) => b.sku === k.sku)?.rawAlignedUrl,
+    offer: offerOf(k),
+    swatches: k.assets.filter((a) => a.id.startsWith("recolor-")).map((a) => a.id.slice(8)),
+    qa: k.hero.qa ?? last?.qa ?? QA_OK(k.createdAt),
+    qaTokens,
+    pace: { analyze: 1300, cutout: 1400, qa: 1200, pack: 2000 },
+    kit,
+    qaStory: qaStoryOf(k),
+    timings: k.timings,
+    analyzeTokens: Math.max(0, k.cost.aiVisionTokens - qaTokens),
+  };
+}
+
+const SEEDED: SampleProduct[] = SEEDED_META.flatMap((m) => {
+  const k = SHOWCASE.kits.find((x) => x.sku === m.sku);
+  return k && k.scene && k.controls && k.hero.publicId && k.product.cutout ? [fromSeeded(k, m)] : [];
+});
+
+/** Featured sneaker first (the landing hero), then the seeded kits. */
+export const SAMPLES: SampleProduct[] = [...SPECS.map(buildSample), ...SEEDED];
+
+/** The samples offered in the studio's picker. */
+export const LISTED_SAMPLES = SAMPLES.filter((s) => s.listed);
 
 export const getSample = (sku: string | null | undefined) => SAMPLES.find((s) => s.sku === sku);
 export const isSampleSku = (sku: string | null | undefined) => !!getSample(sku);
@@ -491,5 +545,5 @@ export const heroLqip = (kit: Kit) => lqipOf(kit.hero.publicId ?? kit.scene?.pub
 
 /** Link-preview image for the whole site: the sample heroes as cards under the name. */
 export function siteOgImage() {
-  return ogUrl({ heroes: SAMPLES.map((s) => s.heroPublicId), shopName: "Snap2Shelf", tagline: "One photo. A whole shelf.", cloud: SHOWCASE_CLOUD }).url;
+  return ogUrl({ heroes: LISTED_SAMPLES.slice(0, 3).map((s) => s.heroPublicId), shopName: "Snap2Shelf", tagline: "One photo. A whole shelf.", cloud: SHOWCASE_CLOUD }).url;
 }

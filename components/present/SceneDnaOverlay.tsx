@@ -51,6 +51,8 @@ export interface SceneDnaOverlayProps {
   labels?: boolean;
   /** Stroke colour. Default marigold. */
   accent?: string;
+  /** Stroke and label size multiplier, for small viewers (the studio stage). Default 1. */
+  weight?: number;
   className?: string;
   style?: React.CSSProperties;
 }
@@ -120,6 +122,7 @@ export function SceneDnaOverlay({
   step = 0.7,
   labels = true,
   accent = "var(--pz-marigold, #f5a524)",
+  weight = 1,
   className,
   style,
 }: SceneDnaOverlayProps) {
@@ -148,8 +151,8 @@ export function SceneDnaOverlay({
   slot.finish = slot.temperature ?? delay + step * n;
   const at = (m: DnaMark) => slot[m] ?? 0;
 
-  const fs = W * 0.024; // label size in plate units
-  const sw = W * 0.0035; // stroke width
+  const fs = W * 0.024 * Math.sqrt(weight); // label size in plate units
+  const sw = W * 0.0035 * weight; // stroke width
   const ax = dna.anchor_x * W;
   const ay = dna.anchor_y * H;
   const half = (dna.surface_width * W) / 2;

@@ -2,10 +2,12 @@ import { Download } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { CloudImg } from "@/components/cloud-img";
+import { CostReceipt } from "@/components/features/cost-receipt";
 import { KitShelves } from "@/components/kit/kit-shelves";
 import { QaBadge } from "@/components/kit/qa-badge";
-import { Receipt } from "@/components/kit/receipt";
+import { ReadinessGauge } from "@/components/readiness/ReadinessGauge";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { buttonVariants } from "@/components/ui/button";
@@ -13,6 +15,10 @@ import { TooltipProvider } from "@/components/ui/controls";
 import { srcSet } from "@/lib/client/img";
 import { countAssets } from "@/lib/client/kit-view";
 import { loadKit } from "@/lib/client/kit-loader";
+import { sampleCost, sampleReadiness } from "@/lib/client/sample-data";
+import type { ReadinessReport } from "@/lib/readiness";
+import { zipUrl } from "@/lib/server/pack";
+import { measureReadiness } from "@/lib/shelf/measure";
 import { getSample, heroAt, heroLqip } from "@/lib/showcase";
 import { ogImageUrl } from "@/lib/transform/og";
 
@@ -38,8 +44,17 @@ export default async function KitPage({ params }: Props) {
   const kit = await loadKit(sku);
   if (!kit) notFound();
   const name = kit.product.understanding?.name ?? "Your product";
-  const isSample = !!getSample(sku);
+  const sample = getSample(sku);
   const heroSrc = (w: number) => heroAt(kit, w);
+  // a saved kit's pack downloads as one zip: signed here (no API call), valid for an hour
+  let zip = kit.zipUrl;
+  if (!zip && !sample && kit.assets.length) {
+    try {
+      zip = zipUrl(kit.sku);
+    } catch {
+      zip = undefined;
+    }
+  }
 
   return (
     <>
@@ -69,22 +84,31 @@ export default async function KitPage({ params }: Props) {
               <Link href="/studio" className={buttonVariants({ size: "lg" })}>
                 Make a kit for your product
               </Link>
-              {kit.zipUrl ? (
-                <a href={kit.zipUrl} className={buttonVariants({ size: "lg", variant: "secondary" })}>
+              {zip ? (
+                <a href={zip} className={buttonVariants({ size: "lg", variant: "secondary" })}>
                   <Download />
                   Download all (.zip)
                 </a>
-              ) : isSample ? (
+              ) : sample ? (
                 <Link href={`/studio?sample=${kit.sku}`} className={buttonVariants({ size: "lg", variant: "secondary" })}>
                   Watch it being made
                 </Link>
               ) : null}
             </div>
-            {kit.cost.bytesOriginal > 0 ? <Receipt cost={kit.cost} mode={kit.mode} assetCount={countAssets(kit)} className="mt-10" /> : null}
+            {zip && sample ? (
+              <p className="mt-4 text-sm text-dim">
+                <Link href={`/studio?sample=${kit.sku}`} className="font-medium text-paper underline decoration-marigold/60 hover:decoration-marigold">
+                  Watch this kit being made
+                </Link>{" "}
+                in the studio, step by step.
+              </p>
+            ) : null}
+            {/* a sample's ledger ships with the page; a live kit's is read from Cloudinary once */}
+            <CostReceipt sku={kit.sku} scene={kit.scene?.publicId} initial={sample ? sampleCost(sample) : undefined} className="mt-10 lg:mx-0" />
           </div>
         </section>
 
-        <section aria-labelledby="shelf-title" className="mx-auto max-w-[90rem] pb-24">
+        <section aria-labelledby="shelf-title" className="mx-auto max-w-[90rem] pb-20">
           <div className="px-4 sm:px-8">
             <h2 id="shelf-title" className="text-[clamp(1.9rem,4.5vw,3rem)] leading-none font-bold tracking-[-0.03em]">
               Every format
@@ -97,8 +121,28 @@ export default async function KitPage({ params }: Props) {
             </TooltipProvider>
           </div>
         </section>
+
+        <Suspense fallback={null}>
+          <Readiness sku={kit.sku} isSample={!!sample} />
+        </Suspense>
       </main>
       <SiteFooter />
     </>
+  );
+}
+
+/** The marketplace image, measured: a sample's stored reading, or a live kit's (cached AI Vision verdict only). */
+async function Readiness({ sku, isSample }: { sku: string; isSample: boolean }) {
+  let report: ReadinessReport | null = null;
+  try {
+    report = isSample ? await sampleReadiness(sku) : (await measureReadiness(sku, { vision: false })).report;
+  } catch {
+    report = null; // not measurable right now: the kit page stands without it
+  }
+  if (!report || !report.checks.length) return null;
+  return (
+    <section aria-label="Marketplace readiness" className="mx-auto max-w-[90rem] px-4 pb-24 sm:px-8">
+      <ReadinessGauge report={report} className="max-w-[60rem]" />
+    </section>
   );
 }

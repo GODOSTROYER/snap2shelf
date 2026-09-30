@@ -19,6 +19,8 @@ export interface CostReceiptProps {
   /** What a basic one-product studio shoot costs, for scale. Shown as an estimate. */
   photoshootInr?: number;
   client?: FeaturesClient;
+  /** A ledger already in hand (a sample's saved run, a server render): printed without a request. */
+  initial?: CostResponse;
   className?: string;
 }
 
@@ -36,11 +38,13 @@ const PRINT_MS = 1500;
  * each line counts up as it prints, and the photo's weight counts down from the
  * original upload to what a browser actually downloads.
  */
-export function CostReceipt({ sku, scene, refreshKey, photoshootInr = PHOTOSHOOT_INR, client = featuresClient, className }: CostReceiptProps) {
-  const [state, setState] = React.useState<State>({ kind: "loading" });
+export function CostReceipt({ sku, scene, refreshKey, photoshootInr = PHOTOSHOOT_INR, client = featuresClient, initial, className }: CostReceiptProps) {
+  const [state, setState] = React.useState<State>(initial ? { kind: "ready", data: initial } : { kind: "loading" });
+  const hasInitial = !!initial;
   const [attempt, setAttempt] = React.useState(0);
 
   React.useEffect(() => {
+    if (hasInitial) return;
     const ctl = new AbortController();
     // Deferred a tick: a remount (StrictMode, fast refresh) must not spend a second Admin API call.
     const t = setTimeout(async () => {
@@ -67,7 +71,7 @@ export function CostReceipt({ sku, scene, refreshKey, photoshootInr = PHOTOSHOOT
       clearTimeout(t);
       ctl.abort();
     };
-  }, [client, sku, scene, refreshKey, attempt]);
+  }, [client, sku, scene, refreshKey, attempt, hasInitial]);
 
   const retry = () => {
     setState({ kind: "loading" });
@@ -161,15 +165,15 @@ function Printed({ data, photoshootInr }: { data: CostResponse; photoshootInr: n
           <Rule />
           <dl className="grid gap-2.5">
             {lines.map((l, i) => (
-              <div key={l.label}>
-                <div className="flex items-baseline gap-2">
-                  <dt className="shrink-0">{l.label}</dt>
-                  <span aria-hidden className="min-w-3 flex-1 translate-y-[-3px] border-b border-dotted border-studio/35" />
-                  <dd className={cn("shrink-0 font-semibold", l.tone === "saved" && l.value > 0 && "text-[color-mix(in_srgb,var(--color-leaf)_45%,var(--color-studio))]")}>
-                    <CountUp value={l.value} format={l.unit} delay={at(i)} duration={900} />
-                  </dd>
-                </div>
-                {l.note ? <p className="text-[0.7rem] text-studio/60">{l.note}</p> : null}
+              // one dt/dd group per line (valid <dl>): the dotted leader is the label's own ::after
+              <div key={l.label} className="flex flex-wrap items-baseline gap-x-2">
+                <dt className="flex min-w-0 flex-1 items-baseline gap-2 after:min-w-3 after:flex-1 after:translate-y-[-3px] after:border-b after:border-dotted after:border-studio/35 after:content-['']">
+                  <span className="shrink-0">{l.label}</span>
+                </dt>
+                <dd className={cn("shrink-0 font-semibold", l.tone === "saved" && l.value > 0 && "text-[color-mix(in_srgb,var(--color-leaf)_45%,var(--color-studio))]")}>
+                  <CountUp value={l.value} format={l.unit} delay={at(i)} duration={900} />
+                </dd>
+                {l.note ? <dd className="basis-full text-[0.7rem] text-studio/60">{l.note}</dd> : null}
               </div>
             ))}
           </dl>
@@ -205,12 +209,12 @@ function Printed({ data, photoshootInr }: { data: CostResponse; photoshootInr: n
           ) : null}
 
           <Rule />
-          <div className="flex items-end justify-between gap-3">
+          <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-1">
             <div>
               <p className="font-semibold">Photoshoot you skipped</p>
               <p className="text-[0.7rem] text-studio/60">Estimate, for scale</p>
             </div>
-            <p className="font-display text-[1.9rem] leading-none font-bold tracking-[-0.02em]">
+            <p className="font-display text-[1.9rem] leading-none font-bold tracking-[-0.02em] whitespace-nowrap">
               ≈ <CountUp value={photoshootInr} format={inr} delay={at(lines.length + 2)} duration={1300} />
             </p>
           </div>

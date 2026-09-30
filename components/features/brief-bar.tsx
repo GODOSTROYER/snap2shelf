@@ -179,7 +179,7 @@ export function BriefBar({ sku, onApply, onResult, defaultBrief = "", defaultFes
           <div
             role="group"
             aria-labelledby={`${inputId}-fest`}
-            className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [mask-image:linear-gradient(to_right,transparent,#000_1rem,#000_calc(100%-2rem),transparent)] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:[mask-image:none]"
+            className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [mask-image:linear-gradient(to_right,transparent,#000_1rem,#000_calc(100%-2rem),transparent)] sm:mx-0 sm:px-0 sm:[mask-image:linear-gradient(to_right,#000_calc(100%-2.5rem),transparent)]"
           >
             {FESTIVALS.map((f) => {
               const on = festival === f.slug;

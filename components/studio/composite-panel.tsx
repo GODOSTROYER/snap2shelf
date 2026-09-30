@@ -6,12 +6,14 @@ import { RangeField, Segmented, Toggle } from "@/components/ui/controls";
 import { isWholeRecolor, MAX_SWATCHES, SWATCHES } from "@/lib/client/swatches";
 import { cn } from "@/lib/client/util";
 import { OFFSET_RANGE, SCALE_RANGE } from "@/lib/transform/composite";
-import type { CompositeControls, Placement, ProductRecord, Scene } from "@/lib/types";
+import type { CompositeControls, Placement, ProductRecord, Scene, SceneDNA } from "@/lib/types";
 import { ScenePicker } from "./scene-picker";
 
 export interface PackSettings {
   offer: { hindi: string; english: string };
   swatches: string[];
+  /** Where the offer text goes (a readiness fix can move it); default: the scene's own text zone. */
+  textZone?: SceneDNA["text_zone"];
 }
 
 /** Exact mode: scene, placement sliders, shadows, and what goes into the pack. */
@@ -27,6 +29,9 @@ export function CompositePanel({
   settings,
   onSettings,
   disabled,
+  top,
+  sceneExtra,
+  recolor = true,
 }: {
   scenes: Scene[] | null;
   sceneId: string | null;
@@ -39,6 +44,12 @@ export function CompositePanel({
   settings: PackSettings;
   onSettings: (s: PackSettings) => void;
   disabled?: boolean;
+  /** Above the scene: the brief bar. */
+  top?: React.ReactNode;
+  /** Under the scene picker: find or generate another backdrop. */
+  sceneExtra?: React.ReactNode;
+  /** false: this product gets no colour variants (printed packaging). */
+  recolor?: boolean;
 }) {
   const set = <K extends keyof CompositeControls>(k: K, v: CompositeControls[K]) => controls && onControls({ ...controls, [k]: v });
   const whole = isWholeRecolor(product?.understanding);
@@ -50,9 +61,11 @@ export function CompositePanel({
   };
 
   return (
-    <div className="grid gap-8">
+    <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-8">
+      {top}
       <Section title="Scene" hint="Ready-made and reused, so they cost no generation credits.">
         <ScenePicker scenes={scenes} selected={sceneId} onSelect={onScene} disabled={disabled} />
+        {sceneExtra}
       </Section>
 
       <Section
@@ -120,6 +133,7 @@ export function CompositePanel({
         </div>
       </Section>
 
+      {recolor ? (
       <Section
         title={whole ? "Colourways" : "Colour variants"}
         hint={
@@ -129,7 +143,7 @@ export function CompositePanel({
         }
       >
         <div className="flex flex-wrap gap-2.5" role="group" aria-label={whole ? "Colourways" : "Colour variants"}>
-          {SWATCHES.map((s) => {
+          {[...SWATCHES, ...settings.swatches.filter((h) => !SWATCHES.some((s) => s.hex === h)).map((hex) => ({ hex, name: `Brief colour #${hex}` }))].map((s) => {
             const on = settings.swatches.includes(s.hex);
             const full = !on && settings.swatches.length >= MAX_SWATCHES;
             return (
@@ -150,6 +164,7 @@ export function CompositePanel({
           })}
         </div>
       </Section>
+      ) : null}
     </div>
   );
 }

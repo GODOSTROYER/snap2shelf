@@ -24,6 +24,15 @@ type Understanding = Pick<ProductUnderstanding, "category" | "recolorable_part">
  */
 export const isWholeRecolor = (u: Understanding) => /foot|shoe|sneaker|sandal|boot/i.test(`${u?.category ?? ""} ${u?.recolorable_part ?? ""}`);
 
+/**
+ * Colour variants only make sense where recolor can isolate a part (a bottle's
+ * body, a kurta's fabric) or repaint the whole product (a shoe's colourway).
+ * Printed packaging (pouches, packaged food) has no single part to repaint: the
+ * print, the window and the label would all shift, so it gets no variants.
+ */
+export const canRecolor = (u: (Understanding & { name?: string }) | undefined | null) =>
+  !/\b(food|snacks?|grocer(y|ies)|pouch(es)?|packag\w*|sachets?|cartons?|wrappers?|trail mix)\b/i.test(`${u?.category ?? ""} ${u?.recolorable_part ?? ""} ${u?.name ?? ""}`);
+
 /** Human label for a pack asset id like "recolor-0f766e". */
 export function recolorLabel(id: string, u?: Understanding) {
   const name = swatchName(id.replace(/^recolor-/, ""));
