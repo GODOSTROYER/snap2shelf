@@ -31,7 +31,7 @@ export interface ChapterMeta {
 }
 
 const kb = (n: number) => `${Math.round(n / 1024)} KB`;
-const mb = (n: number) => `${(n / (1024 * 1024)).toFixed(1)} MB`;
+const mb = (n: number) => `${(n / (1024 * 1024)).toFixed(2)} MB`;
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 const inr = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 
@@ -73,17 +73,18 @@ export const CHAPTERS: ChapterMeta[] = [
   {
     id: "dna",
     title: "Scene DNA",
-    seconds: () => 12,
+    seconds: () => 15,
     light: { x: 0.7, y: 0.48 },
-    cue: () => "AI Vision reads each scene once: where the surface is, where the light comes from, where text fits. The product lands on that anchor and its shadow falls away from the light.",
+    cue: () =>
+      "AI Vision reads each scene once: where the surface is, where the light comes from, where text fits. The product lands on that anchor and its shadow falls away from the light. Lay the original cut-out over the render in difference mode and the product goes black: only the light changed.",
   },
   {
     id: "stages",
     title: "Every stage",
-    seconds: () => 9,
-    light: { x: 0.55, y: 0.5 },
+    seconds: () => 10,
+    light: { x: 0.6, y: 0.5 },
     cue: (d) =>
-      `The product is never regenerated. The same cutout goes onto ${plural(d.stages.length, "library scene")}. Each scene was generated once; reusing it costs 0 credits.`,
+      `The product never moves and is never regenerated: the same cutout, on the same pixels, goes onto ${plural(d.stages.length, "library scene")}, and only the light changes. Each scene was generated once; reusing it costs 0 credits.`,
   },
   {
     id: "qa",
@@ -123,7 +124,7 @@ export const CHAPTERS: ChapterMeta[] = [
     seconds: () => 9,
     light: { x: 0.45, y: 0.5 },
     cue: (d) =>
-      `This kit spent ${d.cost.generationCredits} new generation credits: it reused the ${d.cost.sceneTitle} scene, which cost ${plural(d.cost.sceneCredits, "credit")} once. The ${mb(d.cost.bytesOriginal)} photo is delivered at about ${kb(d.cost.bytesDeliveredFallback)}, and a basic studio shoot is about ${inr(d.cost.photoshootInr)}, as an estimate.`,
+      `This kit spent ${d.cost.generationCredits} new generation credits: it reused the ${d.cost.sceneTitle} scene, which cost ${plural(d.cost.sceneCredits, "credit")} once. The ${mb(d.cost.bytesOriginal)} PNG photo is delivered as a ${kb(d.cost.bytesDeliveredFallback)} WebP at the same size, and a basic studio shoot is about ${inr(d.cost.photoshootInr)}, as an estimate.`,
   },
   {
     id: "shelf",

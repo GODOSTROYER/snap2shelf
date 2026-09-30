@@ -18,7 +18,7 @@
  */
 import { ChevronLeft, ChevronRight, Keyboard, Maximize, Minimize, NotebookPen, Pause, Play } from "lucide-react";
 import { AnimatePresence, motion, MotionConfig } from "motion/react";
-import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent, type PointerEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type MouseEvent, type PointerEvent } from "react";
 import { CHAPTERS, chapterAssets, chapterAvailable } from "@/lib/present/chapters";
 import type { PresentData } from "@/lib/present/data";
 import { preloadImages, preloadVideo, preloadWhenIdle } from "@/lib/present/preload";
@@ -41,6 +41,15 @@ const KEYS: [string[], string][] = [
   [["H"], "Hide the chrome for recording"],
   [["?"], "This list"],
 ];
+
+const noSubscribe = () => () => {};
+/**
+ * True once hydrated. Chapters render on the client only: they branch on
+ * useReducedMotion(), which the server can't know, so rendering them in SSR
+ * would mismatch for anyone with reduced motion on. Every chapter starts from
+ * opacity 0 anyway, so nothing visible is lost.
+ */
+const useHydrated = () => useSyncExternalStore(noSubscribe, () => true, () => false);
 
 /** Seconds since this chapter started (remounted per chapter). */
 function ChapterClock() {
@@ -69,6 +78,7 @@ export function Deck({ data, initial }: DeckProps) {
 
   const ch = chapters[index];
   const View = CHAPTER_VIEWS[ch.id];
+  const hydrated = useHydrated();
   const seconds = ch.seconds(data);
 
   const go = useCallback(
@@ -249,6 +259,7 @@ export function Deck({ data, initial }: DeckProps) {
       <main
         className="pz-root"
         data-idle={idle && !help && !notes}
+        data-clean={clean}
         aria-roledescription="presentation"
         aria-label="Snap2Shelf, director's cut"
         onPointerDown={onPointerDown}
@@ -271,7 +282,7 @@ export function Deck({ data, initial }: DeckProps) {
               exit={{ opacity: 0, transition: { duration: 0.35 } }}
               transition={{ duration: 0.5 }}
             >
-              <View d={data} />
+              {hydrated && <View d={data} />}
             </motion.section>
           </AnimatePresence>
 

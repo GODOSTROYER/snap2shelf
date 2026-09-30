@@ -3,6 +3,7 @@
 import { CircleCheck, CircleX, Film } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { SAMPLE_PHOTO_LABEL } from "@/lib/claims";
 import type { QaCard } from "@/lib/present/data";
 import { preloadVideo } from "@/lib/present/preload";
 import type { KitAsset } from "@/lib/types";
@@ -33,8 +34,9 @@ function Verdict({ card, x, at, markAt, stampAt }: { card: QaCard; x: number; at
       <div className="pz-plate" style={{ position: "relative", width: W, height: H, borderRadius: 16 }}>
         <Img src={card.sheet.url} alt={card.sheet.alt} className="pz-fill" fade={false} />
         <div style={{ position: "absolute", left: 14, right: 14, top: 14, display: "flex", justifyContent: "space-between" }}>
+          {/* the reference is an AI-generated test sneaker, never "the original" of a real product */}
           <span className="pz-chip" style={{ height: 36, fontSize: 16 }}>
-            Original photo
+            {SAMPLE_PHOTO_LABEL} · AI test image
           </span>
           <span className="pz-chip" style={{ height: 36, fontSize: 16 }}>
             AI take
@@ -133,7 +135,7 @@ export function QaGate({ d }: ChapterProps) {
           Nothing ships unless it&rsquo;s still your product.
         </Rise>
         <Rise delay={0.2} as="p" className="pz-lede" style={{ margin: "18px 0 0", maxWidth: "none", fontSize: 26 }}>
-          Creative mode restages the product with an image model. AI Vision compares every take with the original, side by side, and rejects any take that changed the product, whatever its score.
+          Creative mode restages the product with an image model. AI Vision compares every take with the input photo, side by side, and rejects any take that changed the product, whatever its score.
         </Rise>
       </div>
       <Verdict card={qa.approved} x={120} at={0.5} markAt={99} stampAt={2.5} />

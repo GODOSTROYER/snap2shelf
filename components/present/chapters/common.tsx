@@ -37,6 +37,13 @@ export function Rise({
 
 export const abs = (left: number, top: number, extra?: CSSProperties): CSSProperties => ({ position: "absolute", left, top, ...extra });
 
-export const fmtBytes = (n: number) => (n >= 1024 * 1024 ? `${(n / (1024 * 1024)).toFixed(1)} MB` : `${Math.round(n / 1024)} KB`);
+/** Same convention as the studio's receipt (lib/client/features formatBytes): 2,249,535 B → "2.15 MB", 157,588 B → "154 KB". */
+export const fmtBytes = (n: number) => {
+  if (n < 1024 * 1024) return `${Math.round(n / 1024)} KB`;
+  const mb = n / (1024 * 1024);
+  return `${mb >= 10 ? mb.toFixed(1) : mb.toFixed(2)} MB`;
+};
+/** Image format as people write it: "webp" / "WEBP" → "WebP". */
+export const fmtFormat = (f: string) => ({ webp: "WebP", avif: "AVIF", jpeg: "JPEG", jpg: "JPEG", png: "PNG", gif: "GIF", jxl: "JPEG XL" })[f.toLowerCase()] ?? f.toUpperCase();
 export const fmtSeconds = (n: number) => `${n.toFixed(1)} s`;
 export const fmtInt = (n: number) => Math.round(n).toLocaleString("en-IN");

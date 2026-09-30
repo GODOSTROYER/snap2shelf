@@ -61,11 +61,12 @@ export function ColdOpen({ d }: ChapterProps) {
         transition={{ delay: shot - 0.05, duration: 0.55, times: [0, 0.1, 1], ease: "easeOut" }}
       />
 
-      <div style={abs(120, 300, { width: 900 })}>
-        <Rise delay={1.2} y={26} as="h1" className="pz-display" style={{ fontSize: 176, margin: 0 }}>
+      {/* 164 px: "A whole shelf." is 871 px wide at wdth 92, so it holds one line clear of the photo (x 1070) */}
+      <div style={abs(120, 300, { width: 920 })}>
+        <Rise delay={1.2} y={26} as="h1" className="pz-display" style={{ fontSize: 164, margin: 0, whiteSpace: "nowrap" }}>
           One photo.
         </Rise>
-        <Rise delay={2.7} y={26} as="p" className="pz-display" style={{ fontSize: 176, margin: "6px 0 0", color: "var(--pz-faint)" }}>
+        <Rise delay={2.7} y={26} as="p" className="pz-display" style={{ fontSize: 164, margin: "6px 0 0", color: "var(--pz-faint)", whiteSpace: "nowrap" }}>
           A whole shelf.
         </Rise>
       </div>
@@ -201,11 +202,14 @@ export function Cutout({ d }: ChapterProps) {
   const cut = d.product.cutout;
   const H = 880;
   const W = Math.round((H * raw.width) / raw.height);
-  const L = 1020;
+  const L = 1080; // the same plate box as chapters 4 and 5, so the frame stays put from here to the wipe
   const T = 100;
   // wipe: 0 → 100% (background dissolves), back to a 50% split, forward again
   const wipe = reduced ? [0, 100, 100, 50, 50, 100, 100] : [0, 100, 100, 50, 50, 100, 100];
   const times = [0, 0.26, 0.45, 0.58, 0.72, 0.85, 1];
+  // one easing PER SEGMENT: a single easing on a keyframed clip-path is applied to the whole run by the
+  // browser (WAAPI), which left the photo's edge trailing the scan line by ~40% at the 50% split
+  const segEase = times.slice(1).map(() => [0.65, 0, 0.35, 1] as const);
   const DUR = 7.4;
   const D0 = 1.0;
   const beat = useBeat([D0 + DUR * 0.28, D0 + DUR * 0.6, D0 + DUR * 0.86]);
@@ -264,9 +268,13 @@ export function Cutout({ d }: ChapterProps) {
           style={{ position: "absolute", inset: 0 }}
           initial={{ clipPath: "inset(0% 0% 0% 0%)" }}
           animate={{ clipPath: wipe.map((p) => `inset(0% 0% 0% ${p}%)`) }}
-          transition={{ delay: D0, duration: DUR, times, ease: [0.65, 0, 0.35, 1] }}
+          transition={{ delay: D0, duration: DUR, times, ease: segEase }}
         >
           <Img src={raw.url} alt={raw.alt} className="pz-fill" fade={false} />
+          {/* the label rides on the photo, so it is on screen exactly as long as the photo is (samples are AI-generated test images) */}
+          <span className="pz-chip" style={{ position: "absolute", right: 22, top: 22 }}>
+            {raw.disclosure ? `${raw.source} · AI test image` : raw.source}
+          </span>
         </motion.div>
         {!reduced && (
           <motion.div
@@ -274,17 +282,12 @@ export function Cutout({ d }: ChapterProps) {
             style={{ left: 0 }}
             initial={{ x: 0, opacity: 0 }}
             animate={{ x: wipe.map((p) => (p / 100) * W), opacity: [0, 1, 0, 1, 1, 1, 0] }}
-            transition={{ delay: D0, duration: DUR, times, ease: [0.65, 0, 0.35, 1] }}
+            transition={{ delay: D0, duration: DUR, times, ease: segEase }}
           />
         )}
 
-        <motion.div
-          style={{ position: "absolute", left: 22, right: 22, top: 22, display: "flex", justifyContent: "space-between", pointerEvents: "none" }}
-          animate={{ opacity: beat === 2 ? 1 : 0 }}
-          transition={{ duration: 0.35 }}
-        >
+        <motion.div style={{ position: "absolute", left: 22, top: 22, pointerEvents: "none" }} initial={{ opacity: 0 }} animate={{ opacity: beat === 2 ? 1 : 0 }} transition={{ duration: 0.35 }}>
           <span className="pz-chip">Cutout</span>
-          <span className="pz-chip">{raw.source}</span>
         </motion.div>
       </div>
     </>

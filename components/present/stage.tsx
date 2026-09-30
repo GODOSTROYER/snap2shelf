@@ -35,7 +35,7 @@ export function Artboard({ children, className, label }: { children: ReactNode; 
   );
 }
 
-/** Film grain: one noise tile drawn once on a canvas, jittered by transform only. */
+/** Film grain: one noise tile drawn once on a canvas, jittered by transform only. Sits under the artboard (present.css). */
 function Grain() {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {

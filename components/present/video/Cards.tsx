@@ -80,12 +80,16 @@ function useImagesReady(urls: readonly string[], maxMs = 2500) {
  */
 const TITLE_HEIGHT: Record<string, number> = { s2candle: 170, s2trlmix: 300, "9uo8w8pc": 400, zi86lf6a: 180 };
 const TITLE_GAP = 64;
+/** Depth of the ledge's top face (px) and where a product's base rests on it: just behind the lit front edge. */
+const LEDGE_DEPTH = 24;
+const BASE_INSET = 7;
 
 export function TitleCard({ hold = false }: { hold?: boolean }) {
   const run = useReplay();
   const d = PRESENT;
   const reduced = useReducedMotion();
   const SHELF_Y = 470;
+  const BASE_Y = SHELF_Y - BASE_INSET;
   // the real Demo Studio shelf, standing on the ledge: native-resolution cutouts, only ever scaled down
   const items = d.shelf.products.map((p) => {
     const h = Math.min(TITLE_HEIGHT[p.sku] ?? 300, p.cutout.height);
@@ -134,21 +138,44 @@ export function TitleCard({ hold = false }: { hold?: boolean }) {
           />
         )}
 
-        {/* the products land one by one, each shadow blooms as it touches down */}
+        {/* the ledge's top face: a sliver of lit surface for the products to stand on, and to shadow */}
+        <motion.div
+          aria-hidden
+          style={{
+            position: "absolute",
+            left: 960 - 540,
+            top: SHELF_Y - LEDGE_DEPTH,
+            width: 1080,
+            height: LEDGE_DEPTH,
+            background: "linear-gradient(180deg, rgb(150 104 52 / 0), rgb(175 121 60 / 0.24) 50%, rgb(210 146 70 / 0.4))",
+            WebkitMaskImage: "linear-gradient(90deg, transparent, #000 18%, #000 82%, transparent)",
+            maskImage: "linear-gradient(90deg, transparent, #000 18%, #000 82%, transparent)",
+            transformOrigin: "center",
+          }}
+          initial={{ scaleX: skip ? 1 : 0, opacity: skip ? 1 : 0 }}
+          animate={{ scaleX: 1, opacity: 1 }}
+          transition={{ delay: t(0.35), duration: dur(0.9), ease: EASE }}
+        />
+
+        {/* the products land one by one; each contact shadow blooms as it touches down:
+            a soft ambient pool a little wider than the product, and a tight dark line right under its base */}
         {items.map((it, i) => (
           <motion.div
             key={`shadow-${it.sku}`}
             aria-hidden
-            style={{ position: "absolute", left: xs[i] - it.w * 0.04, top: SHELF_Y - 16, width: it.w * 1.08, height: 26, borderRadius: "50%", background: "radial-gradient(closest-side, rgb(0 0 0 / 0.85), transparent)", filter: "blur(4px)" }}
-            initial={{ opacity: skip ? 1 : 0, scaleX: skip ? 1 : 0.4 }}
+            style={{ position: "absolute", left: xs[i] - it.w * 0.14, top: BASE_Y - 11, width: it.w * 1.28, height: 22, transformOrigin: "50% 50%" }}
+            initial={{ opacity: skip ? 1 : 0, scaleX: skip ? 1 : 0.35 }}
             animate={{ opacity: 1, scaleX: 1 }}
-            transition={{ delay: t(0.95 + i * 0.16), duration: dur(0.6), ease: EASE }}
-          />
+            transition={{ delay: t(0.78 + i * 0.16), duration: dur(0.55), ease: EASE }}
+          >
+            <span style={{ position: "absolute", inset: 0, borderRadius: "50%", background: "radial-gradient(closest-side, rgb(8 5 2 / 0.62), rgb(8 5 2 / 0.25) 60%, transparent)", filter: "blur(4px)" }} />
+            <span style={{ position: "absolute", left: "13%", right: "13%", top: 7, height: 8, borderRadius: "50%", background: "radial-gradient(closest-side, rgb(4 2 0 / 0.95), rgb(4 2 0 / 0.55) 55%, transparent)", filter: "blur(1.5px)" }} />
+          </motion.div>
         ))}
         {items.map((it, i) => (
           <motion.div
             key={it.sku}
-            style={{ position: "absolute", left: xs[i], top: SHELF_Y - it.h + 4, width: it.w, height: it.h }}
+            style={{ position: "absolute", left: xs[i], top: BASE_Y - it.h, width: it.w, height: it.h }}
             initial={skip ? false : { y: reduced ? 0 : -380, opacity: reduced ? 0 : 1 }}
             animate={{ y: 0, opacity: 1 }}
             transition={reduced ? { delay: t(0.6 + i * 0.16), duration: 0.5 } : { delay: t(0.6 + i * 0.16), type: "spring", stiffness: 240, damping: 17 }}
@@ -160,7 +187,7 @@ export function TitleCard({ hold = false }: { hold?: boolean }) {
         <div style={{ position: "absolute", left: 0, top: 540, width: 1920, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
           <motion.h1
             className="pz-display"
-            style={{ fontSize: 232, margin: 0, fontWeight: 790, letterSpacing: "-0.045em" }}
+            style={{ fontSize: 232, margin: 0, fontWeight: 790, letterSpacing: "-0.026em" }}
             initial={skip ? false : { opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: t(1.15), duration: dur(0.9), ease: EASE }}
