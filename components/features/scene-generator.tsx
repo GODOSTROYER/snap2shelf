@@ -50,6 +50,8 @@ export interface SceneGeneratorProps {
   onSelect: (scene: Scene, choice: SceneChoice) => void;
   client?: FeaturesClient;
   className?: string;
+  /** false: the host already titles this section (e.g. a disclosure button); the title stays for screen readers. */
+  heading?: boolean;
 }
 
 type Gen =
@@ -66,7 +68,7 @@ type Gen =
  * developed like a print in a darkroom while the job runs, and lands in the
  * library for everyone after the scene check.
  */
-export function SceneGenerator({ sku, theme, prompt, view, selectedId, onSelect, client = featuresClient, className }: SceneGeneratorProps) {
+export function SceneGenerator({ sku, theme, prompt, view, selectedId, onSelect, client = featuresClient, className, heading = true }: SceneGeneratorProps) {
   const [text, setText] = React.useState(prompt ?? "");
   const [seenPrompt, setSeenPrompt] = React.useState(prompt);
   if (seenPrompt !== prompt) {
@@ -169,7 +171,7 @@ export function SceneGenerator({ sku, theme, prompt, view, selectedId, onSelect,
 
   return (
     <section aria-labelledby={`${ids}-title`} className={cn("grid gap-5", className)}>
-      <div>
+      <div className={heading ? undefined : "sr-only"}>
         <h3 id={`${ids}-title`} className="font-display text-base font-semibold text-paper">
           Need a different backdrop?
         </h3>

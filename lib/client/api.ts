@@ -175,7 +175,7 @@ export function messageFor(e: unknown): string {
       case "cap_reached":
         return e.body.error || "You've used this session's allowance. Exact mode on the samples is still free.";
       case "quota_low":
-        return "Live AI is paused to protect the shared quota. The sample kits still work.";
+        return e.body.error || "Live AI is paused to protect the shared quota. The sample kits still work.";
       default:
         return e.body.error || GENERIC.error;
     }

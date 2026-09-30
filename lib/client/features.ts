@@ -321,7 +321,7 @@ export function featureMessage(e: unknown): string {
       case "cap_reached":
         return "You've used this session's live generations. Pick a library scene instead.";
       case "quota_low":
-        return "Live generation is paused to protect the shared quota. Pick a library scene instead.";
+        return e.body.error || "Live generation is paused to protect the shared quota. Pick a library scene instead.";
       default:
         return e.body.error || GENERIC.error;
     }

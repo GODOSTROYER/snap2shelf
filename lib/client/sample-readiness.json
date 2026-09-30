@@ -1,0 +1,667 @@
+{
+ "note": "Readiness reports measured live on the seeded sample kits (GET /api/readiness/:sku, 30 Sep 2026). Sample kits replay these, so they make no request.",
+ "reports": {
+  "shbottle": {
+   "sku": "shbottle",
+   "score": 93,
+   "grade": "ready",
+   "checks": [
+    {
+     "id": "white-bg",
+     "label": "Pure white background",
+     "status": "pass",
+     "weight": 25,
+     "points": 25,
+     "detail": "Border measures #ffffff, 100% pure white.",
+     "measured": "#ffffff"
+    },
+    {
+     "id": "fill",
+     "label": "Product fills ~85% of the frame",
+     "status": "pass",
+     "weight": 15,
+     "points": 15,
+     "detail": "Product fills 85% of the frame.",
+     "measured": 0.854
+    },
+    {
+     "id": "resolution",
+     "label": "Resolution for zoom",
+     "status": "pass",
+     "weight": 20,
+     "points": 20,
+     "detail": "2000 px canvas, 1223 px of real product detail.",
+     "measured": 2000
+    },
+    {
+     "id": "sharpness",
+     "label": "Sharp focus",
+     "status": "warn",
+     "weight": 15,
+     "points": 8,
+     "detail": "Focus score 0.39: a little soft.",
+     "measured": 0.39,
+     "fix": {
+      "kind": "transformation",
+      "label": "Sharpen",
+      "transformation": "e_sharpen:80/c_fit,w_1700,h_1700/c_mpad,w_2000,h_2000,b_white/f_jpg,q_auto:best",
+      "previewUrl": "https://res.cloudinary.com/nyxyma1i/image/upload/e_sharpen:80/f_auto,q_auto/v1790741309/snap2shelf/products/shbottle/pack/marketplace",
+      "apply": "sharpen"
+     }
+    },
+    {
+     "id": "no-text",
+     "label": "No text, watermark or props",
+     "status": "pass",
+     "weight": 15,
+     "points": 15,
+     "detail": "Just the product: no watermark, overlay text or props.",
+     "measured": "product-visible"
+    },
+    {
+     "id": "safe-zone",
+     "label": "Clear of social text zones",
+     "status": "pass",
+     "weight": 10,
+     "points": 10,
+     "detail": "Clear of the story header, reply bar and offer text.",
+     "measured": "689-1338"
+    }
+   ],
+   "image": {
+    "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/v1790741309/snap2shelf/products/shbottle/pack/marketplace",
+    "width": 2000,
+    "height": 2000,
+    "materialised": true
+   },
+   "baseline": {
+    "score": 44,
+    "grade": "not-ready",
+    "checks": [
+     {
+      "id": "white-bg",
+      "label": "Pure white background",
+      "status": "fail",
+      "weight": 25,
+      "points": 0,
+      "detail": "Border averages #afaa9e: marketplaces reject non-white main images.",
+      "measured": "#afaa9e",
+      "fix": {
+       "kind": "transformation",
+       "label": "Re-pad on pure white",
+       "transformation": "c_fit,w_1700,h_1700/c_mpad,w_2000,h_2000,b_white/f_jpg,q_auto:best",
+       "previewUrl": "https://res.cloudinary.com/nyxyma1i/image/upload/c_fit,w_1700,h_1700/c_mpad,w_2000,h_2000,b_white/f_jpg,q_auto:best/snap2shelf/products/shbottle/cutout",
+       "apply": "repad"
+      }
+     },
+     {
+      "id": "fill",
+      "label": "Product fills ~85% of the frame",
+      "status": "pass",
+      "weight": 15,
+      "points": 15,
+      "detail": "Product fills 87% of the frame.",
+      "measured": 0.872
+     },
+     {
+      "id": "resolution",
+      "label": "Resolution for zoom",
+      "status": "warn",
+      "weight": 20,
+      "points": 10,
+      "detail": "1402 px meets the 1000 px minimum; 2000 px is the target for crisp zoom.",
+      "measured": 1402,
+      "fix": {
+       "kind": "transformation",
+       "label": "Export at 2000 px",
+       "transformation": "c_fit,w_1700,h_1700/c_mpad,w_2000,h_2000,b_white/f_jpg,q_auto:best"
+      }
+     },
+     {
+      "id": "sharpness",
+      "label": "Sharp focus",
+      "status": "warn",
+      "weight": 15,
+      "points": 8,
+      "detail": "Focus score 0.39: a little soft.",
+      "measured": 0.39,
+      "fix": {
+       "kind": "transformation",
+       "label": "Sharpen",
+       "transformation": "e_sharpen:80/c_fit,w_1700,h_1700/c_mpad,w_2000,h_2000,b_white/f_jpg,q_auto:best",
+       "apply": "sharpen"
+      }
+     }
+    ]
+   },
+   "measuredAt": "2026-09-30T05:39:02.946Z"
+  },
+  "shtrail1": {
+   "sku": "shtrail1",
+   "score": 93,
+   "grade": "ready",
+   "checks": [
+    {
+     "id": "white-bg",
+     "label": "Pure white background",
+     "status": "pass",
+     "weight": 25,
+     "points": 25,
+     "detail": "Border measures #ffffff, 100% pure white.",
+     "measured": "#ffffff"
+    },
+    {
+     "id": "fill",
+     "label": "Product fills ~85% of the frame",
+     "status": "pass",
+     "weight": 15,
+     "points": 15,
+     "detail": "Product fills 85% of the frame.",
+     "measured": 0.854
+    },
+    {
+     "id": "resolution",
+     "label": "Resolution for zoom",
+     "status": "pass",
+     "weight": 20,
+     "points": 20,
+     "detail": "2000 px canvas, 1015 px of real product detail.",
+     "measured": 2000
+    },
+    {
+     "id": "sharpness",
+     "label": "Sharp focus",
+     "status": "warn",
+     "weight": 15,
+     "points": 8,
+     "detail": "Focus score 0.55: a little soft.",
+     "measured": 0.55,
+     "fix": {
+      "kind": "transformation",
+      "label": "Sharpen",
+      "transformation": "e_sharpen:80/c_fit,w_1700,h_1700/c_mpad,w_2000,h_2000,b_white/f_jpg,q_auto:best",
+      "previewUrl": "https://res.cloudinary.com/nyxyma1i/image/upload/e_sharpen:80/f_auto,q_auto/v1790741549/snap2shelf/products/shtrail1/pack/marketplace",
+      "apply": "sharpen"
+     }
+    },
+    {
+     "id": "no-text",
+     "label": "No text, watermark or props",
+     "status": "pass",
+     "weight": 15,
+     "points": 15,
+     "detail": "Just the product: no watermark, overlay text or props.",
+     "measured": "product-visible"
+    },
+    {
+     "id": "safe-zone",
+     "label": "Clear of social text zones",
+     "status": "pass",
+     "weight": 10,
+     "points": 10,
+     "detail": "Clear of the story header, reply bar and offer text.",
+     "measured": "717-1257"
+    }
+   ],
+   "image": {
+    "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/v1790741549/snap2shelf/products/shtrail1/pack/marketplace",
+    "width": 2000,
+    "height": 2000,
+    "materialised": true
+   },
+   "baseline": {
+    "score": 35,
+    "grade": "not-ready",
+    "checks": [
+     {
+      "id": "white-bg",
+      "label": "Pure white background",
+      "status": "fail",
+      "weight": 25,
+      "points": 0,
+      "detail": "Border averages #b4b4aa: marketplaces reject non-white main images.",
+      "measured": "#b4b4aa",
+      "fix": {
+       "kind": "transformation",
+       "label": "Re-pad on pure white",
+       "transformation": "c_fit,w_1700,h_1700/c_mpad,w_2000,h_2000,b_white/f_jpg,q_auto:best",
+       "previewUrl": "https://res.cloudinary.com/nyxyma1i/image/upload/c_fit,w_1700,h_1700/c_mpad,w_2000,h_2000,b_white/f_jpg,q_auto:best/snap2shelf/products/shtrail1/cutout",
+       "apply": "repad"
+      }
+     },
+     {
+      "id": "fill",
+      "label": "Product fills ~85% of the frame",
+      "status": "warn",
+      "weight": 15,
+      "points": 8,
+      "detail": "Product fills 72%; marketplaces want about 85%.",
+      "measured": 0.724,
+      "fix": {
+       "kind": "transformation",
+       "label": "Re-frame to 85%",
+       "transformation": "c_fit,w_1700,h_1700/c_mpad,w_2000,h_2000,b_white/f_jpg,q_auto:best",
+       "previewUrl": "https://res.cloudinary.com/nyxyma1i/image/upload/c_fit,w_1700,h_1700/c_mpad,w_2000,h_2000,b_white/f_jpg,q_auto:best/snap2shelf/products/shtrail1/cutout",
+       "apply": "repad"
+      }
+     },
+     {
+      "id": "resolution",
+      "label": "Resolution for zoom",
+      "status": "warn",
+      "weight": 20,
+      "points": 10,
+      "detail": "1402 px meets the 1000 px minimum; 2000 px is the target for crisp zoom.",
+      "measured": 1402,
+      "fix": {
+       "kind": "transformation",
+       "label": "Export at 2000 px",
+       "transformation": "c_fit,w_1700,h_1700/c_mpad,w_2000,h_2000,b_white/f_jpg,q_auto:best"
+      }
+     },
+     {
+      "id": "sharpness",
+      "label": "Sharp focus",
+      "status": "warn",
+      "weight": 15,
+      "points": 8,
+      "detail": "Focus score 0.55: a little soft.",
+      "measured": 0.55,
+      "fix": {
+       "kind": "transformation",
+       "label": "Sharpen",
+       "transformation": "e_sharpen:80/c_fit,w_1700,h_1700/c_mpad,w_2000,h_2000,b_white/f_jpg,q_auto:best",
+       "apply": "sharpen"
+      }
+     }
+    ]
+   },
+   "measuredAt": "2026-09-30T05:39:15.229Z"
+  },
+  "shkurta1": {
+   "sku": "shkurta1",
+   "score": 95,
+   "grade": "ready",
+   "checks": [
+    {
+     "id": "white-bg",
+     "label": "Pure white background",
+     "status": "pass",
+     "weight": 25,
+     "points": 25,
+     "detail": "Border measures #ffffff, 100% pure white.",
+     "measured": "#ffffff"
+    },
+    {
+     "id": "fill",
+     "label": "Product fills ~85% of the frame",
+     "status": "pass",
+     "weight": 15,
+     "points": 15,
+     "detail": "Product fills 85% of the frame.",
+     "measured": 0.854
+    },
+    {
+     "id": "resolution",
+     "label": "Resolution for zoom",
+     "status": "pass",
+     "weight": 20,
+     "points": 20,
+     "detail": "2000 px canvas, 1085 px of real product detail.",
+     "measured": 2000
+    },
+    {
+     "id": "sharpness",
+     "label": "Sharp focus",
+     "status": "pass",
+     "weight": 15,
+     "points": 15,
+     "detail": "Focus score 1.00: crisp.",
+     "measured": 1
+    },
+    {
+     "id": "no-text",
+     "label": "No text, watermark or props",
+     "status": "pass",
+     "weight": 15,
+     "points": 15,
+     "detail": "Just the product: no watermark, overlay text or props.",
+     "measured": "product-visible"
+    },
+    {
+     "id": "safe-zone",
+     "label": "Clear of social text zones",
+     "status": "warn",
+     "weight": 10,
+     "points": 5,
+     "detail": "The offer text would overlap the product.",
+     "measured": "474-1311",
+     "fix": {
+      "kind": "repack",
+      "label": "Move the offer text to the bottom",
+      "textZone": "bottom"
+     }
+    }
+   ],
+   "image": {
+    "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/v1790741578/snap2shelf/products/shkurta1/pack/marketplace",
+    "width": 2000,
+    "height": 2000,
+    "materialised": true
+   },
+   "baseline": {
+    "score": 44,
+    "grade": "not-ready",
+    "checks": [
+     {
+      "id": "white-bg",
+      "label": "Pure white background",
+      "status": "fail",
+      "weight": 25,
+      "points": 0,
+      "detail": "Border averages #c0bebe: marketplaces reject non-white main images.",
+      "measured": "#c0bebe",
+      "fix": {
+       "kind": "transformation",
+       "label": "Re-pad on pure white",
+       "transformation": "c_fit,w_1700,h_1700/c_mpad,w_2000,h_2000,b_white/f_jpg,q_auto:best",
+       "previewUrl": "https://res.cloudinary.com/nyxyma1i/image/upload/c_fit,w_1700,h_1700/c_mpad,w_2000,h_2000,b_white/f_jpg,q_auto:best/snap2shelf/products/shkurta1/cutout",
+       "apply": "repad"
+      }
+     },
+     {
+      "id": "fill",
+      "label": "Product fills ~85% of the frame",
+      "status": "warn",
+      "weight": 15,
+      "points": 8,
+      "detail": "Product fills 77%; marketplaces want about 85%.",
+      "measured": 0.774,
+      "fix": {
+       "kind": "transformation",
+       "label": "Re-frame to 85%",
+       "transformation": "c_fit,w_1700,h_1700/c_mpad,w_2000,h_2000,b_white/f_jpg,q_auto:best",
+       "previewUrl": "https://res.cloudinary.com/nyxyma1i/image/upload/c_fit,w_1700,h_1700/c_mpad,w_2000,h_2000,b_white/f_jpg,q_auto:best/snap2shelf/products/shkurta1/cutout",
+       "apply": "repad"
+      }
+     },
+     {
+      "id": "resolution",
+      "label": "Resolution for zoom",
+      "status": "warn",
+      "weight": 20,
+      "points": 10,
+      "detail": "1402 px meets the 1000 px minimum; 2000 px is the target for crisp zoom.",
+      "measured": 1402,
+      "fix": {
+       "kind": "transformation",
+       "label": "Export at 2000 px",
+       "transformation": "c_fit,w_1700,h_1700/c_mpad,w_2000,h_2000,b_white/f_jpg,q_auto:best"
+      }
+     },
+     {
+      "id": "sharpness",
+      "label": "Sharp focus",
+      "status": "pass",
+      "weight": 15,
+      "points": 15,
+      "detail": "Focus score 1.00: crisp.",
+      "measured": 1
+     }
+    ]
+   },
+   "measuredAt": "2026-09-30T05:39:21.882Z"
+  },
+  "shmessy1": {
+   "sku": "shmessy1",
+   "score": 100,
+   "grade": "ready",
+   "checks": [
+    {
+     "id": "white-bg",
+     "label": "Pure white background",
+     "status": "pass",
+     "weight": 25,
+     "points": 25,
+     "detail": "Border measures #ffffff, 100% pure white.",
+     "measured": "#ffffff"
+    },
+    {
+     "id": "fill",
+     "label": "Product fills ~85% of the frame",
+     "status": "pass",
+     "weight": 15,
+     "points": 15,
+     "detail": "Product fills 85% of the frame.",
+     "measured": 0.854
+    },
+    {
+     "id": "resolution",
+     "label": "Resolution for zoom",
+     "status": "pass",
+     "weight": 20,
+     "points": 20,
+     "detail": "2000 px canvas, 1182 px of real product detail.",
+     "measured": 2000
+    },
+    {
+     "id": "sharpness",
+     "label": "Sharp focus",
+     "status": "pass",
+     "weight": 15,
+     "points": 15,
+     "detail": "Focus score 0.65: crisp.",
+     "measured": 0.65
+    },
+    {
+     "id": "no-text",
+     "label": "No text, watermark or props",
+     "status": "pass",
+     "weight": 15,
+     "points": 15,
+     "detail": "Just the product: no watermark, overlay text or props.",
+     "measured": "product-visible"
+    },
+    {
+     "id": "safe-zone",
+     "label": "Clear of social text zones",
+     "status": "pass",
+     "weight": 10,
+     "points": 10,
+     "detail": "Clear of the story header, reply bar and offer text.",
+     "measured": "669-1318"
+    }
+   ],
+   "image": {
+    "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/v1790741286/snap2shelf/products/shmessy1/pack/marketplace",
+    "width": 2000,
+    "height": 2000,
+    "materialised": true
+   },
+   "baseline": {
+    "score": 53,
+    "grade": "not-ready",
+    "checks": [
+     {
+      "id": "white-bg",
+      "label": "Pure white background",
+      "status": "fail",
+      "weight": 25,
+      "points": 0,
+      "detail": "Border averages #877867: marketplaces reject non-white main images.",
+      "measured": "#877867",
+      "fix": {
+       "kind": "transformation",
+       "label": "Re-pad on pure white",
+       "transformation": "c_fit,w_1700,h_1700/c_mpad,w_2000,h_2000,b_white/f_jpg,q_auto:best",
+       "previewUrl": "https://res.cloudinary.com/nyxyma1i/image/upload/c_fit,w_1700,h_1700/c_mpad,w_2000,h_2000,b_white/f_jpg,q_auto:best/snap2shelf/products/shmessy1/cutout",
+       "apply": "repad"
+      }
+     },
+     {
+      "id": "fill",
+      "label": "Product fills ~85% of the frame",
+      "status": "pass",
+      "weight": 15,
+      "points": 15,
+      "detail": "Product fills 84% of the frame.",
+      "measured": 0.843
+     },
+     {
+      "id": "resolution",
+      "label": "Resolution for zoom",
+      "status": "warn",
+      "weight": 20,
+      "points": 10,
+      "detail": "1402 px meets the 1000 px minimum; 2000 px is the target for crisp zoom.",
+      "measured": 1402,
+      "fix": {
+       "kind": "transformation",
+       "label": "Export at 2000 px",
+       "transformation": "c_fit,w_1700,h_1700/c_mpad,w_2000,h_2000,b_white/f_jpg,q_auto:best"
+      }
+     },
+     {
+      "id": "sharpness",
+      "label": "Sharp focus",
+      "status": "pass",
+      "weight": 15,
+      "points": 15,
+      "detail": "Focus score 0.65: crisp.",
+      "measured": 0.65
+     }
+    ]
+   },
+   "measuredAt": "2026-09-30T05:39:28.290Z"
+  },
+  "shsneakr": {
+   "sku": "shsneakr",
+   "score": 90,
+   "grade": "ready",
+   "checks": [
+    {
+     "id": "white-bg",
+     "label": "Pure white background",
+     "status": "pass",
+     "weight": 25,
+     "points": 25,
+     "detail": "Border measures #ffffff, 100% pure white.",
+     "measured": "#ffffff"
+    },
+    {
+     "id": "fill",
+     "label": "Product fills ~85% of the frame",
+     "status": "pass",
+     "weight": 15,
+     "points": 15,
+     "detail": "Product fills 85% of the frame.",
+     "measured": 0.854
+    },
+    {
+     "id": "resolution",
+     "label": "Resolution for zoom",
+     "status": "warn",
+     "weight": 20,
+     "points": 10,
+     "detail": "2000 px canvas from 976 px of real product detail: fine on phones, soft on zoom.",
+     "measured": 976,
+     "fix": {
+      "kind": "transformation",
+      "label": "AI upscale the product",
+      "transformation": "e_upscale/c_fit,w_1700,h_1700/c_mpad,w_2000,h_2000,b_white/f_jpg,q_auto:best",
+      "paid": true
+     }
+    },
+    {
+     "id": "sharpness",
+     "label": "Sharp focus",
+     "status": "pass",
+     "weight": 15,
+     "points": 15,
+     "detail": "Focus score 0.77: crisp.",
+     "measured": 0.77
+    },
+    {
+     "id": "no-text",
+     "label": "No text, watermark or props",
+     "status": "pass",
+     "weight": 15,
+     "points": 15,
+     "detail": "Just the product: no watermark, overlay text or props.",
+     "measured": "product-visible"
+    },
+    {
+     "id": "safe-zone",
+     "label": "Clear of social text zones",
+     "status": "pass",
+     "weight": 10,
+     "points": 10,
+     "detail": "Clear of the story header, reply bar and offer text.",
+     "measured": "851-1163"
+    }
+   ],
+   "image": {
+    "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/v1790741516/snap2shelf/products/shsneakr/pack/marketplace",
+    "width": 2000,
+    "height": 2000,
+    "materialised": true
+   },
+   "baseline": {
+    "score": 53,
+    "grade": "not-ready",
+    "checks": [
+     {
+      "id": "white-bg",
+      "label": "Pure white background",
+      "status": "fail",
+      "weight": 25,
+      "points": 0,
+      "detail": "Border averages #bcb6b0: marketplaces reject non-white main images.",
+      "measured": "#bcb6b0",
+      "fix": {
+       "kind": "transformation",
+       "label": "Re-pad on pure white",
+       "transformation": "c_fit,w_1700,h_1700/c_mpad,w_2000,h_2000,b_white/f_jpg,q_auto:best",
+       "previewUrl": "https://res.cloudinary.com/nyxyma1i/image/upload/c_fit,w_1700,h_1700/c_mpad,w_2000,h_2000,b_white/f_jpg,q_auto:best/snap2shelf/products/shsneakr/cutout",
+       "apply": "repad"
+      }
+     },
+     {
+      "id": "fill",
+      "label": "Product fills ~85% of the frame",
+      "status": "pass",
+      "weight": 15,
+      "points": 15,
+      "detail": "Product fills 87% of the frame.",
+      "measured": 0.87
+     },
+     {
+      "id": "resolution",
+      "label": "Resolution for zoom",
+      "status": "warn",
+      "weight": 20,
+      "points": 10,
+      "detail": "1402 px canvas from 976 px of real product detail: fine on phones, soft on zoom.",
+      "measured": 976,
+      "fix": {
+       "kind": "transformation",
+       "label": "AI upscale the product",
+       "transformation": "e_upscale/c_fit,w_1700,h_1700/c_mpad,w_2000,h_2000,b_white/f_jpg,q_auto:best",
+       "paid": true
+      }
+     },
+     {
+      "id": "sharpness",
+      "label": "Sharp focus",
+      "status": "pass",
+      "weight": 15,
+      "points": 15,
+      "detail": "Focus score 0.77: crisp.",
+      "measured": 0.77
+     }
+    ]
+   },
+   "measuredAt": "2026-09-30T05:39:34.463Z"
+  }
+ }
+}

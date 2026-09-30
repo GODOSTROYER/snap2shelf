@@ -19,6 +19,8 @@ export interface CostReceiptProps {
   /** What a basic one-product studio shoot costs, for scale. Shown as an estimate. */
   photoshootInr?: number;
   client?: FeaturesClient;
+  /** A ledger already in hand (a sample's saved run, a server render): printed without a request. */
+  initial?: CostResponse;
   className?: string;
 }
 
@@ -36,11 +38,13 @@ const PRINT_MS = 1500;
  * each line counts up as it prints, and the photo's weight counts down from the
  * original upload to what a browser actually downloads.
  */
-export function CostReceipt({ sku, scene, refreshKey, photoshootInr = PHOTOSHOOT_INR, client = featuresClient, className }: CostReceiptProps) {
-  const [state, setState] = React.useState<State>({ kind: "loading" });
+export function CostReceipt({ sku, scene, refreshKey, photoshootInr = PHOTOSHOOT_INR, client = featuresClient, initial, className }: CostReceiptProps) {
+  const [state, setState] = React.useState<State>(initial ? { kind: "ready", data: initial } : { kind: "loading" });
+  const hasInitial = !!initial;
   const [attempt, setAttempt] = React.useState(0);
 
   React.useEffect(() => {
+    if (hasInitial) return;
     const ctl = new AbortController();
     // Deferred a tick: a remount (StrictMode, fast refresh) must not spend a second Admin API call.
     const t = setTimeout(async () => {
@@ -67,7 +71,7 @@ export function CostReceipt({ sku, scene, refreshKey, photoshootInr = PHOTOSHOOT
       clearTimeout(t);
       ctl.abort();
     };
-  }, [client, sku, scene, refreshKey, attempt]);
+  }, [client, sku, scene, refreshKey, attempt, hasInitial]);
 
   const retry = () => {
     setState({ kind: "loading" });

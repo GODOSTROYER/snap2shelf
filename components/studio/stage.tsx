@@ -6,8 +6,9 @@ import { AnimatePresence, motion } from "motion/react";
 import * as React from "react";
 import { QaBadge } from "@/components/kit/qa-badge";
 import { XraySheet } from "@/components/kit/xray-sheet";
+import { SceneDnaOverlay } from "@/components/present/SceneDnaOverlay";
 import { cn } from "@/lib/client/util";
-import type { KitAsset, QaResult } from "@/lib/types";
+import type { KitAsset, QaResult, SceneDNA } from "@/lib/types";
 import { CrossfadeImage, type Enter } from "./crossfade-image";
 
 /** The QA gate's automatic retry, told on the stage: caught → fixed → approved. */
@@ -37,8 +38,10 @@ export const Stage = React.forwardRef<
     xray?: KitAsset | null; // what the X-ray button explains
     enter?: Enter; // how the next image arrives
     light?: { azimuth: number; key: number } | null; // key light sweeping in from the scene's light direction
+    /** Scene DNA drawn over the composite (surface, anchor, light, shadow, text zone). */
+    dna?: { dna: SceneDNA; key: string } | null;
   }
->(function Stage({ src, alt, placeholder, originalSrc, originalLabel = "Hold to see your photo", qaStory, scanning, qa, onBusy, busyLabel, xray, enter, light }, ref) {
+>(function Stage({ src, alt, placeholder, originalSrc, originalLabel = "Hold to see your photo", qaStory, scanning, qa, onBusy, busyLabel, xray, enter, light, dna }, ref) {
   const [showOriginal, setShowOriginal] = React.useState(false);
   const [xrayOpen, setXrayOpen] = React.useState(false);
   const [failed, setFailed] = React.useState<string | null>(null);
@@ -76,6 +79,22 @@ export const Stage = React.forwardRef<
 
       <AnimatePresence>
         {light ? <KeyLight key={light.key} azimuth={light.azimuth} /> : null}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {dna && !showOriginal ? (
+          <motion.div
+            key={dna.key}
+            className="pointer-events-none absolute inset-0 [--pz-font-text:var(--font-hanken)]"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1, transition: { duration: 0.2 } }}
+            exit={{ opacity: 0, transition: { duration: 0.35 } }}
+          >
+            {/* a light scrim so the marks read on bright plates */}
+            <div aria-hidden className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_40%,rgb(14_12_10/0.35))]" />
+            <SceneDnaOverlay dna={dna.dna} animate step={0.32} weight={1.6} show={{ shadow: true, temperature: false, finish: false }} accent="var(--color-marigold)" />
+          </motion.div>
+        ) : null}
       </AnimatePresence>
 
       {scanning ? (
