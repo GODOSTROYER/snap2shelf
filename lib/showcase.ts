@@ -21,6 +21,8 @@
  *  - "before" photos: the raw photo, cropped so the product sits exactly where
  *    the hero places it (stored once).
  */
+import { PRIMARY_SAMPLE_SKU, PRODUCT_NAMES, SHOWCASE_KIT_SKU } from "./claims";
+import { snapWidth } from "./client/img";
 import { SHOWCASE, type ShowcaseKit, type ShowcaseTimings } from "./showcase-data";
 import { channelAssets } from "./transform/channels";
 import { compositeUrl, defaultControls, deliveryBase, geometry, quantise } from "./transform/composite";
@@ -31,7 +33,18 @@ import type { CompositeControls, Kit, KitAsset, ProductRecord, QaResult, Scene, 
 
 export const SHOWCASE_CLOUD = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "nyxyma1i";
 
-const stored = (publicId: string, w?: number) => `${deliveryBase(SHOWCASE_CLOUD)}/${w ? `c_limit,w_${w}/` : ""}f_auto,q_auto/${publicId}`;
+// widths snap to the site's fixed set (lib/client/img.ts): every new width is a new billable derivative
+const stored = (publicId: string, w?: number) => `${deliveryBase(SHOWCASE_CLOUD)}/${w ? `c_limit,w_${snapWidth(w)}/` : ""}f_auto,q_auto/${publicId}`;
+
+/** Canonical display name of a sample (lib/claims.ts), e.g. "Chikankari kurta". */
+export const productName = (sku: string, fallback = "Your product") => PRODUCT_NAMES[sku] ?? fallback;
+/** The same name, short enough for a shop listing or alt text ("Steel bottle, cluttered-counter photo" → "Steel bottle"). */
+export const shortProductName = (sku: string, fallback = "Your product") => (PRODUCT_NAMES[sku] ? PRODUCT_NAMES[sku].split(",")[0] : fallback);
+/** A title and its qualifier, for a two-line heading: "Steel bottle, cluttered-counter photo" → ["Steel bottle", "cluttered-counter photo"]. */
+export function nameParts(name: string): [string, string | undefined] {
+  const at = name.indexOf(", ");
+  return at < 0 ? [name, undefined] : [name.slice(0, at), name.slice(at + 2)];
+}
 
 /** A real QA rejection from the seeded run, retold by the replay: caught → auto-fixed → approved. */
 export interface SampleQaStory {
@@ -45,15 +58,17 @@ export interface SampleQaStory {
 
 export interface SampleProduct {
   sku: Sku;
-  title: string; // shown on the sample picker
-  blurb: string; // what the photo is, in a few words
+  title: string; // canonical product name (lib/claims.ts PRODUCT_NAMES): picker, studio, kit page
+  blurb: string; // the scene of the sample photo, in a few words (never "phone photo": the samples are AI-generated test images)
+  /** What this sample demonstrates beyond a clean run (the picker's featured tile says it). */
+  highlight?: string;
   /** Shown in the studio's sample picker (false: a duplicate photo, still reachable by link). */
   listed: boolean;
   product: ProductRecord;
   scene: Scene;
   controls: CompositeControls;
   heroPublicId: string; // the approved composite, saved once as its own asset
-  /** The phone photo cropped (and extended) so its product sits exactly where the hero places it, 1080×1350. */
+  /** The sample photo cropped (and extended) so its product sits exactly where the hero places it, 1080×1350. */
   beforePublicId?: string;
   /** Same, as a ready delivery URL (seeded data: beforeAfter[].rawAlignedUrl). */
   beforeUrl?: string;
@@ -173,8 +188,8 @@ const QA_OK = (checkedAt: string): QaResult => ({ status: "approved", matched: [
 const SPECS: SampleSpec[] = [
   {
     sku: "sneaker1",
-    title: "Casual sneaker",
-    blurb: "Phone photo on a tiled floor",
+    title: PRODUCT_NAMES.sneaker1,
+    blurb: "On a tiled floor",
     product: {
       sku: "sneaker1",
       rawPublicId: "snap2shelf/dev/sneaker_decent/raw",
@@ -184,7 +199,7 @@ const SPECS: SampleSpec[] = [
       caption: "A white and beige sneaker sits on a light-colored tiled floor against a plain white wall.",
       focus: 0.77,
       understanding: {
-        name: "Casual sneaker",
+        name: PRODUCT_NAMES.sneaker1,
         category: "footwear",
         primary_color: "white",
         material: "mesh",
@@ -382,7 +397,7 @@ function buildSample(s: SampleSpec): SampleProduct {
     sku: s.sku,
     title: s.title,
     blurb: s.blurb,
-    listed: true,
+    listed: false, // no stored ZIP: the picker offers the seeded sneaker (same photo, full kit)
     product: p,
     scene: s.scene,
     controls,
@@ -400,16 +415,18 @@ function buildSample(s: SampleSpec): SampleProduct {
 // ─── Seeded kits (data/showcase.json) ─────────────────────────────────────────
 
 /**
- * How each seeded kit appears in the studio. Order = picker order. shsneakr is
- * the same phone photo as the featured sneaker on the same scene, so it stays
- * reachable by link but isn't listed twice.
+ * How each seeded kit appears in the studio's picker, in picker order. The
+ * primary sample leads (it replays a real QA rejection and its automatic fix).
+ * shsneakr is the same sample photo as the landing's sneaker on the same scene;
+ * the picker offers it because, unlike the hand-built landing sneaker, its kit
+ * has a stored ZIP. Titles are the canonical names (lib/claims.ts).
  */
-const SEEDED_META: { sku: Sku; title?: string; blurb: string; listed: boolean }[] = [
-  { sku: "shbottle", blurb: "Phone photo on a kitchen counter", listed: true },
-  { sku: "shtrail1", blurb: "Phone photo beside a house plant", listed: true },
-  { sku: "shkurta1", title: "Chikankari kurta", blurb: "Laid flat on a patterned sheet", listed: true },
-  { sku: "shmessy1", title: "Bottle, busy counter", blurb: "Mug, fruit bowl and towels behind it", listed: true },
-  { sku: "shsneakr", blurb: "Phone photo on a marble floor", listed: false },
+const SEEDED_META: { sku: Sku; blurb: string; highlight?: string; listed: boolean }[] = [
+  { sku: "shmessy1", blurb: "Mug, fruit bowl and towels behind it", highlight: "QA catches a floating bottle, then fixes it", listed: true },
+  { sku: "shbottle", blurb: "On a kitchen counter", listed: true },
+  { sku: "shtrail1", blurb: "Beside a house plant", listed: true },
+  { sku: "shkurta1", blurb: "Laid flat on a patterned sheet", listed: true },
+  { sku: "shsneakr", blurb: "On a marble floor", listed: true },
 ];
 
 /** Offer lines as the pack wrote them onto the festive offer (its two l_text layers). */
@@ -460,18 +477,34 @@ function qaStoryOf(k: ShowcaseKit): SampleQaStory | undefined {
   };
 }
 
+/**
+ * The seed wrote AI Vision's generic reading ("Embroidered linen tunic") into the
+ * product and every alt text; the site uses the canonical name everywhere.
+ */
+function renamed(k: ShowcaseKit): Pick<Kit, "product" | "hero" | "assets"> {
+  const read = k.product.understanding?.name;
+  const name = shortProductName(k.sku, read);
+  const alt = (s: string) => (read && s.startsWith(read) ? name + s.slice(read.length) : s);
+  return {
+    product: k.product.understanding ? { ...k.product, understanding: { ...k.product.understanding, name } } : k.product,
+    hero: { ...k.hero, alt: alt(k.hero.alt) },
+    assets: k.assets.map((a) => ({ ...a, alt: alt(a.alt) })),
+  };
+}
+
 function fromSeeded(k: ShowcaseKit, meta: (typeof SEEDED_META)[number]): SampleProduct {
   const last = k.attempts[k.attempts.length - 1];
   const qaTokens = k.attempts.reduce((n, a) => n + a.tokens, 0);
+  const { product, hero, assets } = renamed(k);
   // a plain Kit: the seed's extras (timings, attempts, overrides) stay out of the props that reach the browser
   const kit: Kit = {
     sku: k.sku,
-    product: k.product,
+    product,
     mode: k.mode,
     scene: k.scene,
     controls: k.controls,
-    hero: k.hero,
-    assets: k.assets,
+    hero,
+    assets,
     reel: k.reel,
     zipUrl: k.zipUrl,
     cost: k.cost,
@@ -479,10 +512,11 @@ function fromSeeded(k: ShowcaseKit, meta: (typeof SEEDED_META)[number]): SampleP
   };
   return {
     sku: k.sku,
-    title: meta.title ?? k.title,
+    title: productName(k.sku, k.title),
     blurb: meta.blurb,
+    highlight: meta.highlight,
     listed: meta.listed,
-    product: k.product,
+    product,
     scene: k.scene!,
     controls: k.controls!,
     heroPublicId: k.hero.publicId!,
@@ -504,18 +538,29 @@ const SEEDED: SampleProduct[] = SEEDED_META.flatMap((m) => {
   return k && k.scene && k.controls && k.hero.publicId && k.product.cutout ? [fromSeeded(k, m)] : [];
 });
 
-/** Featured sneaker first (the landing hero), then the seeded kits. */
+/** The landing's sneaker first (its before/after hero), then the seeded kits. */
 export const SAMPLES: SampleProduct[] = [...SPECS.map(buildSample), ...SEEDED];
 
-/** The samples offered in the studio's picker. */
-export const LISTED_SAMPLES = SAMPLES.filter((s) => s.listed);
+/**
+ * The samples offered in the studio's picker, the primary sample first. The
+ * landing's hand-built sneaker has no stored ZIP, so the picker offers the
+ * seeded sneaker (same photo, full kit) instead; the other stays reachable by link.
+ */
+export const LISTED_SAMPLES = SAMPLES.filter((s) => s.listed).sort(
+  (a, b) => Number(b.sku === PRIMARY_SAMPLE_SKU) - Number(a.sku === PRIMARY_SAMPLE_SKU),
+);
 
 export const getSample = (sku: string | null | undefined) => SAMPLES.find((s) => s.sku === sku);
 export const isSampleSku = (sku: string | null | undefined) => !!getSample(sku);
 
 export const SHOWCASE_KITS: Kit[] = SAMPLES.map((s) => s.kit);
+/** The landing hero's before/after (and its how-it-works story) only. Its kit has no ZIP: link people to the two below. */
 export const FEATURED = SAMPLES[0];
 export const FEATURED_KIT = FEATURED.kit;
+/** Every "Try a sample" entry point: it has a ZIP and replays QA catching a bad placement, the auto-fix and the approval. */
+export const PRIMARY_SAMPLE = getSample(PRIMARY_SAMPLE_SKU) ?? FEATURED;
+/** Every "See a finished kit" link. */
+export const SHOWCASE_SAMPLE = getSample(SHOWCASE_KIT_SKU) ?? FEATURED;
 export const getShowcaseKit = (sku: string) => SHOWCASE_KITS.find((k) => k.sku === sku);
 
 // ─── Landing / page helpers ───────────────────────────────────────────────────
@@ -525,17 +570,18 @@ export function heroAt(kit: Kit, w: number) {
   return kit.hero.publicId ? stored(kit.hero.publicId, w) : kit.hero.url;
 }
 
-/** The phone photo, aligned with the hero for the wipe slider (falls back to a centre crop). */
+/** The sample photo, aligned with the hero for the wipe slider (falls back to a 4:5 crop). */
 export function beforeAt(s: SampleProduct, w: number) {
-  if (s.beforePublicId) return stored(s.beforePublicId, w);
-  if (s.beforeUrl?.includes("/f_auto,q_auto/")) return s.beforeUrl.replace("/f_auto,q_auto/", `/c_scale,w_${w}/f_auto,q_auto/`);
+  const px = snapWidth(w);
+  if (s.beforePublicId) return stored(s.beforePublicId, px);
+  if (s.beforeUrl?.includes("/f_auto,q_auto/")) return s.beforeUrl.replace("/f_auto,q_auto/", `/c_scale,w_${px}/f_auto,q_auto/`);
   if (s.beforeUrl) return s.beforeUrl;
-  return `${deliveryBase(SHOWCASE_CLOUD)}/c_fill,ar_4:5,g_auto,w_${w}/f_auto,q_auto/${s.product.rawPublicId}`;
+  return rawAt(s.product, px);
 }
 
-/** The raw phone photo, as taken (4:5 crop for tiles). */
+/** The sample photo as taken (4:5 crop for tiles). */
 export function rawAt(p: Pick<ProductRecord, "rawPublicId">, w: number) {
-  return `${deliveryBase(SHOWCASE_CLOUD)}/c_fill,ar_4:5,g_auto,w_${w}/f_auto,q_auto/${p.rawPublicId}`;
+  return `${deliveryBase(SHOWCASE_CLOUD)}/c_fill,ar_4:5,g_auto,w_${snapWidth(w)}/f_auto,q_auto/${p.rawPublicId}`;
 }
 
 /** Tiny blurred placeholder of a stored image (≈1 KB), painted under the real one. */
@@ -543,7 +589,8 @@ export const lqipOf = (publicId: string) => `${deliveryBase(SHOWCASE_CLOUD)}/c_l
 
 export const heroLqip = (kit: Kit) => lqipOf(kit.hero.publicId ?? kit.scene?.publicId ?? kit.product.rawPublicId);
 
-/** Link-preview image for the whole site: the sample heroes as cards under the name. */
+/** Link-preview image for the whole site: three sample heroes as cards under the name (a fixed trio, so the card stays one cached derivative). */
 export function siteOgImage() {
-  return ogUrl({ heroes: LISTED_SAMPLES.slice(0, 3).map((s) => s.heroPublicId), shopName: "Snap2Shelf", tagline: "One photo. A whole shelf.", cloud: SHOWCASE_CLOUD }).url;
+  const heroes = ["sneaker1", "shbottle", "shtrail1"].flatMap((sku) => getSample(sku)?.heroPublicId ?? []);
+  return ogUrl({ heroes, shopName: "Snap2Shelf", tagline: "One photo. A whole shelf.", cloud: SHOWCASE_CLOUD }).url;
 }

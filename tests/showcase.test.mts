@@ -2,19 +2,53 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-const { SAMPLES, LISTED_SAMPLES, FEATURED, getSample } = await import("../lib/showcase.ts");
+const { SAMPLES, LISTED_SAMPLES, FEATURED, PRIMARY_SAMPLE, SHOWCASE_SAMPLE, getSample } = await import("../lib/showcase.ts");
 const { sampleCost, sampleReadiness } = await import("../lib/client/sample-data.ts");
 const { canRecolor } = await import("../lib/client/swatches.ts");
+const { PRIMARY_SAMPLE_SKU, PRODUCT_NAMES, SHOWCASE_KIT_SKU } = await import("../lib/claims.ts");
+const { sizedUrl, snapWidth, WIDTHS } = await import("../lib/client/img.ts");
+const { beforeAt, heroAt } = await import("../lib/showcase.ts");
 
-test("samples: the featured sneaker first, the seeded kits after it, bottle01 retired", () => {
-  assert.equal(FEATURED.sku, "sneaker1");
+test("samples: the picker leads with the QA-catch sample; every listed kit has a ZIP; bottle01 retired", () => {
+  assert.equal(FEATURED.sku, "sneaker1"); // the landing hero's before/after
+  assert.equal(PRIMARY_SAMPLE.sku, PRIMARY_SAMPLE_SKU);
+  assert.equal(SHOWCASE_SAMPLE.sku, SHOWCASE_KIT_SKU);
   assert.equal(getSample("bottle01"), undefined);
   assert.deepEqual(
     LISTED_SAMPLES.map((s) => s.sku),
-    ["sneaker1", "shbottle", "shtrail1", "shkurta1", "shmessy1"],
+    ["shmessy1", "shbottle", "shtrail1", "shkurta1", "shsneakr"],
   );
-  // the duplicate photo stays reachable by link
-  assert.ok(getSample("shsneakr") && !getSample("shsneakr")!.listed);
+  for (const s of LISTED_SAMPLES) assert.ok(s.kit.zipUrl, `${s.sku} is offered, so it has a zip`);
+  // the hand-built landing sneaker has no zip: reachable by link, never offered in the picker
+  assert.ok(getSample("sneaker1") && !getSample("sneaker1")!.listed && !getSample("sneaker1")!.kit.zipUrl);
+  assert.ok(PRIMARY_SAMPLE.qaStory && PRIMARY_SAMPLE.kit.zipUrl);
+});
+
+test("samples go by their canonical names, and never call the AI-generated input a phone photo", () => {
+  for (const s of SAMPLES) {
+    assert.equal(s.title, PRODUCT_NAMES[s.sku], s.sku);
+    assert.doesNotMatch(s.blurb, /phone/i, s.sku);
+    const read = s.kit.product.understanding?.name ?? "";
+    assert.equal(read, PRODUCT_NAMES[s.sku].split(",")[0], `${s.sku} product name`);
+    for (const a of [s.kit.hero, ...s.kit.assets]) assert.ok(!/Embroidered linen tunic|Stainless steel water bottle/.test(a.alt), `${s.sku} ${a.id} alt`);
+  }
+  assert.notEqual(getSample("shmessy1")!.title, getSample("shbottle")!.title);
+});
+
+test("display widths come from one fixed set", () => {
+  assert.deepEqual([...WIDTHS], [360, 480, 720, 1080]);
+  assert.equal(snapWidth(48), 360);
+  assert.equal(snapWidth(400), 480);
+  assert.equal(snapWidth(1280), 1080);
+  for (const s of SAMPLES) {
+    // whatever width a layout asks for, the URL carries a fixed one
+    assert.match(heroAt(s.kit, 400), /\/c_limit,w_480\/f_auto,q_auto\//, s.sku);
+    assert.match(beforeAt(s, 1300), /w_1080\//, s.sku);
+    for (const a of s.kit.assets) {
+      const u = sizedUrl(a, 250);
+      assert.ok(u === a.url || u.includes("/c_limit,w_360/f_auto,q_auto/"), `${s.sku} ${a.id}: ${u.slice(-90)}`);
+    }
+  }
 });
 
 test("seeded samples replay stored results: zip, reel, hero, offer lines", () => {
@@ -48,6 +82,9 @@ test("sample cost ledger: real totals, itemised lines add up, no request", () =>
   assert.equal(c.breakdown.tokens.reduce((n, t) => n + t.tokens, 0), s.kit.cost.aiVisionTokens);
   assert.equal(c.wallClockSeconds, Math.round(s.timings!.total / 1000));
   assert.equal(c.breakdown.generation.length, 0);
+  // the itemised steps add up to the "Cloudinary processing" line (every step after the upload)
+  const steps = c.breakdown.steps.reduce((n, x) => n + x.ms, 0);
+  assert.equal(Math.round(steps / 100) / 10, c.cost.seconds);
 });
 
 test("sample readiness ships with the page (the featured sneaker shares shsneakr's pixels)", async () => {
