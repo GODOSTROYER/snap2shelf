@@ -541,7 +541,7 @@ A live demo on a Free plan fails in boring ways: an hourly API limit, a monthly 
 | Use your own photo | **Upload a photo** in the studio, or **Snap with your phone** and scan the QR code; try the brief bar | nothing (Exact mode, retouch, QA, pack and readiness are open, with a per-session cap) |
 | Generate live with an image model | open **Creative**, enter the access code, pick **Faithful** or **Fast draft**; or **Generate a new scene** | the **access code from our submission form** |
 
-Guard rails you may notice: each unlocked session gets **4 live generations**; open AI operations (analyze, retouch, brief, cut-out, QA, pack, readiness) are capped at **60 per session**; if the pool's usable generation credits fall below **12**, live generation pauses; and if main's transformation credits reach the floor (**21 of 25**), live kit building pauses. In every case the app shows the saved samples instead of failing. All four are environment variables (`LIVE_GEN_CAP`, `OPEN_OP_CAP`, `LIVE_GEN_MIN`, `LIVE_TX_MAX_USED`).
+Guard rails you may notice: each unlocked session gets **4 live generations**; open AI operations (analyze, retouch, brief, cut-out, QA, pack, readiness) are capped at **60 per session**; if the pool's usable generation credits fall below **12**, live generation pauses; and if main's transformation credits reach the floor (**21 of 25**, or **24 of 25** with the pool offload on, since a kit then costs main about 7 transformations), live kit building pauses. In every case the app shows the saved samples instead of failing. All four are environment variables (`LIVE_GEN_CAP`, `OPEN_OP_CAP`, `LIVE_GEN_MIN`, `LIVE_TX_MAX_USED`).
 
 ---
 
@@ -575,7 +575,7 @@ In your Cloudinary security settings, make sure **Resource list** is not a restr
 | `DEMO_ACCESS_CODE` | for live generation | the code that unlocks Creative mode and new scenes |
 | `NEXT_PUBLIC_SITE_URL` | yes | e.g. `http://localhost:3000`; used for QR codes and links |
 | `LIVE_GEN_CAP`, `LIVE_GEN_MIN`, `OPEN_OP_CAP` | optional | defaults 4, 12 and 60 (see [How judges can test](#how-judges-can-test)) |
-| `LIVE_TX_MAX_USED` | optional | main's transformation-credit floor, default 21 of 25; `0` turns the live pipeline off |
+| `LIVE_TX_MAX_USED` | optional | main's transformation-credit floor, default 21 of 25 (24 with `S2S_OFFLOAD_POOL=1`); `0` turns the live pipeline off |
 | `ADMIN_API_RESERVE` | optional | stop calling the Admin API when this many calls are left in the hour (default 5) |
 | `S2S_OFFLOAD_POOL` | optional | `1` renders background removal, generative fill and generative recolor on a pool environment and stores the results in main |
 | `S2S_DEBUG_ADMIN` | optional | `1` sends `x-s2s-admin-calls` debug headers in production too |

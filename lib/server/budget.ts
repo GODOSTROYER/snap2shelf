@@ -1,6 +1,7 @@
 import "server-only";
 import { mainCreditsSummary } from "../cloudinary/pool";
 import { HttpError } from "./http";
+import { offloadEnabled } from "./offload";
 
 /**
  * Transformation-credit floor for the MAIN environment.
@@ -19,14 +20,20 @@ import { HttpError } from "./http";
  * stays on: failing open for a few minutes costs at most a kit or two, while
  * failing closed would take the live demo down on every Admin hiccup.
  * LIVE_TX_MAX_USED=0 switches the live pipeline off outright.
+ *
+ * With S2S_OFFLOAD_POOL=1 the heavy effects render on the key pool and a live
+ * kit costs main only ~7 transformations (~0.007 credits), so the default floor
+ * rises to 24: live kits stay on almost to the limit, and the last credit is
+ * kept for delivering what already exists.
  */
 
 export const DEFAULT_LIVE_TX_MAX_USED = 21;
+export const DEFAULT_LIVE_TX_MAX_USED_OFFLOAD = 24;
 
 export function liveTxMaxUsed(): number {
   const raw = process.env.LIVE_TX_MAX_USED;
   const n = raw === undefined || raw === "" ? NaN : Number(raw);
-  return Number.isFinite(n) && n >= 0 && n <= 100_000 ? n : DEFAULT_LIVE_TX_MAX_USED;
+  return Number.isFinite(n) && n >= 0 && n <= 100_000 ? n : offloadEnabled() ? DEFAULT_LIVE_TX_MAX_USED_OFFLOAD : DEFAULT_LIVE_TX_MAX_USED;
 }
 
 export interface CreditsReading {

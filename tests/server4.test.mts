@@ -218,6 +218,15 @@ test("budget: credit floor decision (default 21 of 25), unknown fails open, 0 sw
   assert.equal(budget.liveTxMaxUsed(), 19.5);
   process.env.LIVE_TX_MAX_USED = "nonsense";
   assert.equal(budget.liveTxMaxUsed(), 21);
+  // Pool offload on: a kit costs main ~7 transformations, so the default floor rises to 24.
+  const prevOffload = process.env.S2S_OFFLOAD_POOL;
+  process.env.S2S_OFFLOAD_POOL = "1";
+  assert.equal(budget.liveTxMaxUsed(), 24);
+  process.env.LIVE_TX_MAX_USED = "22";
+  assert.equal(budget.liveTxMaxUsed(), 22, "an explicit floor still wins");
+  if (prevOffload === undefined) delete process.env.S2S_OFFLOAD_POOL;
+  else process.env.S2S_OFFLOAD_POOL = prevOffload;
+  process.env.LIVE_TX_MAX_USED = "nonsense";
 });
 
 test("facts: parse rejects foreign / malformed docs; factsFromList migrates a legacy product", () => {
