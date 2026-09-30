@@ -15,10 +15,9 @@ export function KitPageShelves({ kit }: { kit: Kit }) {
     <XrayHost>
       <div className="grid gap-4">
         {shelvesFor(kit).map((g) => (
-          // each shelf is its own hydration unit (React hydrates Suspense boundaries in
-          // separate, interruptible tasks) and skips layout while it is off screen
+          // each shelf is its own hydration unit: React hydrates Suspense boundaries in separate, interruptible tasks
           <Suspense key={g.id}>
-            <Shelf title={g.title} className="[contain-intrinsic-size:auto_430px] [content-visibility:auto]">
+            <Shelf title={g.title}>
               {g.items.map((item) => (
                 <KitCard key={item.key} item={item} product={product} />
               ))}
