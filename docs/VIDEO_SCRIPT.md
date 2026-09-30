@@ -95,7 +95,7 @@ About 430 words, which reads in roughly 2:55 at a relaxed pace.
 
 | Claim | Source |
 |---|---|
-| 36 s photo → ZIP, measured on the live site (30 Sep 2026, desktop, a sample photo, file selected → ZIP link) | `lib/claims.ts` `MEASURED_PHOTO_TO_ZIP_S`, `PHOTO_TO_KIT_MEASURED_COPY` |
+| 36–58 s photo → ZIP across our timed live runs (30 Sep 2026; the spread is mostly upload time) — say "about a minute" | `lib/claims.ts` `MEASURED_PHOTO_TO_ZIP_RANGE_S`, `PHOTO_TO_KIT_MEASURED_COPY` |
 | "Zero new generation credits: the scene is reused from the library" | `lib/claims.ts` `CREDITS_SAVED_COPY` |
 | About ₹2,500 for a basic studio shoot of one product, an estimate (say "by our estimate") | `lib/claims.ts` `PHOTOSHOOT_INR_ESTIMATE`, `PHOTOSHOOT_NOTE` |
 | Sample QA catch: check 1 matched `product-floating` (+ `compositing-artifact`), the approved check is 20 px lower | `data/showcase.json` (`shmessy1` attempts); the replay's wording is built by `lib/showcase.ts` |

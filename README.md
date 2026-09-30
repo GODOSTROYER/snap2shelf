@@ -22,7 +22,7 @@ Entry for **Pixels to Products — Cloudinary AI Hackathon 2026** (HackIndia) ·
 > 2. **X-ray any image:** press **See the URL** on the stage, or the code button (**`</>`**) under any asset on the shelf, to see the one Cloudinary URL that made it, colour-coded and explained.
 > 3. **Open the storefront:** **[/shelf/demo-studio](https://snap2shelf.vercel.app/shelf/demo-studio)** is a shop page built by Collection mode. Press **Share on WhatsApp**; the link preview is a 1200×630 collage made by one transformation URL.
 > 4. **Watch the director's cut:** **[/present](https://snap2shelf.vercel.app/present)** tells the whole story chapter by chapter (→ or Space for the next one, P for autoplay).
-> 5. **Use your own product:** **Upload a photo** in the studio, or press **Snap with your phone** and scan the QR code. On the live site we measured **36 s photo → ZIP** (30 Sep 2026). Live AI generation (Creative mode and new scenes) needs the access code in our submission form; everything else is open.
+> 5. **Use your own product:** **Upload a photo** in the studio, or press **Snap with your phone** and scan the QR code. Our timed live runs took **36–58 s photo → ZIP** (30 Sep 2026; most of the spread is upload time). Live AI generation (Creative mode and new scenes) needs the access code in our submission form; everything else is open.
 
 <a id="demo-video"></a>
 **Video: coming Sat 3 Oct.** <!-- TODO(video): add YouTube link --> The three-minute walkthrough follows the [director's cut](https://snap2shelf.vercel.app/present), which you can already play chapter by chapter.
@@ -96,7 +96,7 @@ a **Readiness Score** for the marketplace image ·
 a **cost receipt** ·
 and a **shop shelf**: see **[/shelf/demo-studio](https://snap2shelf.vercel.app/shelf/demo-studio)**, whose WhatsApp link preview is this <a href="https://res.cloudinary.com/nyxyma1i/image/upload/c_fill,w_1200,h_630,g_auto/e_blur:1500/e_brightness:-70/co_rgb:f5a524,l_text:Inter@google_22_700_letter_spacing_6:SNAP2SHELF%20%C2%B7%20SHOP/fl_layer_apply,g_north_west,x_72,y_104/co_rgb:f4efe7,c_fit,w_500,l_text:Fraunces@google_80_600_line_spacing_-6:Demo%20Studio/fl_layer_apply,g_north_west,x_72,y_146/co_rgb:a89f92,c_fit,w_480,l_text:Inter@google_26_500_line_spacing_6:The%20Diwali%20edit%20%C2%B7%20real%20products%252C%20one%20festive%20stage/fl_layer_apply,g_north_west,x_74,y_258/l_snap2shelf:products:s2candle:hero-diwali-final-59f4388a-d4d9dc2f/c_scale,w_252,h_58/co_rgb:f5a524,e_colorize:100/co_rgb:0e0c0a,l_text:Inter@google_24_700:Open%20the%20shelf%20%20%E2%86%92/fl_layer_apply,g_center/r_29/fl_layer_apply,g_south_west,x_72,y_64/l_snap2shelf:products:s2candle:hero-diwali-final-59f4388a-d4d9dc2f/c_crop,w_627,h_784,x_227,y_272/c_fill,w_200,h_250,g_auto/bo_5px_solid_rgb:f4efe7/r_20/a_-3/co_black,e_shadow:60,x_8,y_14/fl_layer_apply,g_center,x_190,y_-125/l_snap2shelf:products:s2trlmix:hero-diwali-final-59f4388a-8b8e8e32/c_crop,w_662,h_827,x_209,y_239/c_fill,w_200,h_250,g_auto/bo_5px_solid_rgb:f4efe7/r_20/a_3/co_black,e_shadow:60,x_8,y_14/fl_layer_apply,g_center,x_420,y_-150/l_snap2shelf:products:9uo8w8pc:hero-diwali-final-59f4388a-61fd138b/c_crop,w_905,h_1131,x_88,y_4/c_fill,w_200,h_250,g_auto/bo_5px_solid_rgb:f4efe7/r_20/a_2/co_black,e_shadow:60,x_8,y_14/fl_layer_apply,g_center,x_190,y_140/l_snap2shelf:products:zi86lf6a:hero-diwali-final-59f4388a-b65fa150/c_crop,w_840,h_1050,x_120,y_210/c_fill,w_200,h_250,g_auto/bo_5px_solid_rgb:f4efe7/r_20/a_-2/co_black,e_shadow:60,x_8,y_14/fl_layer_apply,g_center,x_420,y_115/f_jpg,q_auto/snap2shelf/products/s2candle/hero-diwali-final-59f4388a-d4d9dc2f">1200×630 collage, one transformation URL</a>.
 
-Finished sample kits you can open: [steel bottle, cluttered-counter photo](https://snap2shelf.vercel.app/kit/shmessy1) · [steel water bottle](https://snap2shelf.vercel.app/kit/shbottle) · [grey suede sneaker](https://snap2shelf.vercel.app/kit/shsneakr) · [trail mix pouch](https://snap2shelf.vercel.app/kit/shtrail1) · [chikankari kurta](https://snap2shelf.vercel.app/kit/shkurta1). All five start from AI-generated test photos.
+Finished sample kits you can open: [steel bottle, cluttered-counter photo](https://snap2shelf.vercel.app/kit/shmessy1) · [steel water bottle](https://snap2shelf.vercel.app/kit/shbottle) · [casual sneaker](https://snap2shelf.vercel.app/kit/shsneakr) · [trail mix pouch](https://snap2shelf.vercel.app/kit/shtrail1) · [chikankari kurta](https://snap2shelf.vercel.app/kit/shkurta1). All five start from AI-generated test photos.
 
 ---
 
@@ -473,13 +473,13 @@ Everything was measured on Cloudinary's Free plan. The spike scripts are in [`sc
 
 **What one kit costs.** Each kit's ledger (`GET /api/cost/<sku>`, shown as the receipt) is read back from Cloudinary: credits, tokens and step timings recorded as the pipeline ran, plus one `HEAD` of the delivered hero for its real size. The five sample kits, from [`data/showcase.json`](data/showcase.json):
 
-| Sample kit | Scene | New generation credits | Saved by reuse | AI Vision tokens | Transformations (estimate) | Photo → delivered hero |
+| Sample kit | Scene | New generation credits | Saved by reuse | AI Vision tokens | Transformations (estimate) | Photo → delivered hero (1080 × 1350, f_auto,q_auto, as Chrome receives it; MB = 1,048,576 bytes) |
 |---|---|---|---|---|---|---|
-| Steel bottle, cluttered-counter photo | Marble studio | **0** | 5 | 2,692 (three QA checks) | 348 | 2.25 MB → 42 KB |
-| Steel water bottle | Outdoor café | **0** | 4 | 1,354 | 293 | 1.78 MB → 106 KB |
-| Casual sneaker | Diwali glow | **0** | 4 | 1,350 | 191 | 1.95 MB → 104 KB |
-| Trail mix pouch | Rustic jute | **0** | 9 | 1,310 | 191 | 1.81 MB → 117 KB |
-| Chikankari kurta | Festive flat-lay | **0** | 4 | 1,369 | 293 | 2.91 MB → 218 KB |
+| Steel bottle, cluttered-counter photo | Marble studio | **0** | 5 | 2,692 (three QA checks) | 348 | 2.15 MB → 41 KB |
+| Steel water bottle | Outdoor café | **0** | 4 | 1,354 | 293 | 1.70 MB → 103 KB |
+| Casual sneaker | Diwali glow | **0** | 4 | 1,350 | 191 | 1.86 MB → 102 KB |
+| Trail mix pouch | Rustic jute | **0** | 9 | 1,310 | 191 | 1.73 MB → 114 KB |
+| Chikankari kurta | Festive flat-lay | **0** | 4 | 1,369 | 293 | 2.77 MB → 213 KB |
 
 Together: 0 credits spent on scenes and 26 credits saved by reuse (the jute plate is the one `mode: "auto"` made with `nano-banana-2`, hence 9). The three Creative takes in the showcase cost 18 credits between them. The receipt puts the kit next to our estimate of ₹2,500 for a basic studio shoot of one product, labelled as an estimate. Photo to ZIP took **36 s** when we measured it on the live site (30 Sep 2026, a sample photo uploaded from a desktop browser, from file selected to the ZIP link).
 
@@ -510,7 +510,7 @@ How it works ([`lib/cloudinary/pool.ts`](lib/cloudinary/pool.ts)):
 - An environment is skipped when it would drop below a **floor** (2 generation credits, 2,000 AI Vision tokens, 5 detections), and **benched for an hour** when it answers with a quota or rate-limit error; the call moves on to the next one.
 - Every generated image (and every offloaded render, below) is **copied into the main environment** (upload by URL), where all storage, layering, search and delivery happen.
 
-**Heavy AI transformations run on the pool too** (`S2S_OFFLOAD_POOL=1`; [`lib/server/offload.ts`](lib/server/offload.ts)). A kit's expensive effects (background removal, about 75 transformations; generative fill for the story and banner, about 50 each; generative recolor, about 50 per colour) run on a pool environment instead of main. That environment receives a plain copy of the seller's photo or of the approved hero (upload by URL), applies the effect on its own credits, and the finished image is stored in main under the same public id, tags and context as before. Everything is still served, layered and zipped from main, so a live kit costs main **about 8 transformations instead of about 190**. The environment is chosen like the others (most credits left, a floor of 2 credits, benched after an error); if none can do it, main renders the effect exactly as before. Pool URLs never reach the browser, the kit, the ZIP or the product facts, and the cost receipt marks these rows "key pool".
+**Heavy AI transformations run on the pool too** (`S2S_OFFLOAD_POOL=1`, on in production; [`lib/server/offload.ts`](lib/server/offload.ts)). A kit's expensive effects (background removal, about 75 transformations; generative fill for the story and banner, about 50 each; generative recolor, about 50 per colour) run on a pool environment instead of main. That environment receives a plain copy of the seller's photo or of the approved hero (upload by URL), applies the effect on its own credits, and the finished image is stored in main under the same public id, tags and context as before. Everything is still served, layered and zipped from main, so a live kit costs main **about 8 transformations instead of about 190**. The environment is chosen like the others (most credits left, a floor of 2 credits, benched after an error); if none can do it, main renders the effect exactly as before. Pool URLs never reach the browser, the kit, the ZIP or the product facts, and the cost receipt marks these rows "key pool".
 
 What never leaves the server: every API key and secret, and the names of the pool environments. `/api/usage` returns pool **totals** only; a job handle is an AES-256-GCM sealed token, so the browser can't read which environment runs it; and [`scripts/e2e-http.mts`](scripts/e2e-http.mts) scans every API response for pool cloud names, pool labels, secrets, the access code and stack traces, and fails if any appears.
 
@@ -535,7 +535,7 @@ A live demo on a Free plan fails in boring ways: an hourly API limit, a monthly 
 |---|---|---|
 | See the whole flow, including a QA catch | open the **[sample replay](https://snap2shelf.vercel.app/studio?sample=shmessy1)** (the home page's **Try a sample product (no signup)** also starts a sample) | nothing (no API calls) |
 | Read how an image was made | press the code button (`</>`) under any kit image to open its X-ray | nothing |
-| See a finished kit with its Readiness Score and receipt | [/kit/shbottle](https://snap2shelf.vercel.app/kit/shbottle) | nothing |
+| See a finished kit with its Readiness Score and receipt | [/kit/shmessy1](https://snap2shelf.vercel.app/kit/shmessy1) | nothing |
 | See a storefront and its WhatsApp preview | [/shelf/demo-studio](https://snap2shelf.vercel.app/shelf/demo-studio), then **Share on WhatsApp** | nothing |
 | Watch the story, chapter by chapter | [/present](https://snap2shelf.vercel.app/present) (→ or Space next, P autoplay; `?auto=1&clean=1` for a clean autoplay) | nothing |
 | Use your own photo | **Upload a photo** in the studio, or **Snap with your phone** and scan the QR code; try the brief bar | nothing (Exact mode, retouch, QA, pack and readiness are open, with a per-session cap) |

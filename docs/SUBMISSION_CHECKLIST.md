@@ -52,7 +52,7 @@ Work top to bottom. Nothing in this file is secret, and nothing secret may be ad
 - [ ] `grep -rn "TODO" README.md` shows only the video slot (`TODO(video)`), and `grep -rn "TODO(final)" docs/` only the owner slots in section 3 (all are HTML comments, invisible on github.com). Fill the README video slot before submitting.
 - [ ] README renders on github.com in **both** light and dark themes: every image loads, every table renders.
 - [ ] Architecture diagram: after the docs branch is merged, re-upload it so the hosted PNG matches `docs/architecture.svg` (`node --import tsx scripts/docs/upload-diagram.mts`; it overwrites `snap2shelf/docs/architecture` on the main cloud). Then open `https://res.cloudinary.com/nyxyma1i/image/upload/f_png,w_1600/snap2shelf/docs/architecture` and check it shows the new route list.
-- [ ] Every number on the site, in `/present` and in the README matches `lib/claims.ts` (36 s photo → ZIP measured; ₹2,500 labelled as an estimate; credits per model).
+- [ ] Every number on the site, in `/present` and in the README matches `lib/claims.ts` (36–58 s photo → ZIP in timed live runs; ₹2,500 labelled as an estimate; credits per model).
 - [ ] Repository is **public**, `LICENSE` (MIT) is at the root, and the default branch contains the final merge.
 
 ### Quota and credit check (the morning of submission, and again before judging)

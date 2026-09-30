@@ -14,7 +14,7 @@ Posting notes:
 - On LinkedIn, type `@Jen Looper`, `@Cloudinary` and `@<HackIndia page>` and pick them from the dropdown so they become real mentions; pasted text does not tag anyone.
 - Attach the MP4 (`docs/media/demo-social.mp4`) natively rather than relying on a link preview; in the drafts below, `<GIF>` marks where it goes.
 - Never include the access code in a post. It lives only in the submission form.
-- Every number below comes from `lib/claims.ts` or `SPIKES.md`. If you edit a post, don't add a number that isn't there (the 36 s is a measurement on the live site; ₹2,500 is our estimate and must be called one if you use it).
+- Every number below comes from `lib/claims.ts` or `SPIKES.md`. If you edit a post, don't add a number that isn't there (36–58 s is the range of our timed live runs; ₹2,500 is our estimate and must be called one if you use it).
 - The attached clip shows a sample product, not your own capture. Its first caption says the input is an AI-generated test image; keep that caption, and keep the LinkedIn post's line that the samples start from AI-generated test photos. On X, where there's no room for that line, the caption burned into the clip carries the disclosure.
 - After posting, copy both post URLs into `docs/SUBMISSION_CHECKLIST.md`.
 
@@ -32,7 +32,7 @@ Posting notes:
 > • Snap a product with your phone (scan a QR code on the laptop) and type one line, like "Diwali sale, 20% off, Hindi and English, for Instagram".
 > • Cloudinary touches up the photo only if it needs it, cuts the product out once, and layers the real pixels onto an AI-generated scene with a transformation URL. AI Vision has already read each scene's "Scene DNA": where the table is and where the light comes from, so the shadow falls the right way.
 > • An AI Vision QA gate checks every image. If a composite looks pasted on, the studio fixes it and checks again; if an AI reshoot changed the product, it is rejected. (That invented logo badge? Rejected.)
-> • One approved hero becomes a story and a banner (generative fill), a marketplace-white image with a Readiness Score measured on its pixels, a WhatsApp tile, colour variants, a Hindi + English offer, a video reel, a zip and a shareable shop shelf. On the live site we measured 36 seconds from photo to zip.
+> • One approved hero becomes a story and a banner (generative fill), a marketplace-white image with a Readiness Score measured on its pixels, a WhatsApp tile, colour variants, a Hindi + English offer, a video reel, a zip and a shareable shop shelf. Our timed live runs took 36–58 seconds from photo to zip.
 >
 > Three things I learned building on Cloudinary:
 > 1. **A transformation URL can be a whole rendering engine.** The hero is one URL: scene plate, product layer, a shadow projected from the product's own silhouette, contact shadows, light-match. Move a slider and you get a new URL, not a new render job.
@@ -60,7 +60,7 @@ Length: about 2,850 characters with the placeholders filled, under LinkedIn's 3,
 
 > One photo → a whole shelf.
 >
-> Snap2Shelf stages your real product on AI scenes; @cloudinary AI Vision rejects any AI take that changes it. Photo → zip: 36 s, measured live.
+> Snap2Shelf stages your real product on AI scenes; @cloudinary AI Vision rejects any AI take that changes it. Photo → zip in about a minute (36–58 s in our live runs).
 >
 > Try it, no signup: https://snap2shelf.vercel.app
 > Demo: `<VIDEO_URL>`
