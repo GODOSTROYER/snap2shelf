@@ -215,7 +215,9 @@ async function flyCards(root: HTMLElement, cards: HTMLElement[], from: () => DOM
     ghost.removeAttribute("data-card");
     ghost.querySelectorAll("video").forEach((v) => v.removeAttribute("src"));
     ghost.style.setProperty("--h", getComputedStyle(card).getPropertyValue("--h"));
-    Object.assign(ghost.style, { position: "fixed", left: `${r.left}px`, top: `${r.top}px`, width: `${r.width}px`, height: `${r.height}px`, margin: "0", opacity: "0", transformOrigin: "50% 115%" });
+    // will-change: the compositor keeps each ghost's raster while it scales and tips in 3D. Without
+    // it, the deal's first frames re-raster every card (and re-decode its images): a ~0.25 s freeze.
+    Object.assign(ghost.style, { position: "fixed", left: `${r.left}px`, top: `${r.top}px`, width: `${r.width}px`, height: `${r.height}px`, margin: "0", opacity: "0", transformOrigin: "50% 115%", willChange: "transform" });
     layer.appendChild(ghost);
     const spread = i - (n - 1) / 2;
     return {

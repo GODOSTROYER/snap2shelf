@@ -134,3 +134,20 @@ export function reelUrl(i: ReelInput): ReelUrl {
     clips: imgs.length,
   };
 }
+
+/**
+ * Reads the clips back out of a reel URL: the base image, then every fl_splice layer, each with
+ * the Ken Burns move and duration its e_zoompan spells. The reel shown IS this URL, so the count,
+ * the moves and the seconds can't drift from the video.
+ */
+export function reelClipsFromUrl(built: BuiltUrl): { publicId: string; move: string; seconds: number }[] {
+  const at = built.url.indexOf(built.transformation);
+  const base = at >= 0 ? built.url.slice(at + built.transformation.length + 1).replace(/\.[a-z0-9]+$/i, "") : "";
+  const layers = [...built.transformation.matchAll(/fl_splice,l_([^/,]+)/g)].map((m) => m[1].replace(/:/g, "/"));
+  const zooms = [...built.transformation.matchAll(/e_zoompan:du_([\d.]+);fps_\d+;from_\(([^)]*)\);to_\(([^)]*)\)/g)];
+  return [base, ...layers].filter(Boolean).map((publicId, i) => {
+    const z = zooms[i];
+    const move = z ? REEL_MOVES.find((m) => m.from === z[2] && m.to === z[3])?.label : undefined;
+    return { publicId, move: move ?? "Ken Burns move", seconds: z ? Number(z[1]) : 0 };
+  });
+}
