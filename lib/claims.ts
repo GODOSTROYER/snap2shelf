@@ -6,8 +6,12 @@
 
 /** Live production run, 30 Sep 2026: file selected → ZIP link live (06_steel_bottle.png, desktop, Upload Widget). */
 export const MEASURED_PHOTO_TO_ZIP_S = 36;
-/** Copy form of the headline speed claim: the measured run, never a rounder number. */
-export const PHOTO_TO_KIT_COPY = `about ${MEASURED_PHOTO_TO_ZIP_S} seconds`;
+/**
+ * Copy form of the headline speed claim. Live photo → ZIP runs measured 36–48 s
+ * (30 Sep: 36 s production, 40.9 s / 47.5 s / 48 s on other runs), so the
+ * headline promises what every run met; the caption gives the best measured run.
+ */
+export const PHOTO_TO_KIT_COPY = "under a minute";
 export const PHOTO_TO_KIT_MEASURED_COPY = `${MEASURED_PHOTO_TO_ZIP_S} s photo → ZIP, measured on the live site`;
 
 /**
@@ -73,14 +77,15 @@ export const CREDITS_SAVED_COPY = "0 new generation credits — the scene is reu
 
 /** Canonical product names for the sample/showcase kits (India-first naming). */
 export const PRODUCT_NAMES: Record<string, string> = {
-  sneaker1: "Grey suede sneaker",
-  shsneakr: "Grey suede sneaker",
+  sneaker1: "Casual sneaker",
+  shsneakr: "Casual sneaker",
   shbottle: "Steel water bottle",
   shmessy1: "Steel water bottle", // the cluttered-counter photo of the same bottle; the picker tells them apart by the photo's blurb
   shtrail1: "Trail mix pouch",
   shkurta1: "Chikankari kurta",
   // the same steel bottle as it stands on the demo shelf (/shelf/demo-studio), where AI Vision read "Stainless steel water bottle"
   "9uo8w8pc": "Steel water bottle",
+  zi86lf6a: "Casual sneaker", // AI reading of this photo: white mesh with grey suede panels
 };
 
 /**

@@ -5,6 +5,7 @@ import { motion, useReducedMotion } from "motion/react";
 import { BrowserFrame, ChatHeader, LinkPreviewFrame, PhoneFrame } from "../frames";
 import { QrCode } from "../QrCode";
 import { EASE, Img, Mark, useBeat } from "../stage";
+import { STAGE_LINE } from "@/lib/claims";
 import { abs, Rise, type ChapterProps } from "./common";
 
 // ─── 11. The shelf ────────────────────────────────────────────────────────────
@@ -143,7 +144,7 @@ export function Closing({ d }: ChapterProps) {
           One photo. A whole shelf.
         </Rise>
         <Rise delay={1.4} as="p" className="pz-lede" style={{ margin: "14px 0 0", maxWidth: "none", fontSize: 30 }}>
-          AI builds the stage. Your product stays real.
+          {STAGE_LINE}
         </Rise>
       </div>
       <Rise delay={2.2} style={abs(0, 800, { width: 1920, display: "flex", justifyContent: "center", alignItems: "center", gap: 40 })}>

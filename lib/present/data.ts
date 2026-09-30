@@ -430,7 +430,7 @@ export const DEMO_SHELF_SNAPSHOT: PresentData["shelf"] = {
   products: [
     shelfItem({ sku: "s2candle", title: "Scented glass candle", facts: "White · wax", hero: "hero-diwali-final-59f4388a-d4d9dc2f", v: 1790741099, crop: "c_crop,w_627,h_784,x_227,y_272", cutout: [508, 659] }),
     shelfItem({ sku: "s2trlmix", title: "Trail mix pouch", facts: "Brown · plastic", hero: "hero-diwali-final-59f4388a-8b8e8e32", v: 1790741100, crop: "c_crop,w_662,h_827,x_209,y_239", cutout: [709, 1015] }),
-    shelfItem({ sku: "9uo8w8pc", title: "Stainless steel water bottle", facts: "Silver · stainless steel", hero: "hero-diwali-final-59f4388a-61fd138b", v: 1790741099, crop: "c_crop,w_905,h_1131,x_88,y_4", cutout: [309, 1223] }),
+    shelfItem({ sku: "9uo8w8pc", title: "Steel water bottle", facts: "Silver · stainless steel", hero: "hero-diwali-final-59f4388a-61fd138b", v: 1790741099, crop: "c_crop,w_905,h_1131,x_88,y_4", cutout: [309, 1223] }),
     shelfItem({ sku: "zi86lf6a", title: "Casual sneaker", facts: "White · mesh", hero: "hero-diwali-final-59f4388a-b65fa150", v: 1790741099, crop: "c_crop,w_840,h_1050,x_120,y_210", cutout: [976, 523] }),
   ],
   share: {
@@ -439,7 +439,7 @@ export const DEMO_SHELF_SNAPSHOT: PresentData["shelf"] = {
       url: "https://res.cloudinary.com/nyxyma1i/image/upload/c_fill,w_1200,h_630,g_auto/e_blur:1500/e_brightness:-70/co_rgb:f5a524,l_text:Inter@google_22_700_letter_spacing_6:SNAP2SHELF%20%C2%B7%20SHOP/fl_layer_apply,g_north_west,x_72,y_104/co_rgb:f4efe7,c_fit,w_500,l_text:Fraunces@google_80_600_line_spacing_-6:Demo%20Studio/fl_layer_apply,g_north_west,x_72,y_146/co_rgb:a89f92,c_fit,w_480,l_text:Inter@google_26_500_line_spacing_6:The%20Diwali%20edit%20%C2%B7%20sample%20products%252C%20one%20festive%20stage/fl_layer_apply,g_north_west,x_74,y_258/l_snap2shelf:products:s2candle:hero-diwali-final-59f4388a-d4d9dc2f/c_scale,w_252,h_58/co_rgb:f5a524,e_colorize:100/co_rgb:0e0c0a,l_text:Inter@google_24_700:Open%20the%20shelf%20%20%E2%86%92/fl_layer_apply,g_center/r_29/fl_layer_apply,g_south_west,x_72,y_64/l_snap2shelf:products:s2candle:hero-diwali-final-59f4388a-d4d9dc2f/c_crop,w_627,h_784,x_227,y_272/c_fill,w_200,h_250,g_auto/bo_5px_solid_rgb:f4efe7/r_20/a_-3/co_black,e_shadow:60,x_8,y_14/fl_layer_apply,g_center,x_190,y_-125/l_snap2shelf:products:s2trlmix:hero-diwali-final-59f4388a-8b8e8e32/c_crop,w_662,h_827,x_209,y_239/c_fill,w_200,h_250,g_auto/bo_5px_solid_rgb:f4efe7/r_20/a_3/co_black,e_shadow:60,x_8,y_14/fl_layer_apply,g_center,x_420,y_-150/l_snap2shelf:products:9uo8w8pc:hero-diwali-final-59f4388a-61fd138b/c_crop,w_905,h_1131,x_88,y_4/c_fill,w_200,h_250,g_auto/bo_5px_solid_rgb:f4efe7/r_20/a_2/co_black,e_shadow:60,x_8,y_14/fl_layer_apply,g_center,x_190,y_140/l_snap2shelf:products:zi86lf6a:hero-diwali-final-59f4388a-b65fa150/c_crop,w_840,h_1050,x_120,y_210/c_fill,w_200,h_250,g_auto/bo_5px_solid_rgb:f4efe7/r_20/a_-2/co_black,e_shadow:60,x_8,y_14/fl_layer_apply,g_center,x_420,y_115/f_jpg,q_auto/snap2shelf/products/s2candle/hero-diwali-final-59f4388a-d4d9dc2f",
       width: 1200,
       height: 630,
-      alt: "Demo Studio link preview: Scented glass candle, Trail mix pouch, Stainless steel water bottle, Casual sneaker",
+      alt: "Demo Studio link preview: Scented glass candle, Trail mix pouch, Steel water bottle, Casual sneaker",
     },
     title: DEMO_SHELF.title,
     description: "The Diwali edit · sample products, one festive stage",

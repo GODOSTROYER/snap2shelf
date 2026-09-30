@@ -442,7 +442,7 @@ A pass earns full points, a warning half; an unknown check is left out and the s
 | Steel water bottle | 44 | **93** |
 | Chikankari kurta | 44 | **95** |
 | Trail mix pouch | 35 | **93** |
-| Grey suede sneaker | 53 | **90** |
+| Casual sneaker | 53 | **90** |
 
 ---
 
@@ -477,7 +477,7 @@ Everything was measured on Cloudinary's Free plan. The spike scripts are in [`sc
 |---|---|---|---|---|---|---|
 | Steel bottle, cluttered-counter photo | Marble studio | **0** | 5 | 2,692 (three QA checks) | 348 | 2.25 MB → 42 KB |
 | Steel water bottle | Outdoor café | **0** | 4 | 1,354 | 293 | 1.78 MB → 106 KB |
-| Grey suede sneaker | Diwali glow | **0** | 4 | 1,350 | 191 | 1.95 MB → 104 KB |
+| Casual sneaker | Diwali glow | **0** | 4 | 1,350 | 191 | 1.95 MB → 104 KB |
 | Trail mix pouch | Rustic jute | **0** | 9 | 1,310 | 191 | 1.81 MB → 117 KB |
 | Chikankari kurta | Festive flat-lay | **0** | 4 | 1,369 | 293 | 2.91 MB → 218 KB |
 
