@@ -5,7 +5,9 @@ import { HERO_INTRO_DONE } from "@/components/landing/before-after";
 
 /**
  * The landing acting out its headline: once the hero's compare intro has played,
- * the kit is dealt out of the hero onto the shelf strip below it.
+ * the kit is dealt out of the hero onto the shelf strip below it. In the one-column
+ * layout (below lg) the buttons sit between the two, so there the cards are dealt
+ * from a pile on the shelf itself (dealOnShelf) and never cross them.
  *
  * Until then the strip's cards are hidden (CSS, only where scripting is on and
  * motion is allowed, with a late fallback reveal); nothing moves in layout, the
@@ -35,7 +37,9 @@ export function KitDeal({ children, className }: { children: React.ReactNode; cl
       const deck = onScreen(hero());
       // let the hero finish its own act first, if anyone can see it
       if (!introDone && deck) return;
-      run = dealFrom(el, deck);
+      // one column: the buttons and the fine print sit between the hero and the strip, so the
+      // cards never cross them; they're dealt from a pile on the shelf itself
+      run = window.matchMedia(ONE_COLUMN).matches ? dealOnShelf(el) : dealFrom(el, deck);
     };
     const onIntro = () => {
       introDone = true;
@@ -63,7 +67,7 @@ export function KitDeal({ children, className }: { children: React.ReactNode; cl
   }, []);
 
   return (
-    <div ref={ref} data-deal="auto" className={className}>
+    <div ref={ref} data-deal="auto" className={`relative ${className ?? ""}`}>
       {children}
     </div>
   );
@@ -80,6 +84,9 @@ function onScreen(el: HTMLElement | null): DOMRect | null {
 }
 
 const EASE_OUT = "cubic-bezier(0.16, 1, 0.3, 1)";
+
+/** Below Tailwind's lg the hero is one column: title, picture, buttons, then the strip. */
+const ONE_COLUMN = "(max-width: 63.98rem)";
 
 /** A slightly underdamped spring (the shelves' deal: stiffness 135, damping 17, mass 0.9) as a CSS linear() easing. */
 function springEasing(): { easing: string; ms: number } {
@@ -196,6 +203,121 @@ function dealFrom(root: HTMLElement, from: DOMRect | null): { cancel: () => void
         const a = g.ghost.animate([{ opacity: 1, transform: g.fan }, { opacity: 1, transform: "translate(0px, 0px) scale(1) rotate(0deg)" }], {
           duration: spring.ms,
           delay: 70 + g.i * 80,
+          easing: spring.easing,
+          fill: "both",
+        });
+        anims.push(a);
+        return a.finished.then(
+          () => {
+            if (cancelled) return;
+            reveal(g.card);
+            g.ghost.remove();
+          },
+          () => undefined,
+        );
+      }),
+    );
+    if (!cancelled) finish();
+  })();
+
+  return { cancel };
+}
+
+/**
+ * Phones and tablets: a short deal that stays on the shelf. The cards on screen gather in a
+ * loose pile in the middle of the row, just above the ledge, then are dealt out left and right
+ * onto their places. The flying layer is clipped to the row's own band (from the bottom of the
+ * strip's caption to just under the ledge) and scrolls with the page, so no card ever passes
+ * over the buttons or the text above it.
+ */
+function dealOnShelf(root: HTMLElement): { cancel: () => void } {
+  const cards = Array.from(root.querySelectorAll<HTMLElement>("[data-card]"));
+  const layer = document.createElement("div");
+  const anims: Animation[] = [];
+  let cancelled = false;
+  const reveal = (c: HTMLElement) => c.style.removeProperty("opacity");
+  const finish = () => {
+    layer.remove();
+    cards.forEach(reveal);
+    root.dataset.deal = "done";
+  };
+  const cancel = () => {
+    cancelled = true;
+    anims.forEach((a) => a.cancel());
+    finish();
+  };
+
+  cards.forEach((c) => (c.style.opacity = "0"));
+  root.dataset.deal = "dealing";
+
+  void (async () => {
+    const imgs = cards.flatMap((c) => Array.from(c.querySelectorAll("img")));
+    imgs.forEach((i) => (i.loading = "eager"));
+    await Promise.race([Promise.all(imgs.map((i) => i.decode().catch(() => undefined))), new Promise((r) => setTimeout(r, 1500))]);
+    if (cancelled) return;
+
+    const vw = document.documentElement.clientWidth;
+    const box = root.getBoundingClientRect();
+    const row = cards[0]?.parentElement?.getBoundingClientRect();
+    if (!row) return finish();
+    const placed = cards.map((card) => ({ card, r: card.getBoundingClientRect() }));
+    const flying = placed.filter(({ r }) => r.right > 0 && r.left < vw && r.bottom > 0 && r.top < window.innerHeight);
+    placed.filter((p) => !flying.includes(p)).forEach((p) => reveal(p.card));
+    if (!flying.length) return finish();
+
+    // the band the cards may use: the row (its top padding included) and the ledge's shadow below it
+    const top = row.top;
+    const bottom = Math.max(box.bottom, row.bottom) + 24;
+    layer.setAttribute("aria-hidden", "true");
+    layer.style.cssText = `position:absolute;left:${-box.left}px;top:${top - box.top}px;width:${vw}px;height:${bottom - top}px;pointer-events:none;z-index:5;overflow:hidden`;
+    root.appendChild(layer);
+
+    const n = flying.length;
+    const spring = springEasing();
+    const pileX = (Math.max(0, flying[0].r.left) + Math.min(vw, flying[n - 1].r.right)) / 2;
+    const ghosts = flying.map(({ card, r }, i) => {
+      const ghost = card.cloneNode(true) as HTMLElement;
+      ghost.removeAttribute("data-card");
+      Object.assign(ghost.style, {
+        position: "absolute",
+        left: `${r.left}px`, // the layer starts at the viewport's left edge
+        top: `${r.top - top}px`,
+        width: `${r.width}px`,
+        height: `${r.height}px`,
+        margin: "0",
+        opacity: "0",
+        zIndex: String(n - i), // the first card dealt is the top of the pile
+        transformOrigin: "50% 100%",
+      });
+      layer.appendChild(ghost);
+      const spread = i - (n - 1) / 2;
+      const dx = pileX - (r.left + r.width / 2) + spread * 5;
+      const pile = `translate(${dx}px, -6px) scale(0.94) rotate(${spread * 2.5}deg)`;
+      return { card, ghost, i, dx, pile };
+    });
+
+    // 1. the pile settles onto the middle of the shelf
+    await Promise.all(
+      ghosts.map((g) => {
+        const a = g.ghost.animate(
+          [
+            { opacity: 0, transform: `translate(${g.dx}px, 10px) scale(0.9) rotate(0deg)` },
+            { opacity: 1, transform: g.pile },
+          ],
+          { duration: 300, delay: g.i * 22, easing: EASE_OUT, fill: "both" },
+        );
+        anims.push(a);
+        return a.finished.catch(() => undefined);
+      }),
+    );
+    if (cancelled) return;
+
+    // 2. dealt out to their places, landing with a little spring
+    await Promise.all(
+      ghosts.map((g) => {
+        const a = g.ghost.animate([{ opacity: 1, transform: g.pile }, { opacity: 1, transform: "translate(0px, 0px) scale(1) rotate(0deg)" }], {
+          duration: spring.ms,
+          delay: 40 + g.i * 70,
           easing: spring.easing,
           fill: "both",
         });

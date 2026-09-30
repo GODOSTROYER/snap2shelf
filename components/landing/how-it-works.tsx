@@ -11,8 +11,8 @@ import { CloudImg } from "@/components/cloud-img";
 import { QaBadge } from "@/components/kit/qa-badge";
 import { SAMPLE_PHOTO_LABEL } from "@/lib/claims";
 import { publicUrl, sizedUrl } from "@/lib/client/img";
-import { CREATIVE_REJECTED, heroAt } from "@/lib/showcase";
-import type { Kit } from "@/lib/types";
+import { heroAt, type LandingQaCatch } from "@/lib/showcase";
+import { PLATE, type Kit } from "@/lib/types";
 
 interface Step {
   title: string;
@@ -20,13 +20,79 @@ interface Step {
   art: React.ReactNode;
   /** Below lg the thumbnail is too small for overlays: what they said goes under the text instead. */
   aside?: React.ReactNode;
+  /** Under the text at every size. */
+  note?: React.ReactNode;
 }
 
-export function HowItWorks({ kit }: { kit: Kit }) {
+const NTH = ["first", "second", "third", "fourth", "fifth", "sixth"];
+const firstSentence = (s: string) => s.split(/(?<=\.)\s/)[0];
+
+/** The studio's QA mark (components/studio/stage.tsx FixMarks): a dashed ring where the product's base sits. */
+function BaseRing({ base }: { base: NonNullable<LandingQaCatch["base"]> }) {
+  const w = base.w * PLATE.width;
+  const ew = Math.max(150, Math.min(w * 1.6, w + 160));
+  const eh = ew * 0.26;
+  return (
+    <span
+      aria-hidden
+      className="absolute rounded-[50%] border-2 border-dashed border-sindoor [filter:drop-shadow(0_0_2px_rgb(0_0_0/0.6))] max-lg:border-[1.5px]"
+      style={{
+        left: `${(base.cx - ew / 2 / PLATE.width) * 100}%`,
+        top: `${(base.y - eh / 2 / PLATE.height) * 100}%`,
+        width: `${(ew / PLATE.width) * 100}%`,
+        height: `${(eh / PLATE.height) * 100}%`,
+      }}
+    />
+  );
+}
+
+/** `qaCatch`: the same product's first placement, as the live QA rejected it (lib/showcase landingQaCatch). */
+export function HowItWorks({ kit, qaCatch }: { kit: Kit; qaCatch: LandingQaCatch | null }) {
   const p = kit.product;
+  const noun = p.understanding?.name.toLowerCase() ?? "product";
   const find = (id: string) => kit.assets.find((a) => a.id === id);
   const fan = [find("offer"), find("marketplace"), find("whatsapp")].filter((a): a is NonNullable<typeof a> => !!a);
-  const rejected = CREATIVE_REJECTED.qa!;
+
+  // Check: this product's own rejected first attempt, with the reasons the live QA gave
+  const c = qaCatch;
+  const floating = !!c?.qa.matched?.includes("product-floating");
+  const catchBody = c
+    ? `AI Vision checks every result against your photo. QA caught the first placement ${floating ? "floating above the counter" : "looking wrong"}; the studio ${floating ? "set it lower" : "re-staged it"} and checked again — approved on the ${NTH[c.attempts - 1] ?? `${c.attempts}th`} check.`
+    : "AI Vision checks every result against your photo: nothing about the product may change. This one passed first time.";
+  const catchArt = c ? (
+    <div className="relative size-full">
+      <CloudImg
+        src={c.src(480)}
+        alt={`The first placement of the ${noun}, which QA rejected: ${firstSentence(c.qa.reasons[0] ?? "it looked off.").replace(/^The product /, "it ")}`}
+        width={480}
+        height={600}
+        className="size-full object-cover"
+      />
+      {c.base ? <BaseRing base={c.base} /> : null}
+      <QaBadge qa={c.qa} className="absolute top-3 left-3 bg-studio/85 backdrop-blur-sm max-lg:hidden" />
+      <span aria-hidden className="absolute top-1.5 left-1.5 grid size-7 place-items-center rounded-full bg-studio/85 text-sindoor ring-1 ring-sindoor/40 backdrop-blur-sm ring-inset lg:hidden">
+        <ShieldAlert className="size-4" />
+      </span>
+    </div>
+  ) : (
+    <div className="relative size-full">
+      <CloudImg src={heroAt(kit, 480)} alt={kit.hero.alt} width={480} height={600} className="size-full object-cover" />
+      <QaBadge qa={{ status: "approved" }} className="absolute top-3 left-3 bg-studio/85 backdrop-blur-sm max-lg:hidden" />
+    </div>
+  );
+  const catchNote = c ? (
+    <div className="grid justify-items-start gap-2">
+      <QaBadge qa={c.qa} className="lg:hidden" />
+      <ul className="grid gap-1 text-[0.85rem] leading-snug text-paper/90" aria-label="What QA said">
+        {c.qa.reasons.map((r) => (
+          <li key={r} className="flex gap-2">
+            <span aria-hidden className="mt-[0.45em] size-1.5 shrink-0 rounded-full bg-sindoor" />
+            {firstSentence(r)}
+          </li>
+        ))}
+      </ul>
+    </div>
+  ) : null;
 
   const steps: Step[] = [
     {
@@ -41,10 +107,12 @@ export function HowItWorks({ kit }: { kit: Kit }) {
             height={600}
             className="size-full object-cover"
           />
-          <span className="absolute top-3 left-3 rounded-full bg-black/60 px-2.5 py-1 text-[0.75rem] leading-none font-semibold text-white backdrop-blur-sm max-lg:hidden">{SAMPLE_PHOTO_LABEL}</span>
+          <span className="absolute top-3 left-3 rounded-full bg-black/60 px-2.5 py-1 text-[0.75rem] leading-none font-semibold text-white backdrop-blur-sm max-lg:hidden">
+            {SAMPLE_PHOTO_LABEL} · AI-generated
+          </span>
         </div>
       ),
-      aside: <span className="inline-flex rounded-full bg-stage-3 px-2.5 py-1 text-[0.75rem] leading-none font-semibold text-paper/90">{SAMPLE_PHOTO_LABEL}, AI-generated</span>,
+      aside: <span className="inline-flex rounded-full bg-stage-3 px-2.5 py-1 text-[0.75rem] leading-none font-semibold text-paper/90">{SAMPLE_PHOTO_LABEL} · AI-generated</span>,
     },
     {
       title: "Cut out",
@@ -62,37 +130,9 @@ export function HowItWorks({ kit }: { kit: Kit }) {
     },
     {
       title: "Check",
-      body: "AI Vision checks every result against your photo. This generated take of a test sneaker looked great, and was rejected: the model redesigned the shoe.",
-      art: (
-        <div className="relative size-full">
-          <CloudImg src={publicUrl(CREATIVE_REJECTED.publicId!, { w: 480, h: 600, crop: "c_fill,g_auto" })} alt={CREATIVE_REJECTED.alt} width={480} height={600} className="size-full object-cover" />
-          <QaBadge qa={rejected} className="absolute top-3 left-3 bg-studio/85 backdrop-blur-sm max-lg:hidden" />
-          <span aria-hidden className="absolute top-1.5 left-1.5 grid size-7 place-items-center rounded-full bg-studio/85 text-sindoor ring-1 ring-sindoor/40 backdrop-blur-sm ring-inset lg:hidden">
-            <ShieldAlert className="size-4" />
-          </span>
-          <ul className="absolute inset-x-0 bottom-0 grid gap-1 bg-gradient-to-t from-black/85 via-black/60 to-transparent px-3 pt-10 pb-3 text-[0.75rem] leading-snug font-semibold text-white max-lg:hidden">
-            {rejected.reasons.map((r) => (
-              <li key={r} className="flex gap-1.5">
-                <span aria-hidden className="mt-[0.4em] size-1.5 shrink-0 rounded-full bg-sindoor" />
-                {r}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ),
-      aside: (
-        <div className="grid justify-items-start gap-2">
-          <QaBadge qa={rejected} />
-          <ul className="grid gap-1 text-[0.85rem] leading-snug text-paper/90">
-            {rejected.reasons.map((r) => (
-              <li key={r} className="flex gap-2">
-                <span aria-hidden className="mt-[0.45em] size-1.5 shrink-0 rounded-full bg-sindoor" />
-                {r}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ),
+      body: catchBody,
+      art: catchArt,
+      note: catchNote,
     },
     {
       title: "Ship",
@@ -131,6 +171,7 @@ export function HowItWorks({ kit }: { kit: Kit }) {
             </div>
             <p className="mt-1.5 text-[0.92rem] leading-relaxed text-dim">{s.body}</p>
             {s.aside ? <div className="mt-3 lg:hidden">{s.aside}</div> : null}
+            {s.note ? <div className="mt-3">{s.note}</div> : null}
           </div>
         </li>
       ))}

@@ -13,7 +13,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { DEMO_SHELF, PHOTO_TO_KIT_COPY, PHOTO_TO_KIT_MEASURED_COPY, SAMPLE_PHOTO_DISCLOSURE, SAMPLE_PHOTO_LABEL } from "@/lib/claims";
 import { isBuiltUrl, sizedUrl, srcSet } from "@/lib/client/img";
 import { kitContents } from "@/lib/client/kit-view";
-import { FEATURED, heroAt, landingBeforeAt, landingBeforeLqip, lqipOf } from "@/lib/showcase";
+import { FEATURED, heroAt, landingBeforeAt, landingBeforeLqip, landingQaCatch, lqipOf } from "@/lib/showcase";
 
 /** One product, end to end: the hero, how it works, its URL, its kit on the shelves, and every "Try a sample". */
 const sample = FEATURED;
@@ -23,7 +23,7 @@ const tryHref = `/studio?sample=${sample.sku}`;
 const SIZES = "(min-width: 1440px) 620px, (min-width: 1024px) 40vw, (min-width: 640px) 34rem, calc(100vw - 2rem)";
 
 /** Section titles: the condensed display cut of the headline (Bricolage Grotesque's wdth and opsz axes). */
-const H2 = "text-[clamp(2rem,5vw,3.25rem)] leading-[0.95] font-extrabold tracking-[-0.03em] [font-variation-settings:'wdth'_84,'opsz'_96]";
+const H2 = "text-[clamp(2rem,5vw,3.25rem)] leading-[0.95] font-extrabold tracking-[-0.005em] [font-variation-settings:'wdth'_84,'opsz'_96]";
 
 /** What the app uses, and the real parameter or endpoint it calls (lib/transform, lib/server, lib/cloudinary). */
 const CLOUDINARY_PARTS: readonly (readonly [name: string, params: readonly string[], what: string])[] = [
@@ -70,8 +70,8 @@ export default async function Home() {
           promise and the buttons; on wide screens the hero leaves room for the strip on screen.
         */}
         <section className="mx-auto grid max-w-[90rem] gap-x-10 gap-y-3.5 overflow-x-clip px-4 pt-1 pb-16 lg:[--hero-chrome:calc(15.25rem+var(--sh))] lg:[--sh:clamp(4.5rem,10dvh,6.25rem)] [grid-template-areas:'title'_'figure'_'act'_'strip'] sm:gap-y-8 sm:px-8 sm:pt-4 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:grid-rows-[1fr_auto_auto_1fr_auto] lg:gap-x-16 lg:gap-y-0 lg:pt-4 lg:pb-16 lg:[grid-template-areas:'._figure'_'title_figure'_'act_figure'_'._figure'_'strip_strip']">
-          <div className="max-w-[40rem] [grid-area:title]">
-            <h1 className="text-[clamp(3.25rem,15vw,8rem)] leading-[0.86] font-extrabold tracking-[-0.03em] [font-variation-settings:'wdth'_84,'opsz'_96] lg:text-[clamp(5rem,min(9vw,14dvh),8rem)]">
+          <div className="max-w-[42rem] [grid-area:title]">
+            <h1 className="text-[clamp(3.25rem,15vw,8rem)] leading-[0.86] font-extrabold tracking-[-0.005em] [font-variation-settings:'wdth'_84,'opsz'_96] lg:text-[clamp(5rem,min(8.5vw,14dvh),7.5rem)]">
               <span className="rise block">One photo.</span>
               <span className="rise block [animation-delay:110ms]">A whole shelf.</span>
             </h1>
@@ -140,8 +140,8 @@ export default async function Home() {
               Snap one product photo. Snap2Shelf cuts it out, stages it on a festive or studio scene with matching shadows, checks that nothing about your product changed, then
               turns it into every format your shop and socials need, in {PHOTO_TO_KIT_COPY}.
             </p>
-            <p className="order-last mt-3 flex items-center gap-2 text-[0.8rem] leading-snug text-faint sm:order-none sm:text-sm">
-              <Timer aria-hidden className="size-4 shrink-0 text-marigold" />
+            <p className="order-last mt-3 flex items-start gap-2 text-[0.8rem] leading-snug text-faint sm:order-none sm:text-sm">
+              <Timer aria-hidden className="mt-[calc((1lh-1rem)/2)] size-4 shrink-0 text-marigold" />
               {PHOTO_TO_KIT_MEASURED_COPY}
             </p>
             <div className="mt-1 flex flex-col gap-3 sm:mt-8 sm:flex-row sm:flex-wrap lg:mt-6">
@@ -172,7 +172,7 @@ export default async function Home() {
               The same {noun}, from photo to finished kit. Every picture below is what the pipeline actually produced.
             </p>
             <div className="mt-10">
-              <HowItWorks kit={kit} />
+              <HowItWorks kit={kit} qaCatch={landingQaCatch(sample)} />
             </div>
           </div>
         </section>
@@ -255,7 +255,7 @@ export default async function Home() {
 
         <section className="border-t border-line">
           <div className="mx-auto flex max-w-[90rem] flex-col items-start gap-6 px-4 py-20 sm:px-8 lg:flex-row lg:items-center lg:justify-between">
-            <p className="max-w-[36rem] font-display text-[clamp(1.75rem,4vw,2.5rem)] leading-[1.05] font-extrabold tracking-[-0.025em] [font-variation-settings:'wdth'_84,'opsz'_96]">
+            <p className="max-w-[36rem] font-display text-[clamp(1.75rem,4vw,2.5rem)] leading-[1.05] font-extrabold tracking-[-0.005em] [font-variation-settings:'wdth'_84,'opsz'_96]">
               Your next listing is one photo away.
             </p>
             <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
