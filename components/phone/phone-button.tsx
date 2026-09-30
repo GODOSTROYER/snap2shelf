@@ -4,9 +4,10 @@ import { Smartphone } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import * as React from "react";
-import { Button, type ButtonProps } from "@/components/ui/button";
+import type { ButtonProps } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button-variants";
+import { newSku } from "@/lib/client/sku";
 import type { RawInfo } from "@/lib/client/upload";
-import { newSku } from "@/lib/client/util";
 import type { Sku } from "@/lib/types";
 
 // The QR library and dialog only load when someone asks for them.
@@ -17,7 +18,14 @@ const QrDialog = dynamic(() => import("./qr-dialog"), { ssr: false });
  * photo; on a phone it goes straight to the camera page.
  * Without `onArrived`, it continues in /studio.
  */
-export function PhoneButton({ onArrived, children, ...props }: Omit<ButtonProps, "onClick"> & { onArrived?: (sku: Sku, info: RawInfo) => void }) {
+export function PhoneButton({
+  onArrived,
+  children,
+  variant = "secondary",
+  size,
+  className,
+  ...props
+}: Omit<ButtonProps, "onClick" | "asChild"> & { onArrived?: (sku: Sku, info: RawInfo) => void }) {
   const router = useRouter();
   const [sku, setSku] = React.useState<Sku | null>(null);
 
@@ -32,10 +40,11 @@ export function PhoneButton({ onArrived, children, ...props }: Omit<ButtonProps,
 
   return (
     <>
-      <Button variant="secondary" onClick={start} {...props}>
+      {/* a plain <button> with the Button classes: the full Button (Slot, tailwind-merge) would double this island's JS */}
+      <button type="button" className={buttonVariants({ variant, size, className })} onClick={start} {...props}>
         <Smartphone />
         {children ?? "Snap with your phone"}
-      </Button>
+      </button>
       {sku ? (
         <QrDialog
           open
