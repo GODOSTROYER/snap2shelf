@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import type { RetouchPendingResponse, RetouchResponse } from "@/lib/api-contract";
 import { featureMessage, featuresClient, fixMeta, isBusy, rawViewPath, retouchUntilDone, withBusyRetry, type FeaturesClient } from "@/lib/client/features";
 import { publicUrl } from "@/lib/client/img";
-import { KIND_META } from "@/lib/client/kit-view";
+import { XRAY_KINDS } from "@/lib/transform/xray";
 import { cn, isAborted } from "@/lib/client/util";
 import type { KitAsset, RetouchFix, Sku } from "@/lib/types";
 import { Narration, Notice, useCountdown } from "./shared";
@@ -223,7 +223,7 @@ export function RetouchCard({ sku, autoStart = true, onDone, onError, client = f
                   .map((s, i) => (
                     <React.Fragment key={i}>
                       {i > 0 ? <span className="text-faint">/</span> : null}
-                      <span style={{ color: KIND_META[s.kind]?.color }} title={s.label}>
+                      <span style={{ color: XRAY_KINDS[s.kind] ? `var(${XRAY_KINDS[s.kind].token}, ${XRAY_KINDS[s.kind].swatch})` : undefined }} title={s.label}>
                         {s.text}
                       </span>
                     </React.Fragment>
