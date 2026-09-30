@@ -14,11 +14,11 @@ import type { BriefResponse } from "@/lib/api-contract";
 import * as api from "@/lib/client/api";
 import { fixMeta } from "@/lib/client/features";
 import { useDebounced } from "@/lib/client/hooks";
-import { isBuiltUrl, publicUrl, sizedUrl, storedUrl } from "@/lib/client/img";
+import { isBuiltUrl, isGenerative, publicUrl, sizedUrl, storedUrl } from "@/lib/client/img";
 import { DEMO_SHELF, SAMPLE_PHOTO_DISCLOSURE, SAMPLE_PHOTO_LABEL } from "@/lib/claims";
 import { kitContents, zipLabel } from "@/lib/client/kit-view";
 import { dnaOf, firstSentence, fixWords, qaMarks, replayAttempts, type QaMarks } from "@/lib/client/qa-replay";
-import { sampleCost, sampleProcessingNote } from "@/lib/client/sample-data";
+import { sampleCost, sampleHeroWeight, sampleTimeLine } from "@/lib/client/sample-data";
 import { canRecolor, MAX_SWATCHES, recolorExplain, recolorLabel, swatchName } from "@/lib/client/swatches";
 import { rawInfo, rawPublicId, waitForRaw } from "@/lib/client/upload";
 import { Aborted, atLeast, cn, isAborted, preloadImage, sleep } from "@/lib/client/util";
@@ -43,7 +43,7 @@ import {
   type Scene,
   type SceneDNA,
 } from "@/lib/types";
-import { CompositePanel, type PackSettings } from "./composite-panel";
+import type { PackSettings } from "./composite-panel";
 import { DnaToggle } from "./dna-toggle";
 import { PipelineRail, type StepStatus } from "./pipeline-rail";
 import type { SourceReady } from "./source-picker";
@@ -51,12 +51,13 @@ import { Stage, type QaStory } from "./stage";
 
 // Split out of the first load: each panel loads when it is first shown (the kit's parts while the run works).
 const SourcePicker = dynamic(() => import("./source-picker").then((m) => m.SourcePicker));
+const CompositePanel = dynamic(() => import("./composite-panel").then((m) => m.CompositePanel), { ssr: false, loading: () => <PanelSkeleton /> });
 const SamplePicker = dynamic(() => import("./source-picker").then((m) => m.SamplePicker), { ssr: false });
 const CreativePanel = dynamic(() => import("./creative-panel").then((m) => m.CreativePanel), { ssr: false, loading: () => <PanelSkeleton /> });
 const BriefBar = dynamic(() => import("@/components/features/brief-bar").then((m) => m.BriefBar), { ssr: false, loading: () => <PanelSkeleton /> });
 const RetouchCard = dynamic(() => import("@/components/features/retouch-card").then((m) => m.RetouchCard), { ssr: false, loading: () => <PanelSkeleton /> });
 const SceneGenerator = dynamic(() => import("@/components/features/scene-generator").then((m) => m.SceneGenerator), { ssr: false, loading: () => <PanelSkeleton /> });
-const loadKit = () => Promise.all([import("@/components/kit/kit-shelves"), import("@/components/readiness/KitReadiness"), import("@/components/features/cost-receipt")]);
+const preloadKitParts = () => Promise.all([import("@/components/kit/kit-shelves"), import("@/components/readiness/KitReadiness"), import("@/components/features/cost-receipt")]);
 const KitShelves = dynamic(() => import("@/components/kit/kit-shelves").then((m) => m.KitShelves), { ssr: false });
 const KitReadiness = dynamic(() => import("@/components/readiness/KitReadiness").then((m) => m.KitReadiness), { ssr: false });
 const CostReceipt = dynamic(() => import("@/components/features/cost-receipt").then((m) => m.CostReceipt), { ssr: false });
@@ -68,6 +69,8 @@ const PACK_POLL_MS = 2500;
 const PACK_TIMEOUT_MS = 90_000;
 const PACK_RESUME_MS = 4000;
 const RETOUCH_MAX_MS = 150_000;
+/** What a browser sends for an image: f_auto answers the format a real visitor gets (WebP/AVIF), not JPEG. */
+const IMAGE_ACCEPT = "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8";
 const CAUGHT_MS = 2200; // QA's catch stays on screen at least this long, so it can be read
 const APPROVED_MS = 1100; // and its "Approved" lands before the pack starts
 
@@ -168,6 +171,22 @@ function planFix(q: QaResult, c: CompositeControls, scene: Scene, scenes: Scene[
   return null;
 }
 
+/**
+ * Formats that can go on the shelf: saved, not still rendering, not failed. A failed
+ * format is never shown through its recipe URL: the browser would re-run a generative
+ * transformation that already failed (and bill it) on every view.
+ */
+function shelfReady(assets: KitAsset[], pending: string[], failed: string[]) {
+  const ok: KitAsset[] = [];
+  const bad: KitAsset[] = [];
+  for (const a of assets) {
+    if (a.id === "hero" || pending.includes(a.id)) continue;
+    if (failed.includes(a.id) || (!a.publicId && isGenerative(a))) bad.push(a);
+    else ok.push(a);
+  }
+  return { ok, bad };
+}
+
 /** Show a pack asset from its stored copy; label colour variants for what they really change. */
 function presentAsset(a: KitAsset, p: ProductRecord): KitAsset {
   const stored = a.publicId ? { url: storedUrl(a.publicId) } : {};
@@ -205,6 +224,8 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
   const [dnaFlash, setDnaFlash] = React.useState(false);
   const [kit, setKit] = React.useState<Kit | null>(null);
   const [pendingFormats, setPendingFormats] = React.useState<string[]>([]);
+  const [failedFormats, setFailedFormats] = React.useState<KitAsset[]>([]); // formats Cloudinary couldn't render
+  const [heroFormat, setHeroFormat] = React.useState(""); // what a browser got for the hero (webp, avif…)
   const [deal, setDeal] = React.useState<DealRequest | null>(null);
   const [packedSig, setPackedSig] = React.useState<string | null>(null);
   const [demo, setDemo] = React.useState(false);
@@ -253,18 +274,34 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
   const composite = !!scene && !heroOverride && !!(sampleShot || preview);
   // where the product sits on the plate: Scene DNA's labels keep off it
   const productBox = product?.cutout && scene && controls ? geometry(product.cutout, scene.dna, controls, placement) : null;
-  const productOnPlate = productBox ? { x: productBox.px, y: productBox.py, w: productBox.pw, h: productBox.ph } : null;
-  const stageXray: KitAsset | null =
-    heroOverride ??
-    (sample && sampleShot && !replayShot
-      ? sample.kit.hero
-      : preview && product && scene
-        ? { id: "stage", format: "hero", label: "Hero 4:5", url: preview.url, width: 1080, height: 1350, frame: "feed-post", alt: stageAlt, xray: preview, qa: qa ?? undefined }
-        : null);
+  const dnaShown = (dnaOn || dnaFlash) && composite && !!scene;
+  const [bx, by, bw, bh] = productBox ? [productBox.px, productBox.py, productBox.pw, productBox.ph] : [0, 0, 0, 0];
+  const stageDna = React.useMemo(
+    () => (dnaShown && scene ? { dna: scene.dna, key: scene.publicId, shadow: scene.view !== "top-down", product: bw ? { x: bx, y: by, w: bw, h: bh } : null } : null),
+    [dnaShown, scene, bx, by, bw, bh],
+  );
+  // the stage's object props keep their identity between renders, so the memoised stage only
+  // re-renders when what it shows changes (the replay re-renders the studio many times a second)
+  const previewUrl = preview?.url;
+  const stageXray: KitAsset | null = React.useMemo(
+    () =>
+      heroOverride ??
+      (sample && sampleShot && !replayShot
+        ? sample.kit.hero
+        : preview && product && scene
+          ? { id: "stage", format: "hero", label: "Hero 4:5", url: preview.url, width: 1080, height: 1350, frame: "feed-post", alt: stageAlt, xray: preview, qa: qa ?? undefined }
+          : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `preview` is rebuilt every render; its url is its identity
+    [heroOverride, sample, sampleShot, replayShot, previewUrl, product, scene, stageAlt, qa],
+  );
+  const lightOn = !!scene && !heroOverride && (status.light === "active" || status.qa === "active");
+  const lightAz = scene?.dna.light_azimuth ?? 0;
+  const stageLight = React.useMemo(() => (lightOn ? { azimuth: lightAz, key: runId } : null), [lightOn, lightAz, runId]);
 
+  // unchanged marks keep the same objects, so nothing re-renders for them
   const mark = React.useCallback((id: PipelineStepId, st: StepStatus, note?: string) => {
-    setStatus((s) => ({ ...s, [id]: st }));
-    if (note !== undefined) setNotes((n) => ({ ...n, [id]: note }));
+    setStatus((s) => (s[id] === st ? s : { ...s, [id]: st }));
+    if (note !== undefined) setNotes((n) => (n[id] === note ? n : { ...n, [id]: note }));
   }, []);
   const seen = React.useCallback((src: api.DataSource) => {
     if (src === "demo") setDemo(true);
@@ -353,7 +390,7 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
         await lightUp();
 
         step = "qa";
-        void loadKit().catch(() => {}); // the shelves, readiness and receipt: ready by the time the kit is
+        void preloadKitParts().catch(() => {}); // the shelves, readiness and receipt: ready by the time the kit is
         let tokens = args.tokens;
         let fixed: string | null = null; // what the automatic fix changed, when QA needed one
         let firstCatch = "";
@@ -493,8 +530,9 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
         seen(started.source);
         let assets = started.data.assets;
         let pending = started.data.pending;
+        let failed = started.data.failed ?? [];
         let zipUrl: string | undefined;
-        const total = assets.length;
+        const total = assets.filter((a) => a.id !== "hero").length;
         if (replay) {
           // replay: count the stored formats in as they "finish"
           for (let n = 1; n <= total; n++) {
@@ -504,12 +542,14 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
         }
         const t = Date.now();
         while (pending.length && Date.now() - t < PACK_TIMEOUT_MS) {
-          mark("pack", "active", `${total - pending.length} of ${total} formats ready`);
+          // failed formats are out of the count: "N of M" is only what can still arrive
+          mark("pack", "active", `${total - failed.length - pending.length} of ${total - failed.length} formats ready`);
           await sleep(PACK_POLL_MS, signal);
           const s = await api.packStatus(src.sku, signal);
           seen(s.source);
           assets = s.data.assets;
           pending = s.data.pending;
+          failed = s.data.failed ?? failed;
           zipUrl = s.data.zipUrl;
         }
         if (!zipUrl && !pending.length && started.source === "live") {
@@ -517,19 +557,27 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
         }
 
         const heroId = started.data.heroPublicId;
-        let delivered = 0;
-        try {
-          const h = await fetch(storedUrl(heroId), { method: "HEAD", signal });
-          delivered = Number(h.headers.get("content-length") ?? 0);
-        } catch {
-          delivered = 0;
+        // the hero's weight as a browser receives it (f_auto answers per Accept header); a sample's was measured once
+        const measured = replay && !hero ? sampleHeroWeight(src.sku) : null;
+        let delivered = measured?.delivered ?? 0;
+        let deliveredAs = measured?.format ?? "";
+        if (!measured) {
+          try {
+            const h = await fetch(storedUrl(heroId), { method: "HEAD", signal, headers: { Accept: IMAGE_ACCEPT } });
+            delivered = Number(h.headers.get("content-length") ?? 0);
+            deliveredAs = (h.headers.get("content-type") ?? "").split(";")[0].replace(/^image\//, "").trim();
+          } catch {
+            delivered = 0;
+          }
         }
+        setHeroFormat(deliveredAs);
+        const shelf = shelfReady(assets, pending, failed);
 
         let next: Kit;
         if (replay && !hero) {
-          next = { ...replay.kit, cost: { ...replay.kit.cost, bytesDelivered: delivered || replay.kit.cost.bytesDelivered } };
+          next = { ...replay.kit, cost: { ...replay.kit.cost, bytesOriginal: measured?.original ?? replay.kit.cost.bytesOriginal, bytesDelivered: delivered || replay.kit.cost.bytesDelivered } };
         } else {
-          const ready = assets.filter((a) => a.id !== "hero" && !pending.includes(a.id)).map((a) => presentAsset(a, p));
+          const ready = shelf.ok.map((a) => presentAsset(a, p));
           const heroAsset: KitAsset = hero
             ? { ...hero, id: "hero", label: "Hero 4:5", publicId: heroId }
             : { id: "hero", format: "hero", label: "Hero 4:5", url: full.url, width: 1080, height: 1350, frame: "feed-post", alt: heroAlt(p, sc), xray: full, publicId: heroId, qa: verdict };
@@ -560,6 +608,7 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
         }
         setKit(next);
         setPendingFormats(pending);
+        setFailedFormats(replay && !hero ? [] : shelf.bad.map((a) => presentAsset(a, p)));
         setPackedSig(sigOf(sc.publicId, c, st, hero));
         mark("pack", "done", pending.length ? `${next.assets.length} formats ready, ${pending.length} still rendering` : `Kit ready: ${kitContents(next)}`);
         setDeal((d) => ({ key: (d?.key ?? 0) + 1, from: () => stageRef.current?.getBoundingClientRect() ?? null }));
@@ -582,11 +631,12 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
       const signal = ac.signal;
       const t0 = performance.now();
       const replay = getSample(src.sku);
-      setSource(src);
+      // a sample link's first paint already shows this state: keep its objects (no re-render for nothing)
+      setSource((s) => (s && s.sku === src.sku && s.via === src.via ? s : src));
       setAwaiting(false);
       setLinkError(null);
-      setStatus(IDLE);
-      setNotes({});
+      setStatus((s) => (PIPELINE_STEPS.every((x) => s[x.id] === (x.id === "fix" ? "active" : "waiting")) ? s : { ...IDLE, fix: "active" }));
+      setNotes((n) => (Object.keys(n).length === 1 && n.fix === "AI Vision is reading your photo" ? n : { fix: "AI Vision is reading your photo" }));
       setFailure(null);
       setProduct(null);
       setRetouch(null);
@@ -608,6 +658,7 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
       setAdjustOpen(false);
       setKit(null);
       setPendingFormats([]);
+      setFailedFormats([]);
       setPackedSig(null);
       setCreditsUsed(0);
       setRunning(true);
@@ -744,7 +795,9 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
         if (!s) continue;
         const heroMatches = !s.data.heroPublicId || s.data.heroPublicId === kit.hero.publicId;
         if (!heroMatches) return;
-        const ready = s.data.assets.filter((a) => a.id !== "hero" && !s.data.pending.includes(a.id)).map((a) => presentAsset(a, kit.product));
+        const shelf = shelfReady(s.data.assets, s.data.pending, s.data.failed ?? []);
+        const ready = shelf.ok.map((a) => presentAsset(a, kit.product));
+        setFailedFormats(shelf.bad.map((a) => presentAsset(a, kit.product)));
         setKit((k) => {
           if (!k || k.sku !== kit.sku) return k;
           const reel = reelUrl({ images: reelClips(k.hero.publicId!, ready), offer: settings.offer.hindi || settings.offer.english ? { hindi: settings.offer.hindi || undefined, english: settings.offer.english || undefined } : undefined });
@@ -842,7 +895,8 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
     booted.current = true;
     const s = getSample(initialSample) ?? getSample(initialSku);
     if (s) {
-      void Promise.resolve().then(() => start(sourceOf(s)));
+      // its own task, after the first paint and hydration have finished
+      setTimeout(() => void start(sourceOf(s)), 0);
       return;
     }
     if (initialSample) {
@@ -1135,9 +1189,9 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
               busyLabel={busyLabel}
               enter={settle != null ? "settle" : heroOverride ? "focus" : sampleShot || preview ? (running ? "focus" : "soft") : cutoutView ? "wipe" : "focus"}
               settle={settle}
-              light={scene && !heroOverride && (status.light === "active" || status.qa === "active") ? { azimuth: scene.dna.light_azimuth, key: runId } : null}
+              light={stageLight}
               xray={stageXray}
-              dna={(dnaOn || dnaFlash) && composite && scene ? { dna: scene.dna, key: scene.publicId, shadow: scene.view !== "top-down", product: productOnPlate } : null}
+              dna={stageDna}
             />
             <div aria-hidden className="shelf-ledge relative -mx-3 -mt-1 hidden sm:block sm:-mx-5" />
             {/* said once, where the photo is */}
@@ -1247,33 +1301,37 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
             <div className="mt-6">
               <KitShelves kit={kit} deal={deal} rendering={pendingFormats} />
             </div>
+            {failedFormats.length ? <FailedFormats assets={failedFormats} /> : null}
 
-            <div className="mt-14 grid items-start gap-10 px-4 sm:px-8 lg:grid-cols-[minmax(0,1fr)_26rem] lg:gap-12">
-              {marketplacePending ? (
-                <KitReadiness sku={kit.sku} waiting />
-              ) : (
-                <KitReadiness
+            {/* below the shelves: mounted once the deal has played, and not laid out until scrolled near */}
+            <div className="mt-14 grid items-start gap-10 px-4 [contain-intrinsic-size:auto_900px] [content-visibility:auto] sm:px-8 lg:grid-cols-[minmax(0,1fr)_26rem] lg:gap-12">
+              <AfterDeal key={kit.sku}>
+                {marketplacePending ? (
+                  <KitReadiness sku={kit.sku} waiting />
+                ) : (
+                  <KitReadiness
+                    sku={kit.sku}
+                    sample={!!sample}
+                    measureKey={`${kit.hero.publicId}-${kit.createdAt}`}
+                    readOnly={sample ? "This is a saved sample, so it stays as measured. On a kit from your own photo, each fix is one click." : undefined}
+                    photoLabel={sample ? SAMPLE_PHOTO_LABEL : undefined}
+                    busy={running}
+                    onReport={onReadiness}
+                    onRestage={(patch) => restageFix(patch)}
+                    onRepack={(zone) => repackFix(zone)}
+                  />
+                )}
+                <CostReceipt
+                  key={kit.sku}
                   sku={kit.sku}
-                  sample={!!sample}
-                  measureKey={`${kit.hero.publicId}-${kit.createdAt}`}
-                  readOnly={sample ? "This is a saved sample, so it stays as measured. On a kit from your own photo, each fix is one click." : undefined}
-                  photoLabel={sample ? SAMPLE_PHOTO_LABEL : undefined}
-                  busy={running}
-                  onReport={onReadiness}
-                  onRestage={(patch) => restageFix(patch)}
-                  onRepack={(zone) => repackFix(zone)}
+                  scene={kit.scene?.publicId}
+                  refreshKey={`${kit.createdAt}-${creditsUsed}`}
+                  // a sample's receipt prints from its saved run: no request
+                  initial={sample && kit.sku === sample.sku ? sampleCost(sample, kit, heroFormat) : undefined}
+                  replay={sample && kit.sku === sample.sku ? sampleTimeLine(sample, kit) : undefined}
+                  className="lg:mx-0"
                 />
-              )}
-              <CostReceipt
-                key={kit.sku}
-                sku={kit.sku}
-                scene={kit.scene?.publicId}
-                refreshKey={`${kit.createdAt}-${creditsUsed}`}
-                // a sample's receipt prints from its saved run: no request
-                initial={sample && kit.sku === sample.sku ? sampleCost(sample, kit) : undefined}
-                replay={sample && kit.sku === sample.sku ? sampleProcessingNote(sample) : undefined}
-                className="lg:mx-0"
-              />
+              </AfterDeal>
             </div>
           </section>
         ) : status.pack === "active" ? (
@@ -1356,6 +1414,47 @@ function BriefTeaser() {
       </div>
     </section>
   );
+}
+
+/**
+ * Formats Cloudinary couldn't render, as quiet placeholders: no image (their recipe
+ * would re-run a failed generative step on every view) and no retry.
+ */
+function FailedFormats({ assets }: { assets: KitAsset[] }) {
+  return (
+    <div className="mt-8 px-4 sm:px-8">
+      <p className="text-sm font-semibold text-paper">Not in this kit</p>
+      <ul className="mt-3 flex flex-wrap gap-3">
+        {assets.map((a) => (
+          <li key={a.id} className="grid aspect-[4/5] w-36 content-center justify-items-center gap-1.5 rounded-2xl border border-dashed border-line-strong bg-stage/50 p-3 text-center">
+            <span className="text-[0.82rem] leading-snug font-semibold text-paper">{a.label}</span>
+            <span className="text-[0.75rem] leading-snug text-dim">Couldn&apos;t render this format</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/**
+ * Mounts its children once the kit's deal has played (about 2.5 s) and the page is idle,
+ * so the shelves animate without a big mount landing in the middle of them.
+ */
+function AfterDeal({ children }: { children: React.ReactNode }) {
+  const [ready, setReady] = React.useState(false);
+  React.useEffect(() => {
+    let idle = 0;
+    const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number; cancelIdleCallback?: (id: number) => void };
+    const t = window.setTimeout(() => {
+      if (w.requestIdleCallback) idle = w.requestIdleCallback(() => setReady(true), { timeout: 1500 });
+      else setReady(true);
+    }, 2500);
+    return () => {
+      window.clearTimeout(t);
+      if (idle) w.cancelIdleCallback?.(idle);
+    };
+  }, []);
+  return ready ? <>{children}</> : null;
 }
 
 /** Holds a panel's place while its code loads (first open only). */

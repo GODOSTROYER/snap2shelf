@@ -37,7 +37,7 @@ export interface QaStory {
  * The big 4:5 viewer. Shows whatever the pipeline has so far (raw photo →
  * cut-out on a transparency checker → staged hero) and cross-fades between them.
  */
-export const Stage = React.forwardRef<
+const StageView = React.forwardRef<
   HTMLDivElement,
   {
     src: string | null;
@@ -236,6 +236,9 @@ export const Stage = React.forwardRef<
   );
 });
 
+/** Memoised: the studio re-renders many times a second while it works; the stage only when what it shows changes. */
+export const Stage = React.memo(StageView);
+
 const STATE = {
   caught: { word: "QA caught it", Icon: ShieldAlert, tone: "text-sindoor" },
   fixing: { word: "Fixing", Icon: Wrench, tone: "text-marigold" },
@@ -269,6 +272,15 @@ const pct = (v: number, of: number) => `${(v / of) * 100}%`;
  */
 function FixMarks({ story, marks }: { story: QaStory; marks: QaMarks }) {
   const reduce = useReducedMotion();
+  const root = React.useRef<HTMLDivElement>(null);
+  const [scale, setScale] = React.useState(0.32); // css px per plate px (a phone's stage until measured)
+  React.useEffect(() => {
+    const el = root.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => el.clientWidth && setScale(el.clientWidth / PLATE.width));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   const [fade, setFade] = React.useState(false);
   React.useEffect(() => {
     if (story.phase !== "fixed") return;
@@ -278,15 +290,21 @@ function FixMarks({ story, marks }: { story: QaStory; marks: QaMarks }) {
 
   const moved = story.phase !== "caught" && marks.dy != null;
   const y = marks.baseY + (moved ? (marks.dy ?? 0) : 0);
-  const ew = Math.max(marks.w * 1.6, 150);
+  const ew = Math.max(150, Math.min(marks.w * 1.6, marks.w + 160));
   const eh = ew * 0.26;
   const tone = story.phase === "fixed" ? "leaf" : story.phase === "fixing" ? "marigold" : "sindoor";
   const travel = { duration: reduce ? 0 : 0.9, ease: [0.16, 1, 0.3, 1] as const };
   const dy = marks.dy ?? 0;
-  const bx = marks.cx + ew / 2 + 18; // the bracket, just right of the ring
+  // the bracket and its pill sit right of the ring, or left of it when the ring is near the right edge
+  // (a wide product leaves room on neither side: then the pill goes under the ring, the bracket at its centre)
+  const PILL = 100 / scale; // plate px the bracket and its pill need (about 100 css px, whatever the stage size)
+  const place = marks.cx + ew / 2 + 18 + PILL <= PLATE.width ? "right" : marks.cx - ew / 2 - 18 - PILL >= 0 ? "left" : "below";
+  const bx = place === "right" ? marks.cx + ew / 2 + 18 : place === "left" ? marks.cx - ew / 2 - 18 : marks.cx;
+  const side = place === "left" ? { right: pct(PLATE.width - bx, PLATE.width) } : { left: pct(bx, PLATE.width) };
 
   return (
     <motion.div
+      ref={root}
       aria-hidden
       className="pointer-events-none absolute inset-0"
       initial={{ opacity: 0 }}
@@ -309,18 +327,22 @@ function FixMarks({ story, marks }: { story: QaStory; marks: QaMarks }) {
           // the bracket spans the real correction: from where the base is to where the fix puts it
           <motion.div
             key="bracket"
-            className="absolute min-h-1 [filter:drop-shadow(0_0_2px_rgb(0_0_0/0.6))]"
-            style={{ left: pct(bx, PLATE.width), top: pct(Math.min(marks.baseY, marks.baseY + dy), PLATE.height), height: pct(Math.abs(dy), PLATE.height) }}
+            className="absolute inset-0"
             initial={{ opacity: 0, x: reduce ? 0 : -4 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0 }}
             transition={{ delay: reduce ? 0 : 0.35, duration: reduce ? 0 : 0.3 }}
           >
-            <BracketLines dy={dy} />
-            <span className="absolute top-1/2 left-5 inline-flex -translate-y-1/2 items-center gap-0.5 rounded-full bg-sindoor px-2 py-0.5 text-[13px] leading-[1.35] font-semibold whitespace-nowrap text-studio shadow-[0_4px_12px_-4px_rgb(0_0_0/0.8)]">
-              {dy > 0 ? <ArrowDown className="size-3.5" aria-hidden /> : <ArrowUp className="size-3.5" aria-hidden />}
-              <span className="tabular">{Math.abs(dy)} px</span>
-            </span>
+            <div
+              className="absolute min-h-1 [filter:drop-shadow(0_0_2px_rgb(0_0_0/0.6))]"
+              style={{ ...side, top: pct(Math.min(marks.baseY, marks.baseY + dy), PLATE.height), height: pct(Math.abs(dy), PLATE.height) }}
+            >
+              <BracketLines dy={dy} />
+              {place !== "below" ? <Correction dy={dy} className={cn("top-1/2 -translate-y-1/2", place === "right" ? "left-5" : "right-5")} /> : null}
+            </div>
+            {place === "below" ? (
+              <Correction dy={dy} className="-translate-x-1/2" style={{ left: pct(marks.cx, PLATE.width), top: pct(marks.baseY + eh / 2 + 12, PLATE.height) }} />
+            ) : null}
           </motion.div>
         ) : null}
       </AnimatePresence>
@@ -329,7 +351,7 @@ function FixMarks({ story, marks }: { story: QaStory; marks: QaMarks }) {
           <motion.span
             key="ok"
             className="absolute inline-flex -translate-y-1/2 items-center gap-1 rounded-full bg-leaf px-2 py-0.5 text-[13px] leading-[1.35] font-semibold text-studio shadow-[0_4px_12px_-4px_rgb(0_0_0/0.8)]"
-            style={{ left: pct(bx, PLATE.width), top: pct(y, PLATE.height) }}
+            style={place === "below" ? { left: pct(marks.cx, PLATE.width), top: pct(y + eh / 2 + 12, PLATE.height), translate: "-50% 0" } : { ...side, top: pct(y, PLATE.height) }}
             initial={{ opacity: 0, scale: reduce ? 1 : 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0 }}
@@ -341,6 +363,22 @@ function FixMarks({ story, marks }: { story: QaStory; marks: QaMarks }) {
         ) : null}
       </AnimatePresence>
     </motion.div>
+  );
+}
+
+/** The recorded correction, e.g. "↓ 10 px". */
+function Correction({ dy, className, style }: { dy: number; className?: string; style?: React.CSSProperties }) {
+  return (
+    <span
+      className={cn(
+        "absolute inline-flex items-center gap-0.5 rounded-full bg-sindoor px-2 py-0.5 text-[13px] leading-[1.35] font-semibold whitespace-nowrap text-studio shadow-[0_4px_12px_-4px_rgb(0_0_0/0.8)]",
+        className,
+      )}
+      style={style}
+    >
+      {dy > 0 ? <ArrowDown className="size-3.5" aria-hidden /> : <ArrowUp className="size-3.5" aria-hidden />}
+      <span className="tabular">{Math.abs(dy)} px</span>
+    </span>
   );
 }
 

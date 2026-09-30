@@ -19,7 +19,10 @@ import type {
   UsageResponse,
 } from "../api-contract";
 import { sceneFromListResource, sceneListUrl, SCENE_TAG } from "../scenes";
-import { CREATIVE_APPROVED, CREATIVE_MODELS, CREATIVE_REJECTED, FEATURED_KIT, getSample, SAMPLES, SHOWCASE_CLOUD } from "../showcase";
+import { CREATIVE_APPROVED, CREATIVE_MODELS, CREATIVE_REJECTED, getSample, SAMPLES, SHOWCASE_CLOUD } from "../showcase";
+
+/** The mock pack's fallback: the hand-built sneaker kit (MOCK_PACK_KIT on master's lib/showcase.ts). */
+const MOCK_PACK = SAMPLES[0].kit;
 import { SCENE_ROOT, type KitAsset, type Scene, type SceneView, type Sku } from "../types";
 import { ApiFailure } from "./errors";
 
@@ -114,7 +117,7 @@ export async function pack(req: PackRequest): Promise<PackResponse> {
 }
 
 export async function packStatus(sku: Sku): Promise<PackStatusResponse> {
-  return packs.get(sku) ?? { assets: FEATURED_KIT.assets.filter((a) => !a.id.startsWith("creative")), pending: [] };
+  return packs.get(sku) ?? { assets: MOCK_PACK.assets.filter((a) => !a.id.startsWith("creative")), pending: [] };
 }
 
 // ─── creative ─────────────────────────────────────────────────────────────────
