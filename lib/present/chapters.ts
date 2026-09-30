@@ -31,7 +31,7 @@ export interface ChapterMeta {
 }
 
 const kb = (n: number) => `${Math.round(n / 1024)} KB`;
-const mb = (n: number) => `${(n / (1024 * 1024)).toFixed(1)} MB`;
+const mb = (n: number) => `${(n / (1024 * 1024)).toFixed(2)} MB`;
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 const inr = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 
@@ -124,7 +124,7 @@ export const CHAPTERS: ChapterMeta[] = [
     seconds: () => 9,
     light: { x: 0.45, y: 0.5 },
     cue: (d) =>
-      `This kit spent ${d.cost.generationCredits} new generation credits: it reused the ${d.cost.sceneTitle} scene, which cost ${plural(d.cost.sceneCredits, "credit")} once. The ${mb(d.cost.bytesOriginal)} photo is delivered at about ${kb(d.cost.bytesDeliveredFallback)}, and a basic studio shoot is about ${inr(d.cost.photoshootInr)}, as an estimate.`,
+      `This kit spent ${d.cost.generationCredits} new generation credits: it reused the ${d.cost.sceneTitle} scene, which cost ${plural(d.cost.sceneCredits, "credit")} once. The ${mb(d.cost.bytesOriginal)} PNG photo is delivered as a ${kb(d.cost.bytesDeliveredFallback)} WebP at the same size, and a basic studio shoot is about ${inr(d.cost.photoshootInr)}, as an estimate.`,
   },
   {
     id: "shelf",

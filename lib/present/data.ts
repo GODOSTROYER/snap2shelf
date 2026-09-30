@@ -168,6 +168,7 @@ export interface PresentData {
     transformations: number; // tx estimate for the whole kit
     bytesOriginal: number;
     bytesDeliveredFallback: number; // measured offline for deliveredUrl; the deck re-measures live
+    formatDeliveredFallback: string | null; // the format f_auto answered in that measurement ("webp")
     deliveredUrl: string; // image whose delivered size the deck measures live
     photoshootInr: number;
     photoshootNote: string;
@@ -195,8 +196,8 @@ export interface PresentExtras {
   stageScenes: Scene[];
   /** The six steps, with animation weights. */
   pipeline: { steps: PipelineStat[] };
-  /** Delivered bytes of the raw photo URL, measured in Chrome (WEBP), keyed by raw public id. */
-  rawDeliveredBytes: Record<string, number>;
+  /** The raw photo URL as Chrome receives it (Accept: image/avif,image/webp,…), keyed by raw public id. */
+  rawDelivered: Record<string, { bytes: number; format: string }>;
   /** Reference-vs-candidate evidence for the QA chapter when no kit carries a creative pair. */
   qaFallback: { approved: QaCard; rejected: QaCard } | null;
   /** Reel inputs when the featured kit has none. */
@@ -477,8 +478,9 @@ export const EXTRAS: PresentExtras = {
       { id: "pack", label: "Pack", weight: 10.8, detail: "Every channel format, zipped" },
     ],
   },
-  // curl with Chrome's Accept header, 30 Sep 2026: f_auto answered WEBP (server-timing bytes=157588)
-  rawDeliveredBytes: { "snap2shelf/products/shmessy1/raw": 157588 },
+  // GET with Chrome's UA and Accept (image/avif,image/webp,…), 30 Sep 2026: f_auto answered WebP,
+  // 1122×1402 (same pixels as the 2,249,535-byte PNG upload), Content-Length 157588
+  rawDelivered: { "snap2shelf/products/shmessy1/raw": { bytes: 157588, format: "webp" } },
   qaFallback: QA_EVIDENCE,
   reelFallback: null,
   shelf: DEMO_SHELF_SNAPSHOT,
@@ -705,7 +707,8 @@ export function fromKits(kits: Kit[], x: PresentExtras = EXTRAS, featuredSku?: s
       reuseNote: CREDITS_SAVED_COPY,
       transformations: k.cost.transformationsEstimate,
       bytesOriginal: k.cost.bytesOriginal || p.rawBytes,
-      bytesDeliveredFallback: x.rawDeliveredBytes[p.rawPublicId] ?? k.cost.bytesDelivered,
+      bytesDeliveredFallback: x.rawDelivered[p.rawPublicId]?.bytes ?? k.cost.bytesDelivered,
+      formatDeliveredFallback: x.rawDelivered[p.rawPublicId]?.format ?? null,
       deliveredUrl: rawUrl,
       photoshootInr: x.photoshootInr,
       photoshootNote: x.photoshootNote,
