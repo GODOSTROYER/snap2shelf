@@ -8,12 +8,14 @@ Placeholders to fill before posting:
 | `<GIF>` | <!-- TODO(final): 6–8 s GIF or MP4: QR capture → pipeline lights up → kit deals out. Export from the demo recording; LinkedIn and X both autoplay MP4, which is lighter than GIF. --> |
 | `<HACKINDIA_OFFICIAL_HANDLE>` | `<HACKINDIA_OFFICIAL_HANDLE — confirm on hackindia.org or the WhatsApp group; do not guess>` (separately for LinkedIn and X) |
 
-Fixed values: live demo **https://snap2shelf.vercel.app** · repo **https://github.com/GODOSTROYER/snap2shelf** · Cloudinary: **@cloudinary** (X), **Cloudinary** company page (LinkedIn) · Jen Looper: **@jenlooper** (X), **linkedin.com/in/jenlooper** (LinkedIn).
+Fixed values: live demo **https://snap2shelf.vercel.app** · demo storefront **https://snap2shelf.vercel.app/shelf/demo-studio** · repo **https://github.com/GODOSTROYER/snap2shelf** · Cloudinary: **@cloudinary** (X), **Cloudinary** company page (LinkedIn) · Jen Looper: **@jenlooper** (X), **linkedin.com/in/jenlooper** (LinkedIn).
 
 Posting notes:
 - On LinkedIn, type `@Jen Looper`, `@Cloudinary` and `@<HackIndia page>` and pick them from the dropdown so they become real mentions; pasted text does not tag anyone.
 - Attach the `<GIF>` (or the MP4) natively rather than relying on a link preview.
 - Never include the access code in a post. It lives only in the submission form.
+- Every number below comes from `lib/claims.ts` or `SPIKES.md`. If you edit a post, don't add a number that isn't there (the 36 s is a measurement on the live site; ₹2,500 is our estimate and must be called one if you use it).
+- If the GIF shows one of the sample products rather than your own capture, keep the post's line that the samples start from AI-generated test photos.
 - After posting, copy both post URLs into `docs/SUBMISSION_CHECKLIST.md`.
 
 ---
@@ -27,27 +29,28 @@ Posting notes:
 > For the Pixels to Products Cloudinary AI Hackathon (Track 2: Generative Content Workflows), I built **Snap2Shelf**: one phone photo in, a whole shelf of listing-ready assets out, and the product stays real.
 >
 > How it works:
-> • Snap a product with your phone (scan a QR code on the laptop).
-> • Cloudinary cuts it out once, and the real pixels are layered onto an AI-generated scene with a transformation URL. AI Vision has already read each scene's "Scene DNA": where the table is and where the light comes from, so the shadow falls the right way.
-> • An AI Vision QA gate compares every AI-generated take with the original, side by side, and rejects anything that changed the product. (That invented logo badge? Rejected.)
-> • One approved hero becomes a story and a banner (generative fill), a marketplace-white image, a WhatsApp tile, colour variants, a Hindi + English festive offer, a video reel, a zip and a shareable shop shelf.
+> • Snap a product with your phone (scan a QR code on the laptop) and type one line, like "Diwali sale, 20% off, Hindi and English, for Instagram".
+> • Cloudinary touches up the photo only if it needs it, cuts the product out once, and layers the real pixels onto an AI-generated scene with a transformation URL. AI Vision has already read each scene's "Scene DNA": where the table is and where the light comes from, so the shadow falls the right way.
+> • An AI Vision QA gate checks every image. If a composite looks pasted on, the studio fixes it and checks again; if an AI reshoot changed the product, it is rejected. (That invented logo badge? Rejected.)
+> • One approved hero becomes a story and a banner (generative fill), a marketplace-white image with a Readiness Score measured on its pixels, a WhatsApp tile, colour variants, a Hindi + English offer, a video reel, a zip and a shareable shop shelf. On the live site we measured 36 seconds from photo to zip.
 >
 > Three things I learned building on Cloudinary:
 > 1. **A transformation URL can be a whole rendering engine.** The hero is one URL: scene plate, product layer, a shadow projected from the product's own silhouette, contact shadows, light-match. Move a slider and you get a new URL, not a new render job.
 > 2. **Pin your model.** "Auto" model selection picked a 9–11-credit model for drafts I'd budgeted at 1 credit. The scene library cost 72 credits instead of 48, so every call now names its model.
-> 3. **Tags and context make a surprisingly good database.** There's no DB in this project; every product fact, Scene DNA value and QA verdict lives on the Cloudinary asset itself.
+> 3. **Tags, context and one tiny JSON file make a surprisingly good database.** There's no DB in this project: every product fact, Scene DNA value and QA verdict lives in Cloudinary, and the photo-to-zip pipeline makes zero Admin API calls.
 >
-> Built with Cloudinary's Next.js AI Starter Kit and Skills Pack, with Claude Code running parallel agents in separate git worktrees. The README is written as a tutorial, with every transformation in it explained.
+> Built with Cloudinary's Next.js AI Starter Kit and Skills Pack, with Claude Code running parallel agents in separate git worktrees. The README is written as a tutorial, with every transformation in it explained. (The sample products on the site start from AI-generated test photos; upload your own to see yours.)
 >
 > Demo: `<VIDEO_URL>`
 > Try it (no signup): https://snap2shelf.vercel.app
+> A shop shelf made with it: https://snap2shelf.vercel.app/shelf/demo-studio
 > Code: https://github.com/GODOSTROYER/snap2shelf
 >
 > Thank you @Cloudinary, @Jen Looper and the Cloudinary DevRel team, and `<HACKINDIA_OFFICIAL_HANDLE>` for running this.
 >
 > `<GIF>`
 
-Length: about 2,400 characters, under LinkedIn's 3,000 limit. The first two lines are the hook shown above "…see more".
+Length: about 2,850 characters with the placeholders filled, under LinkedIn's 3,000 limit; re-count after filling them, and drop the "A shop shelf made with it" line first if it runs over. The first two lines are the hook shown above "…see more".
 
 ---
 
@@ -57,7 +60,7 @@ Length: about 2,400 characters, under LinkedIn's 3,000 limit. The first two line
 
 > One photo → a whole shelf.
 >
-> Snap2Shelf stages your real product on AI scenes, and @cloudinary AI Vision rejects any AI take that changes it.
+> Snap2Shelf stages your real product on AI scenes; @cloudinary AI Vision rejects any AI take that changes it. Photo → zip: 36 s, measured live.
 >
 > Try it, no signup: https://snap2shelf.vercel.app
 > Demo: `<VIDEO_URL>`
@@ -66,7 +69,7 @@ Length: about 2,400 characters, under LinkedIn's 3,000 limit. The first two line
 >
 > `<GIF>`
 
-Counted with X's rules (each link counts as 23): **about 250 of 280** with a handle of up to 15 characters. Re-count after filling the placeholders.
+Counted with X's rules (each link counts as 23): **276 of 280** with a 15-character HackIndia handle. Re-count after filling the placeholders; if it runs over, drop "cc ".
 
 ### Optional thread (reply under the post above)
 
@@ -77,9 +80,12 @@ Counted with X's rules (each link counts as 23): **about 250 of 280** with a han
 > Every image is a Cloudinary transformation URL: scene plate, the product as a layer, a shadow projected from its own silhouette with e_distort, a warm light-match. Press the </> button on any asset in the app to X-ray the URL that made it.
 
 **4/**
-> Lesson: pin your model. "Auto" picked a 9–11-credit model for drafts budgeted at 1 credit, so the scene library cost 72 credits instead of 48. Also disclosed in the README: AI calls rotate across 3 Cloudinary environments, with the organisers' approval.
+> Then it checks the listing like a marketplace would: a 96×96 BMP of the marketplace image, decoded on the server, proves the background is pure white and the product fills ~85%. Every product lands on a shop shelf you can share on WhatsApp: https://snap2shelf.vercel.app/shelf/demo-studio
 
 **5/**
+> Lesson: pin your model. "Auto" picked a 9–11-credit model for drafts budgeted at 1 credit, so the scene library cost 72 credits instead of 48. Also disclosed in the README: AI calls rotate across 3 Cloudinary environments, with the organisers' approval.
+
+**6/**
 > Built with the Cloudinary Next.js AI Starter Kit + Skills Pack, and Claude Code running parallel agents in git worktrees. Code and a tutorial-style README: https://github.com/GODOSTROYER/snap2shelf
 
 Each thread post is under 280 characters.

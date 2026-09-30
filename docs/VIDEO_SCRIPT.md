@@ -3,75 +3,96 @@
 **Target length:** 3:00 (hard limits 2:45–3:15). **Format:** 1920×1080, 30 fps, voice-over recorded separately, captions burned in.
 **Rule:** no title card first. The first frame is a hand, a phone and a product.
 
-Routes used: `/` (landing), `/studio`, `/capture` (phone), `/present` (director's cut, owned by the present workstream), `/video/title` and `/video/outro` (cards, same workstream), `/shelf/<shop>` (shelf workstream).
-<!-- TODO(final): re-check every label marked "(confirm)" against the merged UI the night before recording. -->
+Routes used: `/` (landing), `/studio` (with the QR dialog), `/capture` (phone), `/studio?sample=shmessy1` (the recorded QA catch), `/shelf/demo-studio` (storefront), `/present` (director's cut), `/video/title` and `/video/outro` (cards).
 
-## Before you record (warm-up, 15 minutes)
+`/present` chapters on the build this script was written against (30 Sep; re-check the titles on the final build): **One photo · The pipeline · Cut out once · Scene DNA · Every stage · QA gate · Channel pack · Kit reel · It's a URL · What it cost · The shelf · Snap2Shelf**. Keys: → or Space next, ← back, P autoplay, R restart; `?c=<n>` starts at chapter n, `?clean=1` hides the controls.
 
-1. **Warm the demo account.** Run the exact product and scene you will film through the whole flow once, 10–30 minutes before recording, so every derivative (cut-out, composite, `b_gen_fill` story and banner, `e_gen_recolor` variants, reel) is already rendered and cached. On camera, nothing should take the 6–7 s a first `b_gen_fill` render takes.
-2. Check `https://snap2shelf.vercel.app/api/usage` shows `"liveGeneration": true` if you will generate live. For the QA-rejection beat, use the **saved** Fast draft example (it is part of the showcase) rather than a live generation, so the take is repeatable.
-3. Screen: **1920×1080**, browser zoom **125%**, a clean Chrome profile or incognito window with no extensions, bookmarks bar hidden, notifications off (Windows Focus / macOS Do Not Disturb), and the phone on Do Not Disturb.
-4. **Never show** `.env.local`, a terminal, DevTools, the Vercel or Cloudinary dashboards with keys, or the access code. Type the access code off-camera, or cut around it.
-5. Phone: mirror it (scrcpy / QuickTime) or film it with a second camera from above. Clean the lens. Use a real product on a real table (a steel bottle or a sneaker reads best).
-6. Record the voice-over separately after the screen take, then cut picture to voice.
+Every number spoken or captioned below comes from `lib/claims.ts`, `SPIKES.md` or `data/showcase.json` (see "Facts the voice-over relies on"). Don't add a number that isn't in that table.
+
+## Before you record (pre-warm, 15 minutes)
+
+1. **Check quota.** Open `https://snap2shelf.vercel.app/api/usage`. You need `"livePipeline": true` (live kit building is on), `"liveGeneration": true` if you will generate live, and `transformations.usedCredits` comfortably below `floorCredits` (21). A live kit derives roughly 300 transformations, about 0.3 credits. If `livePipeline` is false, the live beats will show the saved samples instead: record the sample replay for those beats.
+2. **Pre-warm the routes you will film**, in the recording browser, so nothing decodes on camera:
+   - `/studio?sample=shmessy1`: let the replay run to the end once (it makes no API calls, but it warms the images).
+   - `/present?c=1`: step through every chapter once; the deck preloads each chapter's images.
+   - `/shelf/demo-studio`, and paste its link into a WhatsApp chat to yourself once, so WhatsApp has fetched the link preview before you film it.
+   - `/video/title` and `/video/outro`.
+3. **Rehearse the live capture once** with the product you will film. A new photo is a new product, so its derivatives can't be pre-warmed: a first `b_gen_fill` takes 6–7 s. Cut dead time in the edit if you need to, but never caption a speed faster than the measured **36 s photo → ZIP**.
+4. Screen: **1920×1080**, browser zoom **125%**, a clean Chrome profile or incognito window with no extensions, bookmarks bar hidden, notifications off (Windows Focus / macOS Do Not Disturb), and the phone on Do Not Disturb.
+5. **Never show** `.env.local`, a terminal, DevTools, the Vercel or Cloudinary dashboards with keys, or the access code. Type the access code off-camera, or cut around it.
+6. Phone: mirror it (scrcpy / QuickTime) or film it with a second camera from above. Clean the lens. Use a real product on a real table (a steel bottle or a sneaker reads best).
+7. Record the voice-over separately after the screen take, then cut picture to voice.
 
 ## Shot list
 
 | Time | Shot (what is on screen) | Click path / action | Voice-over | On-screen caption |
 |---|---|---|---|---|
-| **0:00–0:10** | Cold open. Over-the-shoulder: laptop shows the QR dialog; a hand points the phone at it and photographs a steel bottle on a kitchen table. | Laptop: `/` → **Snap with your phone** (QR dialog opens). Phone: scan → `/capture?sku=…` → **Open camera** → take the photo. | "This is a water bottle on my kitchen table. One photo, from my phone." | One phone photo. |
-| **0:10–0:25** | Laptop: the photo lands on its own; the pipeline rail lights up step by step. | No click: the QR dialog closes and `/studio?sku=…` opens. Let **Fix → Cut out → Stage → Light-match → QA → Pack** run. | "Snap2Shelf reads it, cuts the product out once, and stages it on a festive scene. That's my real bottle, not an AI redraw." | Fix → Cut out → Stage → Light-match → QA → Pack |
-| **0:25–0:42** | The kit deals out card by card, each in its frame: feed post, story, marketplace listing, WhatsApp tile, web banner, colour variants, Hindi offer. | Scroll to **Your shelf: N assets** as the cards deal in. | "Then it deals out the whole shelf: a story, a banner, a marketplace-white main image, a WhatsApp tile, colour variants and a Diwali offer in Hindi and English." | Every format from one photo. <!-- TODO(final): use the real asset count from "Your shelf: N assets" --> |
-| **0:42–0:52** | The Kit Reel plays full-screen in its 9:16 frame. | Click the reel card (confirm). | "Even the video reel." | A 12-second reel, made by one URL. |
-| **0:52–1:03** | Phone: WhatsApp chat; paste the shelf link; the link-preview card (four products, shop name) unfurls; tap it and the `/shelf/<shop>` page opens. | Laptop: **Copy kit link** (or the shelf's share button, confirm). Phone: paste into a WhatsApp chat to yourself. | "And a shop shelf I can share straight to WhatsApp, with its own preview image." | Share the shelf, not a folder of files. |
-| **1:03–1:10** | `/video/title` card. | Cut to the card. | "I'm `<YOUR_NAME>`. This is Snap2Shelf, for Track 2: Generative Content Workflows." | **Snap2Shelf** · One photo. A whole shelf. |
-| **1:10–1:35** | **The QA catch.** `/present` (or the studio's Creative panel): the Fast draft take next to the reference, then the fidelity sheet with the red REJECTED badge and its reasons; then the Faithful take with a green APPROVED. | `/present` → the "QA catch" chapter (confirm). Hover the badge so the reasons show. | "Here's why that matters. We asked a fast image model to reshoot this sneaker. It looks great, and it's wrong: it invented a logo badge and added a ghost second shoe. Cloudinary AI Vision compares every AI take with the original, side by side, and rejects it. The slower model kept the product exactly, so it passes." | AI Vision: `product-redesigned` · `extra-product` → REJECTED |
-| **1:35–2:00** | **The X-ray reveal.** Open the hero's X-ray: the full URL, colour-coded, then each segment highlighting with its plain-language label. | Hero card → code button (`</>`) → X-ray sheet. Slowly hover the shadow, layer and light-match segments. | "Everything you've seen is a Cloudinary URL. No image files, no GPU server. This one is the scene, then my product as a layer, then a shadow projected from the product's own silhouette with `e_distort`, then a warm light-match with `e_tint` and `e_screen`. Move a slider and it's just a new URL." | No image files. Just URLs. |
-| **2:00–2:20** | **Scene DNA overlay.** `/present` shows the scene plate with the anchor point, a light-direction arrow and the text zone drawn on top, then the product dropping onto the anchor and its shadow swinging to match. | `/present` → the "Scene DNA" chapter (confirm). | "How does it know where the table is and where the light comes from? When a scene is added to the library, AI Vision reads it once. We call that Scene DNA. It decides where the product stands, which way the shadow falls and where the offer text can go." | Scene DNA: anchor (0.50, 0.65) · light 270° at 20° · warm |
-| **2:20–2:38** | **The cost beat.** The kit receipt: generation credits, credits saved by scene reuse, AI Vision tokens, seconds from photo to kit. | Studio receipt panel or `/present` "Receipt" chapter (confirm). | "And it's cheap. Exact mode spends zero image-generation credits: the scene was generated once and every product reuses it. Early on, 'auto' model selection cost us 72 credits where we'd planned 48, so every model is now pinned." | This kit: 0 generation credits. <!-- TODO(final): the receipt's real numbers (credits saved, tokens, seconds) --> |
-| **2:38–2:55** | Architecture diagram (from the README), then a quick pan over the repo: `SPIKES.md`, `.claude/skills`, the worktree branches. | Browser tab with the README's architecture image; then GitHub. | "Cloudinary is the whole backend: uploads, AI Vision, image generation, transformations, video, tags as the database, and delivery. AI calls are balanced across three Cloudinary environments, which the organisers approved, and it's disclosed in the README. I built it with Claude Code running parallel agents, using Cloudinary's Starter Kit and Skills Pack." | Cloudinary is the whole backend. |
-| **2:55–3:05** | `/video/outro` card: live URL, repo, "Try it: no signup". | Cut to the card; hold 4 s. | "Try it yourself, no signup: snap2shelf.vercel.app." | snap2shelf.vercel.app · github.com/GODOSTROYER/snap2shelf |
+| **0:00–0:10** | **Cold open: the QR capture.** Over-the-shoulder: the laptop shows the QR dialog; a hand points the phone at it and photographs a steel bottle on a kitchen table. | Laptop: `/` → **Snap with your phone** (QR dialog opens). Phone: scan → `/capture` → **Open camera** → take the photo. | "This is a water bottle on my kitchen table. One photo, from my phone." | One phone photo. |
+| **0:10–0:24** | Laptop: the photo lands on its own and the pipeline rail lights up step by step. Optional: type the brief into the brief bar while the rail runs. | No click: the studio opens with the photo. Let **Fix → Cut out → Stage → Light-match → QA → Pack** run. Optional brief: *Diwali sale, 20% off, Hindi and English, for Instagram and WhatsApp*. | "Snap2Shelf reads it, touches up the photo if it needs it, cuts the product out once, and stages it on a festive scene. That's my real bottle, not an AI redraw." | Fix → Cut out → Stage → Light-match → QA → Pack |
+| **0:24–0:40** | **The kit deals out**, card by card, each in its frame: feed post, story, marketplace listing, WhatsApp tile, web banner, colour variants, Hindi + English offer. | Scroll to **Your shelf: N assets** as the cards deal in (the sample bottle has 10). | "Then it deals out the whole shelf: a story, a banner, a marketplace-white main image, a WhatsApp tile, colour variants and a Diwali offer in Hindi and English. Photo to zip took thirty-six seconds when we measured it on the live site." | 36 s photo → ZIP, measured on the live site |
+| **0:40–0:48** | The Kit Reel plays in its 9:16 frame. | Play the reel card. | "Even the video reel is one URL." | A video reel, made by one URL. |
+| **0:48–0:58** | **Readiness Score** under the kit: the gauge fills, the checklist shows pure white background and fill measured on pixels. | Scroll to the Readiness panel. | "It checks the listing like a marketplace would, on the actual pixels: pure white background, the product filling the frame, sharp enough to zoom." | Readiness Score, measured on pixels |
+| **0:58–1:08** | Phone: `/shelf/demo-studio`, **Share on WhatsApp**; in the chat the link preview (a collage of four products and the shop name) unfurls; tap it and the shelf opens. | Phone browser: `snap2shelf.vercel.app/shelf/demo-studio` → **Share on WhatsApp** → send to yourself. | "And every product lands on a shop shelf I can share straight to WhatsApp, with its own preview image." | Share the shelf, not a folder of files. |
+| **1:08–1:14** | `/video/title` card. | Cut to the card. | "I'm `<YOUR_NAME>`. This is Snap2Shelf, for Track 2: Generative Content Workflows." | **Snap2Shelf** · One photo. A whole shelf. |
+| **1:14–1:30** | **The QA catch, part 1 (real replay).** `/studio?sample=shmessy1`: the rail's QA step reads "QA caught it: The product looks like it is floating or pasted on. Fixing it automatically…", then "Auto-fixed: set it 20 px lower, onto the surface. Approved". | Start the sample; frame the rail and the stage. | "Every image goes through a QA gate. Here Cloudinary AI Vision caught a bottle that looked like it was floating, and the studio set it down and checked again." | AI Vision: `product-floating` → auto-fixed → approved |
+| **1:30–1:44** | **The QA catch, part 2 (the flux rejection).** `/present` → **QA gate**: the Fast draft take next to the reference with the red REJECTED badge and its marks; the Faithful take with a green APPROVED. | `/present?c=6`. Let the marks animate. | "In Creative mode an image model reshoots the product, so the gate compares every take with the original. The fast model invented a logo badge and added a ghost second shoe: rejected. The faithful model kept the product, so it passes." | `flux-2-flash-edit`: `product-redesigned` · `extra-product` → REJECTED |
+| **1:44–2:02** | **The X-ray reveal.** `/present` → **It's a URL** (or the studio's `</>` button on the hero): the full URL, colour-coded, each segment highlighting with its plain-language label. | `/present?c=9`, or hero card → `</>`. | "Everything you've seen is a Cloudinary URL. No image files, no GPU server. The scene, then my product as a layer, then a shadow projected from the product's own silhouette, then a warm light-match. Move a slider and it's just a new URL." | No image files. Just URLs. |
+| **2:02–2:20** | **Scene DNA.** `/present` → **Scene DNA**: the plate with the anchor, the light arrow and the text zone drawn on; the product drops onto the anchor and its shadow swings to match. Then **Every stage**: the same cut-out on other scenes. | `/present?c=4`, then → to **Every stage**. | "How does it know where the table is and where the light comes from? When a scene joins the library, AI Vision reads it once. We call that Scene DNA. The same real cut-out then goes onto any scene." | Scene DNA: surface, light, text zone |
+| **2:20–2:36** | **The cost beat.** `/present` → **What it cost**, or the kit's cost receipt: new generation credits 0, credits saved by reuse, AI Vision tokens, original versus delivered size. | `/present?c=10`. | "And it's cheap. Zero new generation credits: the scene is reused from the library. A basic studio shoot for one product would be around two and a half thousand rupees, by our estimate. Early on, 'auto' model selection cost us 72 credits where we'd planned 48, so every model is now pinned." | 0 new generation credits · the scene is reused from the library |
+| **2:36–2:52** | Architecture diagram (from the README), then a quick pan over the repo: `SPIKES.md`, `lib/claims.ts`, `.claude/skills`. | Browser tab with the README's architecture image; then GitHub. | "Cloudinary is the whole backend: uploads, AI Vision, image generation, transformations, video, tags as the database, and delivery. AI calls are balanced across three Cloudinary environments, which the organisers approved, and it's disclosed in the README. I built it with Claude Code running parallel agents, using Cloudinary's Starter Kit and Skills Pack." | Cloudinary is the whole backend. |
+| **2:52–3:02** | `/video/outro` card: live URL, repo, "Try it: no signup". | Cut to the card; hold 4 s. | "Try it yourself, no signup: snap2shelf.vercel.app." | snap2shelf.vercel.app · github.com/GODOSTROYER/snap2shelf |
 
-Running time: about **3:05**. If it runs long, trim the architecture beat (2:38) first, then the reel (0:42).
+Running time: about **3:02**. If it runs long, trim the architecture beat (2:36) first, then the reel (0:40), then the Readiness beat (0:48).
+
+The chapter numbers in the click paths (`?c=6` and so on) assume the 12 chapters listed at the top, counted from 1; if the final build changes them, open the chapter rail and click the title instead.
 
 ## Voice-over, clean read
 
 > This is a water bottle on my kitchen table. One photo, from my phone.
 >
-> Snap2Shelf reads it, cuts the product out once, and stages it on a festive scene. That's my real bottle, not an AI redraw.
+> Snap2Shelf reads it, touches up the photo if it needs it, cuts the product out once, and stages it on a festive scene. That's my real bottle, not an AI redraw.
 >
-> Then it deals out the whole shelf: a story, a banner, a marketplace-white main image, a WhatsApp tile, colour variants and a Diwali offer in Hindi and English. Even the video reel. And a shop shelf I can share straight to WhatsApp, with its own preview image.
+> Then it deals out the whole shelf: a story, a banner, a marketplace-white main image, a WhatsApp tile, colour variants and a Diwali offer in Hindi and English. Photo to zip took thirty-six seconds when we measured it on the live site. Even the video reel is one URL.
+>
+> It checks the listing like a marketplace would, on the actual pixels: pure white background, the product filling the frame, sharp enough to zoom. And every product lands on a shop shelf I can share straight to WhatsApp, with its own preview image.
 >
 > I'm `<YOUR_NAME>`. This is Snap2Shelf, for Track 2: Generative Content Workflows.
 >
-> Here's why that matters. We asked a fast image model to reshoot this sneaker. It looks great, and it's wrong: it invented a logo badge and added a ghost second shoe. Cloudinary AI Vision compares every AI take with the original, side by side, and rejects it. The slower model kept the product exactly, so it passes.
+> Every image goes through a QA gate. Here Cloudinary AI Vision caught a bottle that looked like it was floating, and the studio set it down and checked again. In Creative mode an image model reshoots the product, so the gate compares every take with the original. The fast model invented a logo badge and added a ghost second shoe: rejected. The faithful model kept the product, so it passes.
 >
-> Everything you've seen is a Cloudinary URL. No image files, no GPU server. This one is the scene, then my product as a layer, then a shadow projected from the product's own silhouette, then a warm light-match. Move a slider and it's just a new URL.
+> Everything you've seen is a Cloudinary URL. No image files, no GPU server. The scene, then my product as a layer, then a shadow projected from the product's own silhouette, then a warm light-match. Move a slider and it's just a new URL.
 >
-> How does it know where the table is and where the light comes from? When a scene is added to the library, AI Vision reads it once. We call that Scene DNA. It decides where the product stands, which way the shadow falls and where the offer text can go.
+> How does it know where the table is and where the light comes from? When a scene joins the library, AI Vision reads it once. We call that Scene DNA. The same real cut-out then goes onto any scene.
 >
-> And it's cheap. Exact mode spends zero image-generation credits: the scene was generated once and every product reuses it. Early on, "auto" model selection cost us 72 credits where we'd planned 48, so every model is now pinned.
+> And it's cheap. Zero new generation credits: the scene is reused from the library. A basic studio shoot for one product would be around two and a half thousand rupees, by our estimate. Early on, "auto" model selection cost us 72 credits where we'd planned 48, so every model is now pinned.
 >
 > Cloudinary is the whole backend: uploads, AI Vision, image generation, transformations, video, tags as the database, and delivery. AI calls are balanced across three Cloudinary environments, which the organisers approved, and it's disclosed in the README. I built it with Claude Code running parallel agents, using Cloudinary's Starter Kit and Skills Pack.
 >
 > Try it yourself, no signup: snap2shelf.vercel.app.
 
-About 400 words, which reads in roughly 2:50 at a relaxed pace.
+About 430 words, which reads in roughly 2:55 at a relaxed pace.
 
 ## Facts the voice-over relies on (all from the repo)
 
 | Claim | Source |
 |---|---|
-| Fast draft (`flux-2-flash-edit`) invented a logo badge and a ghost second shoe; AI Vision matched `product-redesigned`, `extra-product`, `garbled-text`; `nano-banana-2-edit` matched `same-product` | `SPIKES.md` §2 and §3b |
+| 36 s photo → ZIP, measured on the live site (30 Sep 2026, desktop, a sample photo, file selected → ZIP link) | `lib/claims.ts` `MEASURED_PHOTO_TO_ZIP_S`, `PHOTO_TO_KIT_MEASURED_COPY` |
+| "Zero new generation credits: the scene is reused from the library" | `lib/claims.ts` `CREDITS_SAVED_COPY` |
+| About ₹2,500 for a basic studio shoot of one product, an estimate (say "by our estimate") | `lib/claims.ts` `PHOTOSHOOT_INR_ESTIMATE`, `PHOTOSHOOT_NOTE` |
+| Sample QA catch: check 1 matched `product-floating` (+ `compositing-artifact`), the approved check is 20 px lower | `data/showcase.json` (`shmessy1` attempts); the replay's wording is built by `lib/showcase.ts` |
+| Fast draft (`flux-2-flash-edit`) invented a logo badge and a ghost second shoe; AI Vision matched `product-redesigned`, `extra-product`, `garbled-text`; `nano-banana-2-edit` matched `same-product` | `SPIKES.md` §2 and §3b; `/present` QA chapter (`lib/present/data.ts` `QA_EVIDENCE`) |
+| Credits: `flux-2-flash-edit` 1, `nano-banana-2-edit` 9, draft scene 1, final scene 4–5 | `lib/claims.ts` `CREDITS`, `SPIKES.md` |
+| Scene library cost 72 credits against 48 planned under `mode: "auto"` | `SPIKES.md` §1 |
+| Readiness checks: white background and fill measured on pixels | `lib/readiness.ts`, `lib/shelf/measure.ts` |
 | Cast shadow projected from the product's own silhouette with `e_distort`; light-match with `e_tint`, `e_screen`, `e_multiply` | `lib/transform/composite.ts` |
-| Scene DNA values for the Diwali plate: anchor (0.50, 0.65), light 270° at 20°, warm | the plate's context (`snap2shelf/scenes/diwali/final-59f4388a`) |
-| Exact mode: 0 generation credits; scene library cost 72 credits against 48 planned under `mode: "auto"` | `SPIKES.md` §1 |
-| Kit Reel: 12.0 s, 720×1280 H.264 for 4 clips of 3 s | `lib/transform/reel.ts` commit, measured |
+| The sample bottle's kit: 10 assets (9 formats + the reel) | `data/showcase.json` (`shmessy1`) |
 | Three environments in the key pool, organiser-approved and disclosed | `SPIKES.md` "Key pool", `README.md` |
+
+If you show a sample kit on screen for more than a moment, the studio already labels its input as a sample photo; don't call a sample "my product" in the voice-over. The live capture at the start is your own real product.
 
 ## Export checklist
 
 - [ ] 1080p, H.264, under the platform's size limit; captions burned in and also uploaded as an `.srt`.
 - [ ] Watch it once with the sound off: does every beat still make sense from the captions?
 - [ ] No keys, no `.env.local`, no access code, no pool environment names anywhere in frame.
-- [ ] Upload (YouTube unlisted or Loom), then paste the link into `README.md` (Demo video), `docs/SUBMISSION_CHECKLIST.md` and both social posts.
+- [ ] Upload (YouTube unlisted or Loom), then paste the link into `README.md` (the `TODO(final): video link` slot), `docs/SUBMISSION_CHECKLIST.md` and both social posts.
