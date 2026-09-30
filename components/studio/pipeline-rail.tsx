@@ -2,6 +2,7 @@
 
 import { Check, Frame, PackageCheck, Pause, Scissors, ShieldCheck, SunMedium, WandSparkles, Wrench, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
+import * as React from "react";
 import { cn } from "@/lib/client/util";
 import { PIPELINE_STEPS, type PipelineStepId } from "@/lib/types";
 
@@ -21,7 +22,15 @@ const ICONS: Record<PipelineStepId, typeof Check> = {
  * calls finish. A lit fuse runs along the rail; each finished step flashes once.
  * `fixed` marks a QA pass that needed the automatic fix.
  */
-export function PipelineRail({ status, notes, fixed }: { status: Record<PipelineStepId, StepStatus>; notes: Partial<Record<PipelineStepId, string>>; fixed?: boolean }) {
+export const PipelineRail = React.memo(function PipelineRail({
+  status,
+  notes,
+  fixed,
+}: {
+  status: Record<PipelineStepId, StepStatus>;
+  notes: Partial<Record<PipelineStepId, string>>;
+  fixed?: boolean;
+}) {
   const doneCount = PIPELINE_STEPS.filter((s) => status[s.id] === "done").length;
   const active = PIPELINE_STEPS.find((s) => status[s.id] === "active" || status[s.id] === "failed" || status[s.id] === "paused");
   const progress = Math.min(1, (doneCount + (active && status[active.id] === "active" ? 0.5 : 0)) / (PIPELINE_STEPS.length - 1));
@@ -119,7 +128,7 @@ export function PipelineRail({ status, notes, fixed }: { status: Record<Pipeline
       </p>
     </div>
   );
-}
+});
 
 const COUNT = /^(\d+) of (\d+) (.+)$/;
 
