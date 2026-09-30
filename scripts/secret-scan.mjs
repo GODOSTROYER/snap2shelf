@@ -4,7 +4,7 @@ import { execSync } from 'node:child_process';
 import { readFileSync, existsSync } from 'node:fs';
 
 const env = existsSync('.env.local') ? readFileSync('.env.local', 'utf8') : '';
-const PRIVATE = /(SECRET|CLOUDINARY_URL|ACCESS_CODE|_API_KEY$)/;
+const PRIVATE = /(SECRET|TOKEN|CLOUDINARY_URL|ACCESS_CODE|_API_KEY$)/;
 const needles = [];
 for (const line of env.split(/\r?\n/)) {
   const m = line.match(/^\s*([A-Za-z0-9_]+)\s*=\s*(.+?)\s*$/);
