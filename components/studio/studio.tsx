@@ -1351,6 +1351,7 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
                   // a sample's receipt prints from its saved run: no request
                   initial={sample && kit.sku === sample.sku ? sampleCost(sample, kit, heroFormat) : undefined}
                   replay={sample && kit.sku === sample.sku ? sampleTimeLine(sample, kit) : undefined}
+                  date={kit.createdAt}
                   className="lg:mx-0"
                 />
               </AfterDeal>

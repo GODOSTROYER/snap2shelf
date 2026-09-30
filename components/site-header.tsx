@@ -69,6 +69,7 @@ export function SiteHeader({ current, children }: { current: Section; children?:
             <Link
               key={l.href}
               href={l.href}
+              prefetch={current === l.section ? false : undefined}
               aria-current={current === l.section ? "page" : undefined}
               className={cn(
                 "relative inline-flex min-h-11 items-center rounded-full px-2.5 text-sm font-medium whitespace-nowrap text-dim transition-colors hover:text-paper sm:px-3",
