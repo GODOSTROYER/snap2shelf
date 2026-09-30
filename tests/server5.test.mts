@@ -369,6 +369,7 @@ test("readiness GET: a sample is scored without AI Vision or writes", async () =
   await product("shbottle", { cutout: true });
   const r = await answer(await routes.readiness.GET(req("/api/readiness/shbottle", anon()), ctx({ sku: "shbottle" })));
   assert.equal(r.status, 200);
+  assert.equal(r.json.canFix, false, "the UI can hide the fix buttons");
   assert.equal(calls.vision, 0);
   assert.equal(NOT_WRITTEN(), 0);
 });
@@ -377,7 +378,11 @@ test("readiness GET: an ordinary product's text check runs once and its tokens r
   await product(LIVE, { cutout: true, ctx: { t_an: "669" } });
   const r = await answer(await routes.readiness.GET(req(`/api/readiness/${LIVE}`, anon()), ctx({ sku: LIVE })));
   assert.equal(r.status, 200);
+  assert.equal(r.json.canFix, false, "another browser's product");
   assert.equal(calls.vision, 1);
+  const own = await answer(await routes.readiness.GET(req(`/api/readiness/${LIVE}`, anon({ k: [LIVE] })), ctx({ sku: LIVE })));
+  assert.equal(own.json.canFix, true);
+  assert.equal(calls.vision, 1, "verdict cached: no second AI Vision call");
   assert.equal(r.json.tokens, 612);
   const { facts: f } = await facts.readFacts(LIVE);
   assert.equal(f!.ctx.t_rd, "612");

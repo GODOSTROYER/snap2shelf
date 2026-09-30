@@ -244,4 +244,10 @@ export interface ReadinessResponse {
   report: import("./readiness").ReadinessReport;
   tokens: number; // AI Vision tokens spent by this call (0 when cached)
   applied?: { publicId: string; transformation: string };
+  /**
+   * Additive: may THIS browser apply one-click fixes (POST)? false for samples / showcase
+   * products without the access code and for products another browser uploaded; a POST
+   * would answer 403 {code:"read_only"}. Hide or quiet the fix buttons when false.
+   */
+  canFix?: boolean;
 }
