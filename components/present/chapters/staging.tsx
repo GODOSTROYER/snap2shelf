@@ -241,9 +241,11 @@ export function Stages({ d }: ChapterProps) {
   const shots = d.stages.slice(0, 4);
   const n = shots.length;
   const box = d.landing.box; // the hero's placement, which every stage shares
-  const FW = 640;
-  const FH = Math.round((FW * shots[0].image.height) / shots[0].image.width);
-  const A = { cx: 1290, cy: 540 };
+  // the frame sits exactly where chapter 4's plate was (same box, same product pixels), so the
+  // pixel-proof silhouette dissolves straight into this first, identical render
+  const FH = 880;
+  const FW = Math.round((FH * shots[0].image.width) / shots[0].image.height);
+  const A = { cx: 1080 + FW / 2, cy: 100 + FH / 2 };
   const WIPE = 0.95;
   const wipes = shots.slice(1).map((_, i) => 1.4 + i * 1.6); // shot i + 1 wipes in at wipes[i]
   const SPREAD = (wipes.at(-1) ?? 0.4) + WIPE + 0.8;
@@ -252,7 +254,7 @@ export function Stages({ d }: ChapterProps) {
   const spread = useBeat([SPREAD]) >= 1;
   const cur = shots[Math.min(n - 1, named)];
 
-  const s = (0.64 * 560) / FW; // spread card scale: same row as before (358 px cards)
+  const s = (0.64 * 560) / FW; // spread card scale: a row of 358 px cards
   const gap = 40;
   const cw = FW * s;
   const rowW = n * cw + (n - 1) * gap;
@@ -303,15 +305,16 @@ export function Stages({ d }: ChapterProps) {
               top: A.cy - FH / 2,
               width: FW,
               height: FH,
-              borderRadius: 22,
+              borderRadius: 20,
               zIndex: i + 1,
               background: i === 0 ? undefined : "transparent",
               // stacked plates share one drop shadow until they fan out
               boxShadow: i === 0 || spread ? undefined : "none",
             }}
-            initial={{ opacity: i === 0 ? 0 : 1 }}
+            // no fade of its own: the chapter crossfade alone hands chapter 4's identical render over to this one
+            initial={{ opacity: 1 }}
             animate={spread ? { opacity: 1, x: bx(i) - A.cx, y: B.y - A.cy, scale: s } : { opacity: 1, x: 0, y: 0, scale: 1 }}
-            transition={spread ? { type: "spring", stiffness: 120, damping: 20, delay: (n - 1 - i) * 0.06 } : { duration: 0.5, delay: i === 0 ? 0.15 : 0 }}
+            transition={spread ? { type: "spring", stiffness: 120, damping: 20, delay: (n - 1 - i) * 0.06 } : { duration: 0.5 }}
           >
             <motion.div
               style={{ position: "absolute", inset: 0, borderRadius: "inherit", overflow: "hidden" }}
