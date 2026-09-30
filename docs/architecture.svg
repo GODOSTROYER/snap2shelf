@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" role="img" aria-labelledby="title desc">
   <title id="title">Snap2Shelf architecture</title>
-  <desc id="desc">Seller devices upload photos straight to Cloudinary with signatures from Next.js route handlers on Vercel. The route handlers call Cloudinary's Admin, Upload, Analyze and Image Generation APIs; AI calls go through a key pool that can also use two organiser-approved pool environments, whose results are copied into the main environment. Every image, video and zip is delivered back to browsers as a Cloudinary URL.</desc>
+  <desc id="desc">Seller devices upload photos straight to Cloudinary with signatures from Next.js route handlers on Vercel. The route handlers call Cloudinary's Upload, Analyze and Image Generation APIs (the kit pipeline makes no Admin API calls; product state lives in a facts.json raw asset read from the CDN); AI calls go through a key pool that can also use two organiser-approved pool environments, whose results are copied into the main environment. Every image, video and zip is delivered back to browsers as a Cloudinary URL.</desc>
   <defs>
     <marker id="ai" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.4" markerHeight="5.4" orient="auto-start-reverse">
       <path d="M0 0 L10 5 L0 10 z" fill="#f4efe7"/>
@@ -49,19 +49,20 @@
     <rect x="420" y="190" width="340" height="510" rx="18" fill="#141110" stroke="#3a332b" stroke-width="2"/>
     <text x="444" y="232" font-size="25" font-weight="700" fill="#f4efe7">Next.js 16 on Vercel</text>
     <text x="444" y="260" font-size="17" fill="#b4aa9c">route handlers · secrets stay here</text>
-    <g font-family="'JetBrains Mono', Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="16" fill="#e4dccf">
-      <text x="444" y="304">/api/sign-upload</text>
-      <text x="444" y="332">/api/products/:sku/analyze</text>
-      <text x="444" y="360">/api/products/:sku/cutout</text>
-      <text x="444" y="388">/api/scenes · /api/qa</text>
-      <text x="444" y="416">/api/generate → /api/jobs/:job</text>
-      <text x="444" y="444">/api/pack → /api/pack/:sku</text>
-      <text x="444" y="472">/api/access · /api/usage</text>
-      <text x="444" y="500">/api/capture/:sku</text>
+    <g font-family="'JetBrains Mono', Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="15" fill="#e4dccf">
+      <text x="444" y="300">/api/sign-upload · /api/capture</text>
+      <text x="444" y="325">/api/products/:sku/analyze</text>
+      <text x="444" y="350">/api/products/:sku/retouch</text>
+      <text x="444" y="375">/api/products/:sku/cutout</text>
+      <text x="444" y="400">/api/brief · /api/qa</text>
+      <text x="444" y="425">/api/scenes/* · /api/generate</text>
+      <text x="444" y="450">/api/pack · /api/cost/:sku</text>
+      <text x="444" y="475">/api/readiness · /api/shelf</text>
+      <text x="444" y="500">/api/collection · /api/usage</text>
     </g>
     <rect x="440" y="524" width="300" height="86" rx="12" fill="#1f1b16" stroke="#3a332b" stroke-width="1.5"/>
     <text x="458" y="551" font-size="19" font-weight="700" fill="#f4efe7">Guards</text>
-    <text x="458" y="576" font-size="16" fill="#b4aa9c">access code · session caps</text>
+    <text x="458" y="576" font-size="16" fill="#b4aa9c">access code · caps · credit floor</text>
     <text x="458" y="599" font-size="16" fill="#b4aa9c">SSRF guard · sealed job tokens</text>
     <rect x="440" y="622" width="300" height="66" rx="12" fill="#261c0d" stroke="#f5a524" stroke-width="2"/>
     <text x="458" y="649" font-size="19" font-weight="700" fill="#f5a524">Key pool</text>
@@ -106,13 +107,13 @@
     <g font-family="'JetBrains Mono', Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="16" fill="#efe4d2">
       <text x="920" y="552">l_&lt;cutout&gt; layers · shadows · reflection · light-match</text>
       <text x="920" y="580">b_gen_fill · e_gen_recolor · l_text:&lt;Google font&gt;</text>
-      <text x="920" y="608">e_zoompan + fl_splice video · named t_s2s_* chains</text>
+      <text x="920" y="608">e_zoompan + fl_splice · e_improve · e_gen_restore</text>
     </g>
 
     <!-- r4 -->
     <rect x="900" y="636" width="302" height="90" rx="12" fill="#1f1b16" stroke="#3a332b" stroke-width="1.5"/>
     <text x="918" y="665" font-size="19" font-weight="700" fill="#f4efe7">Tags + context</text>
-    <text x="918" y="691" font-size="16" fill="#b4aa9c">the database (there is no other)</text>
+    <text x="918" y="691" font-size="16" fill="#b4aa9c">the database, plus facts.json</text>
     <text x="918" y="714" font-size="15" fill="#e4dccf" font-family="'JetBrains Mono', Menlo, Consolas, 'DejaVu Sans Mono', monospace">s2s-sku-&lt;sku&gt; · dna_* · qa_*</text>
     <rect x="1218" y="636" width="302" height="90" rx="12" fill="#1f1b16" stroke="#3a332b" stroke-width="1.5"/>
     <text x="1236" y="665" font-size="19" font-weight="700" fill="#f4efe7">Client-side list JSON</text>
@@ -144,8 +145,8 @@
 
     <!-- 4. server SDK: Next.js → main -->
     <line x1="760" y1="306" x2="878" y2="306" stroke="#f4efe7" stroke-width="3" marker-end="url(#ai)"/>
-    <text x="820" y="274" font-size="15" fill="#b4aa9c" text-anchor="middle">Admin +</text>
-    <text x="820" y="293" font-size="15" fill="#b4aa9c" text-anchor="middle">Upload API</text>
+    <text x="820" y="274" font-size="15" fill="#b4aa9c" text-anchor="middle">Upload API</text>
+    <text x="820" y="293" font-size="15" fill="#b4aa9c" text-anchor="middle">(Admin: rare)</text>
 
     <!-- 5. key pool → main AI (Analyze, Image Generation) -->
     <path d="M740 655 H806 V431 H878" fill="none" stroke="#f5a524" stroke-width="3" stroke-dasharray="10 7" stroke-linejoin="round" marker-end="url(#ag)"/>
