@@ -69,7 +69,7 @@ function Card({ item, product, reelReady, onXray }: { item: ShelfItem; product: 
   const a = item.asset;
   return (
     <>
-      <div data-card className="shadow-[0_18px_28px_-16px_rgb(0_0_0/0.9)]" style={{ borderRadius: 16 }}>
+      <div data-card className="lift rounded-2xl shadow-[0_18px_28px_-16px_rgb(0_0_0/0.9)]">
         <AssetFrame
           asset={a}
           product={product}
@@ -95,7 +95,8 @@ function Card({ item, product, reelReady, onXray }: { item: ShelfItem; product: 
 
 /**
  * Deal: clone each card into a fixed layer (so shelf scrollers can't clip it),
- * fly the clone from the deck to the card's place, then reveal the real card.
+ * fan the clones out over the hero like a hand of cards, then deal each one to
+ * its place on the shelf and reveal the real card underneath.
  */
 function dealCards(root: HTMLElement, cards: HTMLElement[], from: () => DOMRect | null) {
   const state = { cancelled: false, layer: null as HTMLElement | null };
@@ -117,7 +118,13 @@ function dealCards(root: HTMLElement, cards: HTMLElement[], from: () => DOMRect 
 async function flyCards(root: HTMLElement, cards: HTMLElement[], from: () => DOMRect | null, state: { cancelled: boolean; layer: HTMLElement | null }) {
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   cards.forEach((c) => (c.style.opacity = "0"));
-  await bringIntoView(root, reduced);
+  // Load every card's image while we scroll, so no card is dealt face-down.
+  const imgs = cards.flatMap((c) => Array.from(c.querySelectorAll("img")));
+  imgs.forEach((i) => (i.loading = "eager"));
+  await Promise.all([
+    bringIntoView(root, reduced),
+    Promise.race([Promise.all(imgs.map((i) => i.decode().catch(() => undefined))), new Promise((r) => setTimeout(r, 2200))]),
+  ]);
   if (state.cancelled) return;
   if (reduced || !cards.length) {
     await Promise.all(
@@ -129,38 +136,68 @@ async function flyCards(root: HTMLElement, cards: HTMLElement[], from: () => DOM
     );
     return;
   }
-  const vw = window.innerWidth;
-  const deck = from() ?? new DOMRect(vw / 2 - 120, -320, 240, 300);
+  // The deck sits where the hero is; if the hero has scrolled away, just above the shelves.
+  const sec = root.getBoundingClientRect();
+  let deck = from();
+  if (!deck || deck.bottom < 40 || deck.top > window.innerHeight - 40) deck = new DOMRect(sec.left + sec.width / 2 - 110, Math.max(24, sec.top - 60), 220, 280);
+  const deckX = deck.left + deck.width / 2;
+  const deckY = deck.top + deck.height / 2;
+
   const layer = document.createElement("div");
   state.layer = layer;
   layer.setAttribute("aria-hidden", "true");
   layer.style.cssText = "position:fixed;inset:0;pointer-events:none;z-index:40;overflow:hidden";
   document.body.appendChild(layer);
 
-  const flights = cards.map((card, i) => {
+  const n = cards.length;
+  const ghosts = cards.map((card, i) => {
     const r = card.getBoundingClientRect();
     const ghost = card.cloneNode(true) as HTMLElement;
     ghost.removeAttribute("data-card");
     ghost.querySelectorAll("video").forEach((v) => v.removeAttribute("src"));
     ghost.style.setProperty("--h", getComputedStyle(card).getPropertyValue("--h"));
-    Object.assign(ghost.style, { position: "fixed", left: `${r.left}px`, top: `${r.top}px`, width: `${r.width}px`, height: `${r.height}px`, margin: "0", opacity: "0" });
+    Object.assign(ghost.style, { position: "fixed", left: `${r.left}px`, top: `${r.top}px`, width: `${r.width}px`, height: `${r.height}px`, margin: "0", opacity: "0", transformOrigin: "50% 115%" });
     layer.appendChild(ghost);
     card.style.opacity = "0";
-
-    const dx = deck.left + deck.width / 2 - (r.left + r.width / 2);
-    const dy = deck.top + deck.height / 2 - (r.top + r.height / 2);
-    const scale = Math.min(1, Math.max(0.35, (deck.height * 0.6) / r.height));
-    const tilt = (i % 2 ? 1 : -1) * (5 + ((i * 7) % 9));
-    const delay = 0.12 + i * 0.085;
-
-    const fly = animate(ghost, { x: [dx, 0], y: [dy, 0], scale: [scale, 1], rotate: [tilt, 0] }, { type: "spring", stiffness: 150, damping: 19, mass: 0.9, delay });
-    const show = animate(ghost, { opacity: [0, 1] }, { duration: 0.18, delay });
-    return Promise.all([fly, show]).then(() => {
-      if (state.cancelled) return;
-      card.style.opacity = "";
-      ghost.remove();
-    });
+    const spread = i - (n - 1) / 2;
+    return {
+      card,
+      ghost,
+      i,
+      dx: deckX - (r.left + r.width / 2),
+      dy: deckY - (r.top + r.height / 2),
+      s: Math.min(1, Math.max(0.28, (deck.height * 0.62) / r.height)),
+      fanRot: spread * Math.min(7, 64 / n),
+      fanX: spread * 9,
+      side: Math.sign(r.left + r.width / 2 - deckX) || 1,
+    };
   });
+
+  // 1. The deck fans open like a hand of cards, right where the hero is.
+  const ease = [0.16, 1, 0.3, 1] as const;
+  await Promise.all(
+    ghosts.map((g) =>
+      animate(
+        g.ghost,
+        { x: [g.dx, g.dx + g.fanX], y: [g.dy + 36, g.dy], scale: [g.s * 0.86, g.s], rotate: [0, g.fanRot], opacity: [0, 1] },
+        { duration: 0.46, ease, delay: g.i * 0.022 },
+      ),
+    ),
+  );
+  if (state.cancelled) return;
+
+  // 2. Deal them onto the shelves one by one, tipping in from 3D as they land.
+  const flights = ghosts.map((g) =>
+    animate(
+      g.ghost,
+      { x: [g.dx + g.fanX, 0], y: [g.dy, 0], scale: [g.s, 1], rotate: [g.fanRot, 0], rotateY: [g.side * 9, 0], rotateX: [10, 0], transformPerspective: [1800, 1800] },
+      { type: "spring", stiffness: 135, damping: 17, mass: 0.9, delay: 0.06 + g.i * 0.075 },
+    ).then(() => {
+      if (state.cancelled) return;
+      g.card.style.opacity = "";
+      g.ghost.remove();
+    }),
+  );
   await Promise.all(flights);
   layer.remove();
 }

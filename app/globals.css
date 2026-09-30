@@ -168,6 +168,45 @@
   .tabular { font-variant-numeric: tabular-nums; }
 }
 
+/*
+ * Motion vocabulary: a photo studio. Arrivals are a focus pull (blur → sharp),
+ * the cut-out is revealed by the scanner's wipe, the kit is dealt onto shelves.
+ */
+@keyframes focus-in {
+  from { filter: blur(16px) saturate(0.6); scale: 1.05; }
+}
+@keyframes rise {
+  from { opacity: 0.01; translate: 0 0.32em; }
+}
+@keyframes deal-in {
+  0% { opacity: 0; transform: translate3d(var(--dx, -30vw), var(--dy, 18vh), 0) rotate(var(--tilt, -14deg)) scale(0.62); }
+  35% { opacity: 1; }
+  100% { opacity: 1; transform: none; }
+}
+
+.rise { animation: rise 900ms var(--ease-out-expo) both; }
+.focus-in { animation: focus-in 1400ms var(--ease-out-expo) both; }
+
+/* Shelves deal in once they scroll into view (only when JS armed them, so no-JS keeps them visible). */
+[data-deal="armed"] [data-card] { opacity: 0; }
+[data-deal="go"] [data-card] {
+  animation: deal-in 1000ms var(--ease-out-expo) both;
+  animation-delay: calc(var(--i, 0) * 75ms);
+}
+
+/* Lift an item off the shelf */
+.lift {
+  transition: translate 420ms var(--ease-out-expo), rotate 420ms var(--ease-out-expo), box-shadow 420ms var(--ease-out-expo);
+  transform-origin: 50% 100%;
+}
+@media (hover: hover) {
+  .lift:hover {
+    translate: 0 -10px;
+    rotate: x 5deg;
+    box-shadow: 0 40px 50px -24px rgb(0 0 0 / 0.95);
+  }
+}
+
 @keyframes fade-in { from { opacity: 0; } }
 @keyframes fade-out { to { opacity: 0; } }
 @keyframes sheet-up { from { transform: translateY(100%); } }
@@ -175,6 +214,8 @@
 @keyframes pop-in { from { opacity: 0; transform: scale(0.96); } }
 
 @media (prefers-reduced-motion: reduce) {
+  [data-deal] [data-card] { opacity: 1 !important; animation: none !important; }
+  .lift:hover { translate: none; rotate: none; }
   *, ::before, ::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;

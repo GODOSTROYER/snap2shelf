@@ -55,7 +55,7 @@ export function BeforeAfter({ before, after, sizes, width, height }: { before: I
       ref={box}
       className="group relative isolate aspect-[4/5] w-full overflow-hidden rounded-[22px] bg-stage-2 shadow-[0_50px_90px_-40px_rgb(0_0_0/0.95)] ring-1 ring-line [--pos:50%]"
     >
-      <img src={after.src} srcSet={after.srcSet} sizes={sizes} alt={after.alt} width={width} height={height} fetchPriority="high" decoding="async" className="absolute inset-0 size-full object-cover" />
+      <img src={after.src} srcSet={after.srcSet} sizes={sizes} alt={after.alt} width={width} height={height} fetchPriority="high" decoding="async" className="focus-in absolute inset-0 size-full object-cover" />
       <img
         src={before.src}
         srcSet={before.srcSet}

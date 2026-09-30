@@ -2,12 +2,13 @@
 
 /* eslint-disable @next/next/no-img-element -- Cloudinary delivery URL, already sized */
 import { CodeXml, Eye } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import * as React from "react";
 import { QaBadge } from "@/components/kit/qa-badge";
 import { XraySheet } from "@/components/kit/xray-sheet";
 import { cn } from "@/lib/client/util";
 import type { KitAsset, QaResult } from "@/lib/types";
-import { CrossfadeImage } from "./crossfade-image";
+import { CrossfadeImage, type Enter } from "./crossfade-image";
 
 /**
  * The big 4:5 viewer. Shows whatever the pipeline has so far (raw photo →
@@ -25,8 +26,10 @@ export const Stage = React.forwardRef<
     onBusy?: (busy: boolean) => void;
     busyLabel?: string | null;
     xray?: KitAsset | null; // what the X-ray button explains
+    enter?: Enter; // how the next image arrives
+    light?: { azimuth: number; key: number } | null; // key light sweeping in from the scene's light direction
   }
->(function Stage({ src, alt, placeholder, originalSrc, scanning, qa, onBusy, busyLabel, xray }, ref) {
+>(function Stage({ src, alt, placeholder, originalSrc, scanning, qa, onBusy, busyLabel, xray, enter, light }, ref) {
   const [showOriginal, setShowOriginal] = React.useState(false);
   const [xrayOpen, setXrayOpen] = React.useState(false);
   const [failed, setFailed] = React.useState<string | null>(null);
@@ -47,6 +50,7 @@ export const Stage = React.forwardRef<
           onError={() => setFailed(src)}
           className="absolute inset-0"
           imgClassName="object-cover"
+          enter={enter}
         />
       ) : (
         <div className="skeleton absolute inset-0" />
@@ -61,6 +65,10 @@ export const Stage = React.forwardRef<
         />
       ) : null}
 
+      <AnimatePresence>
+        {light ? <KeyLight key={light.key} azimuth={light.azimuth} /> : null}
+      </AnimatePresence>
+
       {scanning ? (
         <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
           <div className="absolute inset-x-0 h-1/3 animate-sweep bg-gradient-to-b from-transparent via-marigold/25 to-transparent">
@@ -70,7 +78,20 @@ export const Stage = React.forwardRef<
       ) : null}
 
       <div className="absolute top-3 left-3 flex flex-wrap gap-2">
-        {qa ? <QaBadge qa={qa} className="bg-studio/85 backdrop-blur-sm" /> : null}
+        <AnimatePresence>
+          {qa ? (
+            <motion.span
+              key={qa.status}
+              initial={{ scale: 1.6, opacity: 0, rotate: -6 }}
+              animate={{ scale: 1, opacity: 1, rotate: 0 }}
+              exit={{ opacity: 0, transition: { duration: 0.15 } }}
+              transition={{ type: "spring", stiffness: 420, damping: 18 }}
+              className="inline-flex"
+            >
+              <QaBadge qa={qa} className="bg-studio/85 backdrop-blur-sm" />
+            </motion.span>
+          ) : null}
+        </AnimatePresence>
         {busyLabel ? (
           <span className="inline-flex items-center gap-2 rounded-full bg-studio/85 px-2.5 py-1 text-[0.74rem] leading-none font-semibold text-paper backdrop-blur-sm">
             <span className="size-1.5 animate-pulse rounded-full bg-marigold" />
@@ -115,3 +136,21 @@ export const Stage = React.forwardRef<
     </div>
   );
 });
+
+/** A warm key light swinging in from where the scene's light comes from, then settling. */
+function KeyLight({ azimuth }: { azimuth: number }) {
+  const rad = (azimuth * Math.PI) / 180;
+  const dx = Math.sin(rad) * 55;
+  const dy = -Math.cos(rad) * 55;
+  return (
+    <motion.div
+      aria-hidden
+      className="pointer-events-none absolute inset-[-40%] mix-blend-soft-light"
+      style={{ background: "radial-gradient(closest-side, rgb(255 214 150 / 0.95), rgb(255 190 110 / 0.35) 45%, transparent 75%)" }}
+      initial={{ x: `${dx}%`, y: `${dy}%`, opacity: 0 }}
+      animate={{ x: `${dx * 0.35}%`, y: `${dy * 0.35}%`, opacity: [0, 1, 0.55] }}
+      exit={{ opacity: 0, transition: { duration: 0.6 } }}
+      transition={{ duration: 1.6, ease: [0.16, 1, 0.3, 1] }}
+    />
+  );
+}

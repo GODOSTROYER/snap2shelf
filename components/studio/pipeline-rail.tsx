@@ -27,9 +27,16 @@ export function PipelineRail({ status, notes }: { status: Record<PipelineStepId,
       <ol className="relative grid grid-cols-6" aria-label="Progress">
         <div aria-hidden className="absolute top-[18px] right-[calc(100%/12)] left-[calc(100%/12)] h-0.5 rounded-full bg-stage-3">
           <motion.div
-            className="h-full origin-left rounded-full bg-marigold"
+            className="h-full origin-left rounded-full bg-gradient-to-r from-marigold/60 to-marigold"
             initial={false}
             animate={{ scaleX: progress }}
+            transition={{ type: "spring", stiffness: 90, damping: 22 }}
+          />
+          {/* the lit fuse head */}
+          <motion.div
+            className="absolute top-1/2 size-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-marigold-hi shadow-[0_0_14px_4px_rgb(245_165_36/0.75)]"
+            initial={false}
+            animate={{ left: `${progress * 100}%`, opacity: progress > 0 && progress < 1 ? 1 : 0 }}
             transition={{ type: "spring", stiffness: 90, damping: 22 }}
           />
         </div>
@@ -51,6 +58,15 @@ export function PipelineRail({ status, notes }: { status: Record<PipelineStepId,
                 )}
               >
                 <Icon className="size-[18px]" aria-hidden />
+                {st === "done" ? (
+                  <motion.span
+                    aria-hidden
+                    className="absolute inset-0 rounded-full ring-2 ring-marigold"
+                    initial={{ scale: 1, opacity: 0.8 }}
+                    animate={{ scale: 2.2, opacity: 0 }}
+                    transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                  />
+                ) : null}
               </motion.span>
               <span className={cn("text-[0.7rem] leading-tight font-semibold sm:text-[0.78rem]", st === "waiting" ? "text-faint" : "text-paper")}>
                 {s.label}

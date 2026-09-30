@@ -1,18 +1,17 @@
 import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
-import { CloudImg } from "@/components/cloud-img";
 import { StaticShelves } from "@/components/kit/static-shelves";
-import { QaBadge } from "@/components/kit/qa-badge";
 import { BeforeAfter } from "@/components/landing/before-after";
+import { HowItWorks } from "@/components/landing/how-it-works";
 import { UrlAnatomy } from "@/components/landing/url-anatomy";
 import { PhoneButton } from "@/components/phone/phone-button";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { buttonVariants } from "@/components/ui/button";
-import { isBuiltUrl, publicUrl, srcSet } from "@/lib/client/img";
+import { isBuiltUrl, srcSet } from "@/lib/client/img";
 import { countAssets } from "@/lib/client/kit-view";
 import { cn } from "@/lib/client/util";
-import { CREATIVE_APPROVED, CREATIVE_REJECTED, FEATURED_KIT, heroAt, rawAt, SAMPLES } from "@/lib/showcase";
+import { FEATURED_KIT, heroAt, rawAt, SAMPLES } from "@/lib/showcase";
 
 const kit = FEATURED_KIT;
 const sample = SAMPLES[0];
@@ -40,11 +39,10 @@ export default function Home() {
         <section className="mx-auto grid max-w-[90rem] items-center gap-10 px-4 pt-4 pb-20 sm:px-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:gap-16 lg:pt-8 lg:pb-28">
           <div className="max-w-[40rem]">
             <h1 className="text-[clamp(3.1rem,10.5vw,6rem)] leading-[0.9] font-extrabold tracking-[-0.035em] [font-variation-settings:'wdth'_84,'opsz'_96]">
-              One photo.
-              <br />
-              A whole shelf.
+              <span className="rise block">One photo.</span>
+              <span className="rise block [animation-delay:110ms]">A whole shelf.</span>
             </h1>
-            <p className="mt-6 font-display text-[clamp(1.25rem,3.4vw,1.6rem)] leading-snug font-medium text-paper">
+            <p className="rise mt-6 font-display text-[clamp(1.25rem,3.4vw,1.6rem)] leading-snug font-medium text-paper [animation-delay:220ms]">
               AI builds the stage — your product stays real.
             </p>
             <p className="mt-4 hidden max-w-[33rem] text-lg text-dim sm:block">
@@ -77,7 +75,14 @@ export default function Home() {
               }}
               after={{ src: heroAt(kit, 720), srcSet: srcSet((w) => heroAt(kit, w), WIDTHS), alt: hero.alt }}
             />
-            <figcaption className="mt-4 text-sm text-dim">Drag to compare. The sneaker is the same pixels; only the stage is new.</figcaption>
+            {/* the hero stands on the same lit shelf as everything it produces */}
+            <div aria-hidden className="shelf-ledge relative -mx-3 -mt-1 sm:-mx-6" />
+            <figcaption className="mt-3.5 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-dim">
+              <span className="rounded-b-[5px] rounded-t-[2px] bg-paper px-2 py-1 text-[0.74rem] leading-none font-semibold text-studio shadow-[0_6px_14px_-6px_rgb(0_0_0/0.8)]">
+                Hero 4:5 <span className="tabular ml-1 font-medium text-studio/60">1080 × 1350</span>
+              </span>
+              Drag to compare. Same sneaker pixels, new stage, zero generation credits.
+            </figcaption>
           </figure>
         </section>
 
@@ -106,24 +111,10 @@ export default function Home() {
             <h2 id="how-title" className="max-w-[40rem] text-[clamp(2rem,5vw,3.25rem)] leading-[1] font-bold tracking-[-0.03em]">
               How it works
             </h2>
-            <ol className="mt-12 grid gap-x-12 gap-y-14 md:grid-cols-2">
-              <Step n={1} title="Snap">
-                Upload a photo, or scan a QR code and take one with your phone. Any background, any light.
-              </Step>
-              <Step n={2} title="Stage">
-                Your product is cut out once and placed on a ready-made scene. AI Vision has already measured where each scene&apos;s surface is and where its light comes
-                from, so the shadow falls the right way.
-              </Step>
-              <Step n={3} title="Check">
-                <>
-                  AI Vision compares every result with your photo. Anything that changed the product is rejected, even when it looks good.
-                  <QaProof />
-                </>
-              </Step>
-              <Step n={4} title="Ship">
-                A feed post, story, web banner, marketplace image, chat catalog tile, colour variants, a Hindi and English offer and a short reel. Download them all at once.
-              </Step>
-            </ol>
+            <p className="mt-4 max-w-[40rem] text-lg text-dim">The real sneaker, step by step. Every picture below is what the pipeline actually produced.</p>
+            <div className="mt-10">
+              <HowItWorks kit={kit} />
+            </div>
           </div>
         </section>
 
@@ -168,39 +159,5 @@ export default function Home() {
       </main>
       <SiteFooter />
     </>
-  );
-}
-
-function Step({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
-  return (
-    <li className="grid grid-cols-[2.5rem_1fr] gap-x-4">
-      <span aria-hidden className="font-display text-4xl leading-none font-extrabold text-marigold">
-        {n}
-      </span>
-      <div>
-        <h3 className="font-display text-2xl font-bold tracking-[-0.02em]">{title}</h3>
-        <div className="mt-2 max-w-[34rem] text-[1.05rem] text-dim">{children}</div>
-      </div>
-    </li>
-  );
-}
-
-function QaProof() {
-  const pair = [CREATIVE_APPROVED, CREATIVE_REJECTED];
-  return (
-    <span className="mt-5 grid grid-cols-2 gap-3">
-      {pair.map((a) => (
-        <span key={a.id} className="block">
-          <span className="relative block overflow-hidden rounded-xl ring-1 ring-line">
-            <CloudImg src={publicUrl(a.publicId!, { w: 480, h: 600, crop: "c_fill,g_auto" })} alt={a.alt} width={1080} height={1350} className="aspect-[4/5] w-full object-cover" />
-            <QaBadge qa={a.qa!} className="absolute top-2 left-2 bg-studio/85 backdrop-blur-sm" />
-          </span>
-          <span className="mt-2 block text-[0.85rem] leading-snug text-dim">
-            {a.qa!.status === "approved" ? "Kept: " : "Caught: "}
-            {a.qa!.reasons.join(", ").toLowerCase()}.
-          </span>
-        </span>
-      ))}
-    </span>
   );
 }

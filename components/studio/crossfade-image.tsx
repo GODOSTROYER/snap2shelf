@@ -4,11 +4,33 @@
 import * as React from "react";
 import { cn } from "@/lib/client/util";
 
+export type Enter = "focus" | "wipe" | "soft";
+
 interface Layer {
   src: string;
   loaded: boolean;
   failed: boolean;
+  enter: Enter;
 }
+
+// How a new image arrives: a focus pull, the scanner's wipe, or a quick soft swap for slider tweaks.
+const ENTER: Record<Enter, { base: string; before: string; after: string }> = {
+  focus: {
+    base: "transition-[opacity,filter,scale] duration-[1000ms] ease-(--ease-out-expo)",
+    before: "opacity-0 blur-[18px] scale-[1.05]",
+    after: "opacity-100 blur-0 scale-100",
+  },
+  wipe: {
+    base: "transition-[clip-path] duration-[1100ms] ease-(--ease-out-expo)",
+    before: "opacity-0 [clip-path:inset(0_0_100%_0)]",
+    after: "opacity-100 [clip-path:inset(0_0_0_0)]",
+  },
+  soft: {
+    base: "transition-[opacity,filter] duration-300 ease-(--ease-out-quart)",
+    before: "opacity-0 blur-[6px]",
+    after: "opacity-100 blur-0",
+  },
+};
 
 /**
  * Keeps showing the previous image until the next one has rendered on the
@@ -24,6 +46,7 @@ export function CrossfadeImage({
   onError,
   width,
   height,
+  enter = "focus",
 }: {
   src: string;
   alt: string;
@@ -34,12 +57,13 @@ export function CrossfadeImage({
   onError?: () => void;
   width: number;
   height: number;
+  enter?: Enter;
 }) {
-  const [layers, setLayers] = React.useState<Layer[]>([{ src, loaded: false, failed: false }]);
+  const [layers, setLayers] = React.useState<Layer[]>([{ src, loaded: false, failed: false, enter }]);
   const [seen, setSeen] = React.useState(src);
   if (src !== seen) {
     setSeen(src);
-    setLayers((ls) => [...ls.filter((l) => l.loaded).slice(-1), { src, loaded: false, failed: false }]);
+    setLayers((ls) => [...ls.filter((l) => l.loaded).slice(-1), { src, loaded: false, failed: false, enter }]);
   }
 
   const top = layers[layers.length - 1];
@@ -60,7 +84,7 @@ export function CrossfadeImage({
   // drop stale layers after the fade has finished
   React.useEffect(() => {
     if (!top.loaded || layers.length < 2) return;
-    const t = setTimeout(() => setLayers((ls) => ls.slice(-1)), 450);
+    const t = setTimeout(() => setLayers((ls) => ls.slice(-1)), 1200);
     return () => clearTimeout(t);
   }, [top.loaded, layers.length]);
 
@@ -77,7 +101,7 @@ export function CrossfadeImage({
           decoding="async"
           onLoad={() => settle(l.src, true)}
           onError={() => settle(l.src, false)}
-          className={cn("absolute inset-0 size-full transition-opacity duration-[400ms] ease-(--ease-out-quart)", l.loaded ? "opacity-100" : "opacity-0", imgClassName)}
+          className={cn("absolute inset-0 size-full", ENTER[l.enter].base, l.loaded ? ENTER[l.enter].after : ENTER[l.enter].before, imgClassName)}
         />
       ))}
     </div>

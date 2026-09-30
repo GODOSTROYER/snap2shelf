@@ -80,6 +80,7 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
   const [stageBusy, setStageBusy] = React.useState(false);
   const [tab, setTab] = React.useState("exact");
   const [copied, setCopied] = React.useState(false);
+  const [runId, setRunId] = React.useState(0);
 
   const abortRef = React.useRef<AbortController | null>(null);
   const stageRef = React.useRef<HTMLDivElement>(null);
@@ -119,6 +120,7 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
     async (args: { src: SourceReady; product: ProductRecord; scene: Scene; controls: CompositeControls; settings: PackSettings; hero: KitAsset | null; tokens: number; t0: number; signal: AbortSignal }) => {
       const { src, product: p, scene: sc, controls: c, settings: st, hero, signal } = args;
       let step: PipelineStepId = "stage";
+      setRunId((n) => n + 1);
       try {
         mark("stage", "active", hero ? "Using your creative take" : `Placing it in the ${sc.title} scene`);
         const full = buildHero(p, sc, c);
@@ -477,8 +479,11 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
                 qa={qa}
                 onBusy={setStageBusy}
                 busyLabel={busyLabel}
+                enter={heroOverride ? "focus" : preview ? (running ? "focus" : "soft") : cutoutView ? "wipe" : "focus"}
+                light={scene && !heroOverride && (status.light === "active" || status.qa === "active") ? { azimuth: scene.dna.light_azimuth, key: runId } : null}
                 xray={heroOverride ?? (preview && product && scene ? { id: "stage", format: "hero", label: "Hero 4:5", url: preview.url, width: 1080, height: 1350, frame: "feed-post", alt: stageAlt, xray: preview } : null)}
               />
+              <div aria-hidden className="shelf-ledge relative -mx-3 -mt-1 hidden sm:block sm:-mx-5" />
             </div>
 
             <aside aria-label="Adjust" className="min-w-0 [grid-area:panel]">
@@ -528,6 +533,7 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
                     ready={cutoutReady}
                     onDemo={() => setDemo(true)}
                     onCredits={(n) => setCreditsUsed((x) => x + n)}
+                    stageRect={() => stageRef.current?.getBoundingClientRect() ?? null}
                     onUseAsHero={(a) => {
                       setHeroOverride(a);
                       void update(a);

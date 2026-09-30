@@ -7,6 +7,7 @@ import { QaBadge } from "@/components/kit/qa-badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import * as api from "@/lib/client/api";
+import { flyImage } from "@/lib/client/flight";
 import { sizedUrl } from "@/lib/client/img";
 import { cn, isAborted, sleep } from "@/lib/client/util";
 import { CREATIVE_APPROVED, CREATIVE_MODELS, CREATIVE_REJECTED } from "@/lib/showcase";
@@ -36,19 +37,20 @@ export function CreativePanel({
   onUseAsHero,
   onCredits,
   onDemo,
+  stageRect,
 }: {
   sku: Sku;
   ready: boolean;
   onUseAsHero: (a: KitAsset) => void;
   onCredits: (n: number) => void;
   onDemo: () => void;
+  stageRect?: () => DOMRect | null;
 }) {
   const [unlocked, setUnlocked] = React.useState<{ left: number } | null>(null);
   const [askCode, setAskCode] = React.useState(false);
   const [model, setModel] = React.useState<ModelId>("nano-banana-2-edit");
   const [prompt, setPrompt] = React.useState("");
   const [takes, setTakes] = React.useState<Take[]>([]);
-  const [error, setError] = React.useState<string | null>(null);
   const [now, setNow] = React.useState(0);
   const ac = React.useRef<AbortController | null>(null);
   const running = takes.some((t) => t.status === "queued" || t.status === "generating");
@@ -89,7 +91,6 @@ export function CreativePanel({
     ac.current?.abort();
     const ctl = new AbortController();
     ac.current = ctl;
-    setError(null);
     const count = unlocked && unlocked.left < 2 ? Math.max(1, unlocked.left) : 2;
     const fresh: Take[] = Array.from({ length: count }, (_, i) => ({
       key: `${Date.now()}-${i}`,
@@ -186,18 +187,15 @@ export function CreativePanel({
         </div>
       )}
 
-      {error ? (
-        <p role="alert" className="text-sm text-sindoor">
-          {error}
-        </p>
-      ) : null}
-
       {takes.length ? (
         <div className="grid gap-3">
           {takes[0].sample ? <p className="text-[0.82rem] text-dim">Sample takes of the sneaker. No credits used.</p> : null}
           <ul className="grid grid-cols-2 gap-3">
             {takes.map((t) => (
-              <TakeTile key={t.key} take={t} now={now} onUse={onUseAsHero} onRetry={() => void runTake({ ...t, status: "queued", startedAt: Date.now() }, (ac.current ??= new AbortController()).signal)} />
+              <TakeTile key={t.key} take={t} now={now} onUse={(a, img) => {
+                flyImage(img, stageRect?.() ?? null);
+                onUseAsHero(a);
+              }} onRetry={() => void runTake({ ...t, status: "queued", startedAt: Date.now() }, (ac.current ??= new AbortController()).signal)} />
             ))}
           </ul>
         </div>
@@ -216,12 +214,13 @@ export function CreativePanel({
   );
 }
 
-function TakeTile({ take, now, onUse, onRetry }: { take: Take; now: number; onUse: (a: KitAsset) => void; onRetry: () => void }) {
+function TakeTile({ take, now, onUse, onRetry }: { take: Take; now: number; onUse: (a: KitAsset, img: HTMLImageElement | null) => void; onRetry: () => void }) {
+  const box = React.useRef<HTMLDivElement>(null);
   const model = CREATIVE_MODELS.find((m) => m.id === take.model)!;
   const secs = Math.max(0, Math.round(((now || take.startedAt) - take.startedAt) / 1000));
   return (
     <li className="grid content-start gap-2">
-      <div className="relative aspect-[4/5] overflow-hidden rounded-xl bg-stage-2 ring-1 ring-line">
+      <div ref={box} className="relative aspect-[4/5] overflow-hidden rounded-xl bg-stage-2 ring-1 ring-line">
         {take.status === "done" && take.asset ? (
           <>
             <CloudImg src={sizedUrl(take.asset, 480)} alt={take.asset.alt} width={1080} height={1350} className="size-full object-cover" />
@@ -251,7 +250,7 @@ function TakeTile({ take, now, onUse, onRetry }: { take: Take; now: number; onUs
       {take.status === "done" && take.asset?.qa?.status === "approved" ? (
         <>
           <p className="text-[0.78rem] text-dim">{take.asset.qa.reasons[0]}</p>
-          <Button size="sm" variant="secondary" onClick={() => onUse(take.asset!)}>
+          <Button size="sm" variant="secondary" onClick={() => onUse(take.asset!, box.current?.querySelector("img") ?? null)}>
             Use as hero
           </Button>
         </>
