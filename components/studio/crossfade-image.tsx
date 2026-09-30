@@ -4,17 +4,24 @@
 import * as React from "react";
 import { cn } from "@/lib/client/util";
 
-export type Enter = "focus" | "wipe" | "soft";
+export type Enter = "focus" | "wipe" | "soft" | "settle";
 
 interface Layer {
   src: string;
   loaded: boolean;
   failed: boolean;
   enter: Enter;
+  shift: number; // settle: how far (fraction of the height) the new frame travels down into place
 }
 
-// How a new image arrives: a focus pull, the scanner's wipe, or a quick soft swap for slider tweaks.
+// How a new image arrives: a focus pull, the scanner's wipe, a quick soft swap for slider tweaks,
+// or (QA's auto-fix) the new frame settling down by exactly the correction it made.
 const ENTER: Record<Enter, { base: string; before: string; after: string }> = {
+  settle: {
+    base: "transition-[opacity,translate] duration-[900ms] ease-(--ease-out-expo) motion-reduce:transition-none",
+    before: "opacity-0 translate-y-(--settle-from) motion-reduce:translate-y-0",
+    after: "opacity-100 translate-y-0",
+  },
   focus: {
     base: "transition-[opacity,filter,scale] duration-[1000ms] ease-(--ease-out-expo)",
     before: "opacity-0 blur-[18px] scale-[1.05]",
@@ -47,6 +54,10 @@ export function CrossfadeImage({
   width,
   height,
   enter = "focus",
+  shift = 0,
+  priority,
+  srcSet,
+  sizes,
 }: {
   src: string;
   alt: string;
@@ -58,12 +69,21 @@ export function CrossfadeImage({
   width: number;
   height: number;
   enter?: Enter;
+  /** settle: fraction of the height the new frame travels (the recorded correction). */
+  shift?: number;
+  /** The first frame is the page's largest image: fetch it first. */
+  priority?: boolean;
+  /** Responsive sources for the FIRST frame only (a stored asset at the site's fixed widths). */
+  srcSet?: string;
+  sizes?: string;
 }) {
-  const [layers, setLayers] = React.useState<Layer[]>([{ src, loaded: false, failed: false, enter }]);
+  // a priority first frame is server-rendered and simply paints as it arrives (it is the LCP image)
+  const [layers, setLayers] = React.useState<Layer[]>([{ src, loaded: !!priority, failed: false, enter, shift }]);
+  const [first] = React.useState(src); // the frame the page opened with (its srcset and priority apply)
   const [seen, setSeen] = React.useState(src);
   if (src !== seen) {
     setSeen(src);
-    setLayers((ls) => [...ls.filter((l) => l.loaded).slice(-1), { src, loaded: false, failed: false, enter }]);
+    setLayers((ls) => [...ls.filter((l) => l.loaded).slice(-1), { src, loaded: false, failed: false, enter, shift }]);
   }
 
   const top = layers[layers.length - 1];
@@ -90,20 +110,31 @@ export function CrossfadeImage({
 
   return (
     <div className={cn("relative overflow-hidden", className)} style={placeholder ? { backgroundImage: `url("${placeholder}")`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}>
-      {layers.map((l, i) => (
-        <img
-          key={l.src}
-          src={l.src}
-          alt={i === layers.length - 1 ? alt : ""}
-          aria-hidden={i === layers.length - 1 ? undefined : true}
-          width={width}
-          height={height}
-          decoding="async"
-          onLoad={() => settle(l.src, true)}
-          onError={() => settle(l.src, false)}
-          className={cn("absolute inset-0 size-full", ENTER[l.enter].base, l.loaded ? ENTER[l.enter].after : ENTER[l.enter].before, imgClassName)}
-        />
-      ))}
+      {layers.map((l, i) => {
+        const lead = l.src === first;
+        return (
+          <img
+            key={l.src}
+            src={l.src}
+            srcSet={lead ? srcSet : undefined}
+            sizes={lead && srcSet ? sizes : undefined}
+            alt={i === layers.length - 1 ? alt : ""}
+            aria-hidden={i === layers.length - 1 ? undefined : true}
+            width={width}
+            height={height}
+            decoding="async"
+            fetchPriority={lead && priority ? "high" : undefined}
+            ref={(el) => {
+              // loaded before hydration attached onLoad (cache, server-rendered): settle it now
+              if (el && !l.loaded && !l.failed && el.complete && el.naturalWidth > 0) settle(l.src, true);
+            }}
+            onLoad={() => settle(l.src, true)}
+            onError={() => settle(l.src, false)}
+            style={l.enter === "settle" ? ({ "--settle-from": `${-l.shift * 100}%` } as React.CSSProperties) : undefined}
+            className={cn("absolute inset-0 size-full", ENTER[l.enter].base, l.loaded ? ENTER[l.enter].after : ENTER[l.enter].before, imgClassName)}
+          />
+        );
+      })}
     </div>
   );
 }
