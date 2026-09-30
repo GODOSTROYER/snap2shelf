@@ -2,15 +2,28 @@
 
 import { CodeXml } from "lucide-react";
 import { animate } from "motion/react";
+import dynamic from "next/dynamic";
 import * as React from "react";
 import { AssetFrame } from "@/components/frames/asset-frame";
-import { Tip } from "@/components/ui/controls";
+import { Tip } from "@/components/ui/tip";
 import { frameProduct, shelvesFor, type ShelfItem } from "@/lib/client/kit-view";
 import type { Kit, KitAsset } from "@/lib/types";
 import { QaBadge } from "./qa-badge";
 import { ReelVideo } from "./reel-video";
 import { Shelf, ShelfTag } from "./shelf";
-import { XraySheet } from "./xray-sheet";
+
+// The X-ray sheet (a Radix dialog plus the URL anatomy) loads when first wanted:
+// warmed on hover/focus of an X-ray button, mounted on the first click.
+const loadXray = () => import("./xray-sheet");
+const XraySheet = dynamic(() => loadXray().then((m) => m.XraySheet), { ssr: false });
+
+/**
+ * With `rowsWhenNear` (the kit page, where the shelves start two screens down on a
+ * phone) each row renders, and fetches its pictures, only as it nears the viewport.
+ * The reserved height is the row's real one (h3 + ledge + card at --h 292/330/372 +
+ * the tag row with its X-ray button). Not for the studio: its deal measures the cards.
+ */
+const ROW_WHEN_NEAR = "[content-visibility:auto] [contain-intrinsic-height:auto_418px] sm:[contain-intrinsic-height:auto_456px] lg:[contain-intrinsic-height:auto_498px]";
 
 export interface DealRequest {
   key: number; // bump to deal again
@@ -22,8 +35,25 @@ export interface DealRequest {
  * on every card. When `deal` changes, the cards are dealt from the hero onto
  * the shelves, and the reel starts once they've landed.
  */
-export function KitShelves({ kit, deal, onDealt, rendering = [] }: { kit: Kit; deal?: DealRequest | null; onDealt?: () => void; rendering?: string[] }) {
+export function KitShelves({
+  kit,
+  deal,
+  onDealt,
+  rendering = [],
+  rowsWhenNear = false,
+}: {
+  kit: Kit;
+  deal?: DealRequest | null;
+  onDealt?: () => void;
+  rendering?: string[];
+  rowsWhenNear?: boolean;
+}) {
   const [xray, setXray] = React.useState<KitAsset | null>(null);
+  const [xrayWanted, setXrayWanted] = React.useState(false);
+  const openXray = React.useCallback((a: KitAsset) => {
+    setXrayWanted(true);
+    setXray(a);
+  }, []);
   const [reelReady, setReelReady] = React.useState(!deal);
   const root = React.useRef<HTMLDivElement>(null);
   const groups = React.useMemo(() => shelvesFor(kit), [kit]);
@@ -58,18 +88,20 @@ export function KitShelves({ kit, deal, onDealt, rendering = [] }: { kit: Kit; d
         </p>
       ) : null}
       {groups.map((g) => (
-        <Shelf key={g.id} title={g.title}>
+        <Shelf key={g.id} title={g.title} className={rowsWhenNear ? ROW_WHEN_NEAR : undefined}>
           {g.items.map((item) => (
             <li key={item.key} className="flex shrink-0 snap-start flex-col items-start">
-              <Card item={item} product={product} reelReady={reelReady} onXray={setXray} />
+              <Card item={item} product={product} reelReady={reelReady} onXray={openXray} />
             </li>
           ))}
         </Shelf>
       ))}
-      <XraySheet asset={xray} onOpenChange={(o) => !o && setXray(null)} />
+      {xrayWanted ? <XraySheet asset={xray} onOpenChange={(o) => !o && setXray(null)} /> : null}
     </div>
   );
 }
+
+const warmXray = () => void loadXray();
 
 const NAMES: Record<string, string> = { story: "story", banner: "web banner", marketplace: "marketplace image", whatsapp: "catalog tile", offer: "festive offer", feed: "feed post" };
 const formatName = (id: string) => NAMES[id] ?? (id.startsWith("recolor-") ? "a colour variant" : id);
@@ -91,6 +123,8 @@ function Card({ item, product, reelReady, onXray }: { item: ShelfItem; product: 
           <button
             type="button"
             onClick={() => onXray(a)}
+            onPointerEnter={warmXray}
+            onFocus={warmXray}
             aria-label={`X-ray: how ${a.label} is made`}
             className="grid size-7 place-items-center rounded-md bg-stage-2 text-dim ring-1 ring-line-strong transition-colors ring-inset hover:bg-stage-3 hover:text-marigold"
           >

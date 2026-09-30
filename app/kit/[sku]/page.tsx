@@ -11,7 +11,7 @@ import { ReadinessGauge } from "@/components/readiness/ReadinessGauge";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { buttonVariants } from "@/components/ui/button";
-import { TooltipProvider } from "@/components/ui/controls";
+import { TooltipProvider } from "@/components/ui/tip";
 import { DEMO_SHELF, FIDELITY_CLAIM, SAMPLE_PHOTO_DISCLOSURE, SAMPLE_PHOTO_LABEL } from "@/lib/claims";
 import { srcSet } from "@/lib/client/img";
 import { kitContents, zipLabel } from "@/lib/client/kit-view";
@@ -141,7 +141,7 @@ export default async function KitPage({ params }: Props) {
           </div>
           <div className="mt-6">
             <TooltipProvider>
-              <KitShelves kit={kit} />
+              <KitShelves kit={kit} rowsWhenNear />
             </TooltipProvider>
           </div>
         </section>
