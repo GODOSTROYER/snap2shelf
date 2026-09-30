@@ -39,7 +39,7 @@ export const Stage = React.forwardRef<
     enter?: Enter; // how the next image arrives
     light?: { azimuth: number; key: number } | null; // key light sweeping in from the scene's light direction
     /** Scene DNA drawn over the composite (surface, anchor, light, shadow, text zone). */
-    dna?: { dna: SceneDNA; key: string } | null;
+    dna?: { dna: SceneDNA; key: string; shadow?: boolean } | null;
   }
 >(function Stage({ src, alt, placeholder, originalSrc, originalLabel = "Hold to see your photo", qaStory, scanning, qa, onBusy, busyLabel, xray, enter, light, dna }, ref) {
   const [showOriginal, setShowOriginal] = React.useState(false);
@@ -92,7 +92,7 @@ export const Stage = React.forwardRef<
           >
             {/* a light scrim so the marks read on bright plates */}
             <div aria-hidden className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_40%,rgb(14_12_10/0.35))]" />
-            <SceneDnaOverlay dna={dna.dna} animate step={0.32} weight={1.6} show={{ shadow: true, temperature: false, finish: false }} accent="var(--color-marigold)" />
+            <SceneDnaOverlay dna={dna.dna} animate step={0.32} weight={1.6} show={{ shadow: dna.shadow ?? true, temperature: false, finish: false }} accent="var(--color-marigold)" />
           </motion.div>
         ) : null}
       </AnimatePresence>

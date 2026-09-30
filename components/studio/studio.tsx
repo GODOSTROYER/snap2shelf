@@ -950,7 +950,7 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
               enter={heroOverride ? "focus" : sampleShot || preview ? (running ? "focus" : "soft") : cutoutView ? "wipe" : "focus"}
               light={scene && !heroOverride && (status.light === "active" || status.qa === "active") ? { azimuth: scene.dna.light_azimuth, key: runId } : null}
               xray={stageXray}
-              dna={(dnaOn || dnaFlash) && composite && scene ? { dna: scene.dna, key: scene.publicId } : null}
+              dna={(dnaOn || dnaFlash) && composite && scene ? { dna: scene.dna, key: scene.publicId, shadow: scene.view !== "top-down" } : null}
             />
             <div aria-hidden className="shelf-ledge relative -mx-3 -mt-1 hidden sm:block sm:-mx-5" />
             {scene ? <DnaToggle dna={scene.dna} on={dnaOn || dnaFlash} onChange={setDnaOn} disabled={!composite} /> : null}
@@ -1211,7 +1211,7 @@ function RetouchSlot({ retouch, open, onToggle, children }: { retouch: Retouch; 
  */
 function BriefTeaser() {
   return (
-    <section aria-labelledby="brief-teaser" className="grid min-w-0 gap-3">
+    <section aria-labelledby="brief-teaser" className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-3">
       <div>
         <h3 id="brief-teaser" className="font-display text-base font-semibold text-paper">
           Describe the ad
