@@ -16,9 +16,15 @@
  * Coordinates use the canonical plate (1080×1350 by default), the same space
  * Scene DNA is measured in, so fractions map straight onto the image.
  * `animate` draws the marks one after another (reduced motion: fades only).
+ *
+ * Marks are SVG; labels are HTML pills (black 55 %, 6 px backdrop blur,
+ * Hanken Grotesk 600) placed in the same plate space, so they stay crisp and
+ * readable on any plate, bright marble included, and never sit on each other:
+ * the shadow label rides past the shadow's tip, the surface and anchor labels
+ * take the side the shadow leaves free.
  */
 import { motion, useReducedMotion } from "motion/react";
-import { useId } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { PLATE, type SceneDNA } from "@/lib/types";
 
 export type DnaMark = "surface" | "anchor" | "light" | "shadow" | "textZone" | "temperature" | "finish";
@@ -51,8 +57,12 @@ export interface SceneDnaOverlayProps {
   labels?: boolean;
   /** Stroke colour. Default marigold. */
   accent?: string;
-  /** Stroke and label size multiplier, for small viewers (the studio stage). Default 1. */
+  /** Stroke size multiplier, for small viewers (the studio stage). Default 1. */
   weight?: number;
+  /** Label pill text size, in CSS px (screen pixels, whatever size the plate is drawn at). Default 14. */
+  labelPx?: number;
+  /** Step back once a render is on top: the marks fade to a hint and the labels go. */
+  dim?: boolean;
   className?: string;
   style?: React.CSSProperties;
 }
@@ -110,6 +120,61 @@ export function describeDna(dna: SceneDNA): string {
 
 const TEMP_COLOR: Record<SceneDNA["temperature"], string> = { warm: "#ffb45a", neutral: "#ece4d6", cool: "#9ec3ff" };
 
+/** Shadow marks use the X-ray "Shadows" colour, so a shadow reads the same here, in the URL X-ray and in the studio. */
+const SHADOW_INK = "var(--xray-shadow, #b8a3ff)";
+
+type Anchor = "start" | "middle" | "end";
+
+interface Pill {
+  key: string;
+  x: number; // plate units
+  y: number; // plate units: the pill's vertical centre
+  anchor: Anchor;
+  text: string;
+  color?: string;
+  dot?: string;
+  at: number; // seconds (animate)
+}
+
+const PILL: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "0.5em",
+  padding: "0.42em 0.78em",
+  borderRadius: 999,
+  background: "rgb(0 0 0 / 0.55)",
+  backdropFilter: "blur(6px)",
+  WebkitBackdropFilter: "blur(6px)",
+  color: "#f4ece0",
+  fontFamily: "var(--pz-font-text), 'Hanken Grotesk', system-ui, sans-serif",
+  fontWeight: 600,
+  lineHeight: 1.1,
+  letterSpacing: "0.005em",
+  whiteSpace: "nowrap",
+  fontVariantNumeric: "tabular-nums",
+};
+
+const Dot = ({ color }: { color: string }) => <i style={{ width: "0.6em", height: "0.6em", borderRadius: 999, background: color, flex: "none" }} />;
+
+// useLayoutEffect warns during SSR; the label layer only measures on the client
+const useIsoLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
+
+/** Screen px per plate unit (the SVG uses "slice", so the larger ratio wins); 0 until measured. */
+function usePlateScale(W: number, H: number) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [k, setK] = useState(0);
+  useIsoLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const fit = () => setK(Math.max(el.clientWidth / W, el.clientHeight / H));
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [W, H]);
+  return [ref, k] as const;
+}
+
 export function SceneDnaOverlay({
   dna,
   width = PLATE.width,
@@ -123,11 +188,14 @@ export function SceneDnaOverlay({
   labels = true,
   accent = "var(--pz-marigold, #f5a524)",
   weight = 1,
+  labelPx = 14,
+  dim = false,
   className,
   style,
 }: SceneDnaOverlayProps) {
   const reduced = useReducedMotion();
   const uid = useId().replace(/:/g, "");
+  const [layer, k] = usePlateScale(width, height);
   const W = width;
   const H = height;
   const on: Record<DnaMark, boolean> = {
@@ -151,7 +219,7 @@ export function SceneDnaOverlay({
   slot.finish = slot.temperature ?? delay + step * n;
   const at = (m: DnaMark) => slot[m] ?? 0;
 
-  const fs = W * 0.024 * Math.sqrt(weight); // label size in plate units
+  const fs = W * 0.024 * Math.sqrt(weight); // spacing unit, plate units
   const sw = W * 0.0035 * weight; // stroke width
   const ax = dna.anchor_x * W;
   const ay = dna.anchor_y * H;
@@ -174,6 +242,7 @@ export function SceneDnaOverlay({
   const sLen = W * 0.22 * Math.min(1.6, Math.max(0.6, 1 / Math.tan(Math.max(10, dna.light_elevation) * DEG)));
   const shX = ax + sd.x * sLen;
   const shY = ay + sd.y * sLen;
+  const shadowRight = sd.x >= 0;
 
   const draw = (m: DnaMark, d = 0.9) =>
     animate
@@ -190,126 +259,221 @@ export function SceneDnaOverlay({
         }
       : {};
 
-  const halo = { stroke: "rgb(14 12 10 / 0.78)", strokeWidth: fs * 0.3, paintOrder: "stroke" as const, strokeLinejoin: "round" as const };
-  const label = (x: number, y: number, t: string, anchor: "start" | "middle" | "end" = "start", color = "#f4ece0") =>
-    labels ? (
-      <text x={x} y={y} textAnchor={anchor} fontSize={fs} fontWeight={600} fill={color} style={{ fontFamily: "var(--pz-font-text), system-ui, sans-serif" }} {...halo}>
-        {t}
-      </text>
-    ) : null;
-
-  const chip = (x: number, y: number, t: string, dot: string) => {
-    const cw = t.length * fs * 0.54 + fs * 2.2;
-    const ch = fs * 1.9;
-    return (
-      <g>
-        <rect x={x} y={y} width={cw} height={ch} rx={ch / 2} fill="rgb(14 12 10 / 0.78)" stroke="rgb(244 236 224 / 0.25)" strokeWidth={sw * 0.5} />
-        <circle cx={x + fs * 0.95} cy={y + ch / 2} r={fs * 0.32} fill={dot} />
-        <text x={x + fs * 1.6} y={y + ch / 2 + fs * 0.35} fontSize={fs} fontWeight={600} fill="#f4ece0" style={{ fontFamily: "var(--pz-font-text), system-ui, sans-serif" }}>
-          {t}
-        </text>
-      </g>
-    );
+  // ── label pills, laid out in plate units ─────────────────────────────────
+  // estimated pill width (plate units, k = screen px per plate unit), so a pill can be kept inside the plate
+  // a phone-sized plate (under 420 px wide) gets slightly smaller pills
+  const px = k && W * k < 420 ? Math.max(11, labelPx - 2) : labelPx;
+  const pillW = (t: string, dot = false) => (k ? (t.length * px * 0.56 + px * (dot ? 2.66 : 1.56)) / k : 0);
+  const inside = (x: number, a: Anchor, w: number): { x: number; anchor: Anchor } => {
+    if (!w) return { x, anchor: a };
+    const left = a === "start" ? x : a === "middle" ? x - w / 2 : x - w;
+    const lo = W * 0.03;
+    const hi = W * 0.97 - w;
+    return left < lo ? { x: lo, anchor: "start" } : left > hi ? { x: hi, anchor: "start" } : { x, anchor: a };
   };
+  const pills: Pill[] = [];
+  const add = (p: Pill) => pills.push({ ...p, ...inside(p.x, p.anchor, pillW(p.text, !!p.dot)) });
+
+  if (on.textZone && zone) add({ key: "zone", x: zone.x * W + fs * 0.5, y: zone.y * H + fs * 1.15, anchor: "start", text: textZoneLabel, at: at("textZone") });
+  // surface: at the end of the line away from the shadow, just above it
+  if (on.surface) {
+    add({
+      key: "surface",
+      x: shadowRight ? x0 + fs * 0.2 : x1 - fs * 0.2,
+      y: ay - fs * 1.25,
+      anchor: shadowRight ? "start" : "end",
+      text: `Surface  y ${dna.anchor_y.toFixed(2)}`,
+      at: at("surface") + 0.5,
+    });
+  }
+  // anchor: below the line, beside the product (never under it), on the side the shadow leaves free
+  if (on.anchor) {
+    add({
+      key: "anchor",
+      x: shadowRight ? ax - W * 0.1 : ax + W * 0.1,
+      y: ay + fs * 1.55,
+      anchor: shadowRight ? "end" : "start",
+      text: `Anchor  ${dna.anchor_x.toFixed(2)}, ${dna.anchor_y.toFixed(2)}`,
+      at: at("anchor") + 0.3,
+    });
+  }
+  // light: by the sun, extending away from the anchor (where the product will stand)
+  if (on.light) {
+    add({
+      key: "light",
+      x: sx,
+      y: sy + (ld.y < 0 ? -W * 0.075 : W * 0.085),
+      anchor: Math.abs(sx - ax) < W * 0.04 ? "middle" : sx < ax ? "end" : "start",
+      text: `Light ${Math.round(dna.light_azimuth)}° · ${Math.round(dna.light_elevation)}° up`,
+      color: "#ffd99a",
+      at: at("light") + 0.5,
+    });
+  }
+  // shadow: past the tip of its line when there is room, else just short of the tip, above the line
+  // (on a small plate, like the studio's, the short form keeps it past the tip)
+  if (on.shadow) {
+    const room = shadowRight ? W * 0.97 - (shX + fs * 0.6) : shX - fs * 0.6 - W * 0.03;
+    const t = room >= pillW("Shadow falls this way", true) ? "Shadow falls this way" : "Shadow";
+    const past = room >= pillW(t, true);
+    add({
+      key: "shadow",
+      x: past ? shX + (shadowRight ? fs * 0.6 : -fs * 0.6) : shX,
+      y: past ? shY : shY - fs * 1.35,
+      anchor: past === shadowRight ? "start" : "end",
+      text: t,
+      dot: SHADOW_INK,
+      at: at("shadow") + 0.5,
+    });
+  }
 
   const tempText = `${dna.temperature[0].toUpperCase()}${dna.temperature.slice(1)} light`;
   const finishText = dna.glossy ? "Glossy: reflection on" : "Matte: no reflection";
-  const tempW = tempText.length * fs * 0.54 + fs * 2.2;
+
+  const reveal = (key: string, t: number, children: ReactNode) =>
+    animate ? (
+      <motion.span key={key} style={{ display: "inline-flex" }} initial={{ opacity: 0, y: reduced ? 0 : 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: t, duration: 0.45, ease: [0.16, 1, 0.3, 1] }}>
+        {children}
+      </motion.span>
+    ) : (
+      <span key={key} style={{ display: "inline-flex" }}>
+        {children}
+      </span>
+    );
+  const pct = (v: number, of: number) => `${(v / of) * 100}%`;
+  const shift: Record<Anchor, string> = { start: "0", middle: "-50%", end: "-100%" };
 
   return (
-    <svg
-      viewBox={`0 0 ${W} ${H}`}
-      preserveAspectRatio="xMidYMid slice"
-      role="img"
-      aria-labelledby={`${uid}-t ${uid}-d`}
-      className={className}
-      style={{ position: "absolute", inset: 0, width: "100%", height: "100%", overflow: "visible", pointerEvents: "none", ...style }}
-    >
-      <title id={`${uid}-t`}>Scene DNA</title>
-      <desc id={`${uid}-d`}>{describeDna(dna)}</desc>
-      <defs>
-        <radialGradient id={`${uid}-sun`}>
-          <stop offset="0" stopColor="#fff3d6" />
-          <stop offset="0.35" stopColor="#ffc76a" />
-          <stop offset="1" stopColor="#f5a524" stopOpacity="0" />
-        </radialGradient>
-      </defs>
+    <>
+      <motion.svg
+        viewBox={`0 0 ${W} ${H}`}
+        preserveAspectRatio="xMidYMid slice"
+        role="img"
+        aria-labelledby={`${uid}-t ${uid}-d`}
+        className={className}
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", overflow: "visible", pointerEvents: "none", ...style }}
+        initial={false}
+        animate={{ opacity: dim ? 0.3 : 1 }}
+        transition={{ duration: 0.9 }}
+      >
+        <title id={`${uid}-t`}>Scene DNA</title>
+        <desc id={`${uid}-d`}>{describeDna(dna)}</desc>
+        <defs>
+          <radialGradient id={`${uid}-sun`}>
+            <stop offset="0" stopColor="#fff3d6" />
+            <stop offset="0.35" stopColor="#ffc76a" />
+            <stop offset="1" stopColor="#f5a524" stopOpacity="0" />
+          </radialGradient>
+        </defs>
 
-      {on.textZone && zone && (
-        <motion.g {...fade("textZone")}>
-          <rect
-            x={zone.x * W}
-            y={zone.y * H}
-            width={zone.w * W}
-            height={zone.h * H}
-            rx={W * 0.018}
-            fill="rgb(245 165 36 / 0.1)"
-            stroke={accent}
-            strokeWidth={sw}
-            strokeDasharray={`${sw * 4} ${sw * 3}`}
-          />
-          {label(zone.x * W + fs * 0.8, zone.y * H + fs * 1.5, textZoneLabel)}
-        </motion.g>
-      )}
-
-      {on.surface && (
-        <g>
-          <motion.line x1={x0} y1={ay} x2={x1} y2={ay} stroke={accent} strokeWidth={sw} strokeDasharray={`${sw * 5} ${sw * 3}`} {...draw("surface", 1.1)} />
-          <motion.g {...fade("surface", 0.5)}>
-            <line x1={x0} y1={ay - fs * 0.6} x2={x0} y2={ay + fs * 0.6} stroke={accent} strokeWidth={sw} />
-            <line x1={x1} y1={ay - fs * 0.6} x2={x1} y2={ay + fs * 0.6} stroke={accent} strokeWidth={sw} />
-            {label(x0 + fs * 0.6, ay + fs * 1.7, `Surface  y ${dna.anchor_y.toFixed(2)}`)}
+        {on.textZone && zone && (
+          <motion.g {...fade("textZone")}>
+            <rect
+              x={zone.x * W}
+              y={zone.y * H}
+              width={zone.w * W}
+              height={zone.h * H}
+              rx={W * 0.018}
+              fill="rgb(245 165 36 / 0.1)"
+              stroke={accent}
+              strokeWidth={sw}
+              strokeDasharray={`${sw * 4} ${sw * 3}`}
+            />
           </motion.g>
-        </g>
-      )}
+        )}
 
-      {on.anchor && (
-        <motion.g {...pop("anchor")} style={{ transformBox: "fill-box", transformOrigin: "center" }}>
-          <circle cx={ax} cy={ay} r={W * 0.024} fill="none" stroke={accent} strokeWidth={sw * 1.2} />
-          <line x1={ax - W * 0.055} y1={ay} x2={ax - W * 0.031} y2={ay} stroke={accent} strokeWidth={sw * 1.2} />
-          <line x1={ax + W * 0.031} y1={ay} x2={ax + W * 0.055} y2={ay} stroke={accent} strokeWidth={sw * 1.2} />
-          <line x1={ax} y1={ay - W * 0.055} x2={ax} y2={ay - W * 0.031} stroke={accent} strokeWidth={sw * 1.2} />
-          <line x1={ax} y1={ay + W * 0.031} x2={ax} y2={ay + W * 0.055} stroke={accent} strokeWidth={sw * 1.2} />
-          <circle cx={ax} cy={ay} r={W * 0.006} fill={accent} />
-        </motion.g>
-      )}
-      {on.anchor && <motion.g {...fade("anchor", 0.3)}>{label(ax + W * 0.04, ay + fs * 2.1, `Anchor  ${dna.anchor_x.toFixed(2)}, ${dna.anchor_y.toFixed(2)}`)}</motion.g>}
+        {on.surface && (
+          <g>
+            <motion.line x1={x0} y1={ay} x2={x1} y2={ay} stroke={accent} strokeWidth={sw} strokeDasharray={`${sw * 5} ${sw * 3}`} {...draw("surface", 1.1)} />
+            <motion.g {...fade("surface", 0.5)}>
+              <line x1={x0} y1={ay - fs * 0.6} x2={x0} y2={ay + fs * 0.6} stroke={accent} strokeWidth={sw} />
+              <line x1={x1} y1={ay - fs * 0.6} x2={x1} y2={ay + fs * 0.6} stroke={accent} strokeWidth={sw} />
+            </motion.g>
+          </g>
+        )}
 
-      {on.light && (
-        <g>
-          <motion.g {...fade("light")}>
-            <circle cx={sx} cy={sy} r={W * 0.06} fill={`url(#${uid}-sun)`} opacity={0.9} />
-            <circle cx={sx} cy={sy} r={W * 0.016} fill="#fff3d6" />
+        {on.anchor && (
+          <motion.g {...pop("anchor")} style={{ transformBox: "fill-box", transformOrigin: "center" }}>
+            <circle cx={ax} cy={ay} r={W * 0.024} fill="none" stroke={accent} strokeWidth={sw * 1.2} />
+            <line x1={ax - W * 0.055} y1={ay} x2={ax - W * 0.031} y2={ay} stroke={accent} strokeWidth={sw * 1.2} />
+            <line x1={ax + W * 0.031} y1={ay} x2={ax + W * 0.055} y2={ay} stroke={accent} strokeWidth={sw * 1.2} />
+            <line x1={ax} y1={ay - W * 0.055} x2={ax} y2={ay - W * 0.031} stroke={accent} strokeWidth={sw * 1.2} />
+            <line x1={ax} y1={ay + W * 0.031} x2={ax} y2={ay + W * 0.055} stroke={accent} strokeWidth={sw * 1.2} />
+            <circle cx={ax} cy={ay} r={W * 0.006} fill={accent} />
           </motion.g>
-          <motion.line x1={sx} y1={sy} x2={tipX} y2={tipY} stroke="#ffc76a" strokeWidth={sw * 1.3} strokeLinecap="round" {...draw("light", 0.9)} />
-          <motion.path
-            d={`M ${tipX} ${tipY} L ${tipX - head * Math.cos(ang - 0.45)} ${tipY - head * Math.sin(ang - 0.45)} M ${tipX} ${tipY} L ${tipX - head * Math.cos(ang + 0.45)} ${tipY - head * Math.sin(ang + 0.45)}`}
-            stroke="#ffc76a"
-            strokeWidth={sw * 1.3}
-            strokeLinecap="round"
-            fill="none"
-            {...fade("light", 0.8)}
-          />
-          <motion.g {...fade("light", 0.5)}>
-            {label(sx, sy + (ld.y < 0 ? -W * 0.075 : W * 0.095), `Light ${Math.round(dna.light_azimuth)}°`, sx < W * 0.3 ? "start" : sx > W * 0.7 ? "end" : "middle", "#ffd99a")}
-            {label(sx, sy + (ld.y < 0 ? -W * 0.075 : W * 0.095) + fs * 1.25, `${Math.round(dna.light_elevation)}° up`, sx < W * 0.3 ? "start" : sx > W * 0.7 ? "end" : "middle", "#ffd99a")}
-          </motion.g>
-        </g>
-      )}
+        )}
 
-      {on.shadow && (
-        <g>
-          <motion.line x1={ax} y1={ay} x2={shX} y2={shY} stroke="#d8cebf" strokeWidth={sw} strokeDasharray={`${sw * 3} ${sw * 3}`} {...draw("shadow", 0.8)} />
-          <motion.g {...fade("shadow", 0.5)}>{label(shX, shY - fs * 0.9, "Shadow falls this way", shX > W * 0.6 ? "end" : "start", "#e8dfd2")}</motion.g>
-        </g>
-      )}
+        {on.light && (
+          <g>
+            <motion.g {...fade("light")}>
+              <circle cx={sx} cy={sy} r={W * 0.06} fill={`url(#${uid}-sun)`} opacity={0.9} />
+              <circle cx={sx} cy={sy} r={W * 0.016} fill="#fff3d6" />
+            </motion.g>
+            <motion.line x1={sx} y1={sy} x2={tipX} y2={tipY} stroke="#ffc76a" strokeWidth={sw * 1.3} strokeLinecap="round" {...draw("light", 0.9)} />
+            <motion.path
+              d={`M ${tipX} ${tipY} L ${tipX - head * Math.cos(ang - 0.45)} ${tipY - head * Math.sin(ang - 0.45)} M ${tipX} ${tipY} L ${tipX - head * Math.cos(ang + 0.45)} ${tipY - head * Math.sin(ang + 0.45)}`}
+              stroke="#ffc76a"
+              strokeWidth={sw * 1.3}
+              strokeLinecap="round"
+              fill="none"
+              {...fade("light", 0.8)}
+            />
+          </g>
+        )}
 
-      {(on.temperature || on.finish) && (
-        <motion.g {...fade("temperature")}>
-          {on.temperature && chip(W * 0.04, H * 0.935 - fs * 1.9, tempText, TEMP_COLOR[dna.temperature])}
-          {on.finish && chip(W * 0.04 + (on.temperature ? tempW + fs * 0.6 : 0), H * 0.935 - fs * 1.9, finishText, dna.glossy ? "#9fe6f2" : "#8e806c")}
-        </motion.g>
+        {on.shadow && (
+          <motion.line x1={ax} y1={ay} x2={shX} y2={shY} stroke={SHADOW_INK} strokeWidth={sw * 1.1} strokeLinecap="round" strokeDasharray={`${sw * 3} ${sw * 3}`} {...draw("shadow", 0.8)} />
+        )}
+      </motion.svg>
+
+      {labels && (
+        // the SVG's plate space ("slice": centred, covering), so a label's fractions land on its mark
+        <motion.div
+          ref={layer}
+          aria-hidden
+          style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden", borderRadius: "inherit", fontSize: px }}
+          initial={false}
+          animate={{ opacity: dim ? 0 : 1 }}
+          transition={{ duration: 0.6 }}
+        >
+          <div style={{ position: "absolute", left: "50%", top: "50%", width: W * k, height: H * k, translate: "-50% -50%", visibility: k ? "visible" : "hidden" }}>
+            {pills.map((p) => (
+              <div key={p.key} style={{ position: "absolute", left: pct(p.x, W), top: pct(p.y, H), translate: `${shift[p.anchor]} -50%` }}>
+                {reveal(
+                  p.key,
+                  p.at,
+                  <span style={{ ...PILL, color: p.color ?? PILL.color }}>
+                    {p.dot && <Dot color={p.dot} />}
+                    {p.text}
+                  </span>,
+                )}
+              </div>
+            ))}
+
+            {(on.temperature || on.finish) && (
+              <div style={{ position: "absolute", left: "4%", top: "93.5%", translate: "0 -100%", display: "flex", gap: "0.5em" }}>
+                {on.temperature &&
+                  reveal(
+                    "temperature",
+                    at("temperature"),
+                    <span style={PILL}>
+                      <Dot color={TEMP_COLOR[dna.temperature]} />
+                      {tempText}
+                    </span>,
+                  )}
+                {on.finish &&
+                  reveal(
+                    "finish",
+                    at("finish"),
+                    <span style={PILL}>
+                      <Dot color={dna.glossy ? "var(--xray-reflection, #82ded2)" : "#8e806c"} />
+                      {finishText}
+                    </span>,
+                  )}
+              </div>
+            )}
+          </div>
+        </motion.div>
       )}
-    </svg>
+    </>
   );
 }
