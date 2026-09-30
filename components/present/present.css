@@ -78,6 +78,8 @@
   overflow: hidden;
   isolation: isolate;
   cursor: default;
+  /* taps and swipes navigate (Deck.tsx); keep pinch-zoom, drop double-tap delay */
+  touch-action: pinch-zoom;
 }
 .pz-root[data-idle="true"] {
   cursor: none;
@@ -228,7 +230,8 @@
 .pz-rail-seg {
   position: relative;
   flex: 1;
-  height: 22px;
+  /* hit area never below 24 real px, however far the stage is scaled down; the line stays 2 px */
+  height: max(22px, calc(24px / var(--pz-scale, 1)));
   display: flex;
   align-items: center;
   cursor: pointer;
@@ -239,7 +242,10 @@
 .pz-rail-seg::before {
   content: "";
   position: absolute;
-  inset: 10px 0;
+  left: 0;
+  right: 0;
+  bottom: 10px;
+  height: 2px;
   border-radius: 2px;
   background: rgb(244 236 224 / 0.14);
   transition: background 200ms var(--pz-ease);
@@ -249,7 +255,10 @@
 .pz-rail-seg:hover::before { background: rgb(244 236 224 / 0.45); }
 .pz-rail-fill {
   position: absolute;
-  inset: 10px 0;
+  left: 0;
+  right: 0;
+  bottom: 10px;
+  height: 2px;
   border-radius: 2px;
   background: var(--pz-marigold);
   transform-origin: left center;
@@ -277,6 +286,7 @@
   left: 120px;
   bottom: 62px;
   z-index: 20;
+  pointer-events: none;
   font-size: 16px;
   color: var(--pz-faint);
   font-variant-numeric: tabular-nums;
@@ -399,6 +409,71 @@
   font-size: 17px;
   color: var(--pz-dim);
   white-space: nowrap;
+}
+
+.pz-hint-keys { display: contents; }
+.pz-hint-touch { display: none; }
+/* touch screens: the transient hint talks about tapping, not keys */
+@media (pointer: coarse) {
+  .pz-hint-keys { display: none; }
+  .pz-hint-touch { display: inline; }
+  /* top of the screen, on a pill: at phone scale the bottom band is chapter content */
+  .pz-hint {
+    top: 10px;
+    bottom: auto;
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: rgb(14 12 10 / 0.84);
+    border: 1px solid var(--pz-line);
+    font-size: 14px;
+  }
+}
+
+/* ── Phones: chrome under the stage, at real size ───────────────────── */
+
+.pz-touchbar { display: none; }
+
+@media (max-width: 767px) and (orientation: portrait) {
+  /* the stage is width-bound here: its bottom edge sits at 50% + 28.125vw (1080/1920/2) */
+  .pz-touchbar {
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    top: calc(50% + 28.125vw + 18px);
+    z-index: 25;
+    display: grid;
+    gap: 6px;
+  }
+  .pz-touchbar-label {
+    display: flex;
+    gap: 10px;
+    font-size: 15px;
+    color: var(--pz-dim);
+    font-variant-numeric: tabular-nums;
+  }
+  .pz-touchbar-rail {
+    display: flex;
+    gap: 4px;
+  }
+  .pz-touchbar-rail .pz-rail-seg {
+    height: 32px; /* 24 px minimum tap target, with room to spare */
+  }
+  .pz-touchbar-rail .pz-rail-seg::before,
+  .pz-touchbar-rail .pz-rail-fill {
+    bottom: 14px;
+    height: 4px;
+  }
+  .pz-touchbar-hint {
+    margin: 2px 0 0;
+    font-size: 14px;
+    color: var(--pz-faint);
+  }
+  /* the in-stage rail, label and keyboard hint are unreadable at this scale */
+  .pz-artboard .pz-rail,
+  .pz-artboard .pz-rail-label,
+  .pz-hint {
+    display: none;
+  }
 }
 
 /* ── Surfaces used inside chapters ─────────────────────────────────── */
