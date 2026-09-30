@@ -409,7 +409,7 @@ test("fallback: a failing pool account is benched and the next one renders; secr
 test("fallback: when every pool account fails, main renders the cutout and the pack as before", async () => {
   process.env.S2S_OFFLOAD_POOL = "1";
   await seedProduct();
-  failDerive.set("pooltwo", 400);
+  failDerive.set("pooltwo", 503);
   failDerive.set("poolone", 500);
   const cut = await products.ensureCutout(SKU);
   assert.equal(cut.created, true);
@@ -457,4 +457,46 @@ test("fallback: if main can't store the pool render, main renders it itself (the
   assert.equal(refused, 1);
   assert.match(mainUploads("/cutout")[0].file, /^https:\/\/res\.cloudinary\.com\/maincloud\//);
   assert.deepEqual((await pool.rankAccounts("transformations", 0.1)).map((a) => a.label), ["pool2", "pool1", "main"], "pool2 not benched");
+});
+
+test("fallback: a 400 from the derivation is about this image: no bench, no second pool account, main's path decides", async () => {
+  process.env.S2S_OFFLOAD_POOL = "1";
+  await seedProduct();
+  await products.ensureCutout(SKU);
+  failDerive.set("pooltwo", 400); // e.g. "Invalid input for gen_recolor"
+  failDerive.set("maincloud", 400);
+  const started = await pack.startPack({ sku: SKU, heroUrl, sceneSlug: "diwali-final", recolor: ["0f766e"] });
+  assert.deepEqual(started.failed.sort(), ["banner", "recolor-0f766e", "story"], "as without offload: main answers 400 too");
+  assert.equal(poolUploads().filter((u) => u.cloud === "poolone").length, 0, "the other pool account was not tried");
+  assert.deepEqual((await pool.rankAccounts("transformations", 0.1)).map((a) => a.label), ["pool2", "pool1", "main"], "nobody benched");
+  assert.ok(logs.some((l) => /\[offload\] pack recolor-0f766e: pool2 rejected this input \(delivery HTTP 400/.test(l)));
+});
+
+test("prewarm: copies the source to the pool account the cutout will use and starts the derivation; no-op with the flag off", async () => {
+  await seedProduct();
+  await offload.prewarmCutout(rawId, products.CUTOUT_CHAIN);
+  assert.equal(poolUploads().length + calls.probes.length, 0, "flag off: nothing");
+
+  process.env.S2S_OFFLOAD_POOL = "1";
+  await offload.prewarmCutout(rawId, products.CUTOUT_CHAIN);
+  assert.deepEqual(poolUploads().map((u) => `${u.cloud} ${u.public_id}`), [`pooltwo s2s-offload/${rawId}`]);
+  assert.equal(calls.probes.filter((u) => u.includes("/pooltwo/") && u.includes("e_background_removal")).length, 1, "derivation started");
+  // the ranking changes, but the cutout goes where the render already started, reusing the copy
+  pool.__resetPoolState();
+  credits.pooltwo = { usage: 10, limit: 25 };
+  const cut = await products.ensureCutout(SKU);
+  assert.equal(cut.created, true);
+  assert.equal(poolUploads().length, 1, "no second copy");
+  assert.match(mainUploads("/cutout")[0].file, /\/pooltwo\//);
+});
+
+test("prewarm: bounded and silent when the pool is slow or failing", async () => {
+  process.env.S2S_OFFLOAD_POOL = "1";
+  await seedProduct();
+  failUpload.add("pooltwo");
+  const t0 = Date.now();
+  await offload.prewarmCutout(rawId, products.CUTOUT_CHAIN, 300);
+  assert.ok(Date.now() - t0 < 1000);
+  assert.ok(logs.some((l) => l.startsWith("[offload] cutout prewarm:")));
+  assert.ok(!SECRETS.some((x) => logs.join("\n").includes(x)));
 });

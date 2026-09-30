@@ -19,7 +19,7 @@ import { assetInfo, deliveryUrl, mainAuth, probe, uploadToMain, type AssetInfo, 
 import { assertLivePipeline } from "./budget";
 import { loadProduct, updateProduct, type LoadedProduct } from "./facts";
 import { HttpError, notFound, pending } from "./http";
-import { offloadCutout } from "./offload";
+import { offloadCutout, prewarmCutout } from "./offload";
 import { readOnly } from "./protect";
 import { fixesFromContext } from "./retouch-plan";
 
@@ -183,6 +183,8 @@ export async function analyzeProduct(sku: Sku, opts: { readOnly?: boolean } = {}
     withPooledAccount("object_detection", (a) => captioning(a, source)),
     withPooledAccount("ai_vision", (a) => visionGeneral(a, source, [UNDERSTANDING_PROMPT])),
     cldSafe("explicit-quality", () => cloudinary.uploader.explicit(raw.publicId, { ...mainAuth(), type: "upload", quality_analysis: true })),
+    // ── [offload] S2S_OFFLOAD_POOL=1: start the cutout's key-pool render while AI Vision reads the photo (no-op otherwise)
+    prewarmCutout(cutoutSourceFrom(sku, raw.context), CUTOUT_CHAIN),
   ]);
 
   const captionText = caption.status === "fulfilled" ? caption.value.result.caption : "";

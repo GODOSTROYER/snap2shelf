@@ -93,6 +93,12 @@ const msgOf = (err: unknown) => clean(String((err as Error)?.message ?? err));
 
 /** Main's upload of the finished image failed: main's side, the pool account is not to blame. */
 class SaveError extends Error {}
+/**
+ * The derivation answered 400 (e.g. "Invalid input for gen_recolor": the named
+ * part isn't found in this photo). It's about this image, not the account: no
+ * bench, no second pool account; main's path decides, exactly as without offload.
+ */
+class InputError extends Error {}
 
 /**
  * Run `attempt` on the best pool account, then the next one on failure (the
@@ -126,6 +132,10 @@ async function onPool<T>(what: string, key: string, cost: number, deadline: numb
         console.warn(`[offload] ${what}: main could not store the ${account.label} render (${msgOf(err)}); main renders it`);
         return null;
       }
+      if (err instanceof InputError) {
+        console.warn(`[offload] ${what}: ${account.label} rejected this input (${msgOf(err)}); main's path decides`);
+        return null;
+      }
       bench(account, "transformations", isQuotaError(err) ? QUOTA_BENCH_MS : ERROR_BENCH_MS);
       console.warn(`[offload] ${what}: ${account.label} failed (${msgOf(err)}); ${n + 1 < list.length ? "trying the next pool account" : "main renders it"}`);
     }
@@ -139,7 +149,8 @@ type Probe = "ready" | "pending";
  * Wait for a pool derivation: 200 ready; 423 (still processing) or a timeout is
  * "pending" once the deadline passes. `loop` keeps probing every 1.5 s until then
  * (the cutout; a pack poll probes once, like main's materialiser). Anything else
- * throws: 420 / 429 as a quota error (the account is out of credits or throttled).
+ * throws: 420 / 429 as a quota error (the account is out of credits or throttled),
+ * 400 as an InputError (this image), the rest as an account failure.
  */
 async function waitDerived(url: string, deadline: number, loop: boolean): Promise<Probe> {
   for (;;) {
@@ -148,6 +159,7 @@ async function waitDerived(url: string, deadline: number, loop: boolean): Promis
     const p = await probe(url, Math.max(1000, left - (loop ? 0 : 1000)));
     if (p.status === 200) return "ready";
     if (p.status === 420 || p.status === 429) throw new QuotaError(`delivery HTTP ${p.status} ${p.error ?? ""}`.trim(), p.status);
+    if (p.status === 400) throw new InputError(`delivery HTTP 400 ${p.error ?? ""}`.trim());
     if (p.status !== 423 && p.status !== 0) throw new Error(`delivery HTTP ${p.status} ${p.error ?? ""}`.trim());
     if (!loop || deadline - Date.now() < 2500) return "pending";
     await sleep(1500);
@@ -177,6 +189,28 @@ export async function offloadCutout<T>(o: { source: string; chain: string; deadl
     if ((await waitDerived(src, o.deadline, true)) === "pending") return "pending";
     return saveOrMark(o.save, src);
   });
+}
+
+/**
+ * Start the cutout's pool render early, while analyze waits on AI Vision (≈4 s):
+ * copy `source` to the pool account the cutout will use and send one HEAD, which
+ * starts the derivation (it continues after the HEAD gives up), so POST /cutout
+ * later finds it ready. Best effort: never throws, never takes longer than `capMs`.
+ * If the cutout ends up cut from another source (a retouched photo), only pool
+ * credits were spent.
+ */
+export async function prewarmCutout(source: string, chain: string, capMs = 3500): Promise<void> {
+  if (!offloadEnabled()) return;
+  const work = (async () => {
+    const [account] = await candidates(source, OFFLOAD_COST.cutout);
+    if (!account) return;
+    picks.set(source, account.label);
+    const copy = await ensurePoolCopy(account, deliveryUrl(source), source);
+    await probe(poolDeliveryUrl(account, chain, copy), 800);
+  })().catch((err: unknown) => console.warn(`[offload] cutout prewarm: ${msgOf(err)}`));
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  await Promise.race([work, new Promise<void>((r) => (timer = setTimeout(r, capMs)))]);
+  clearTimeout(timer);
 }
 
 /**
