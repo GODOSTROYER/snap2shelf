@@ -193,6 +193,7 @@ export default async function Home() {
               {isBuiltUrl(hero.xray) ? (
                 <UrlAnatomy
                   built={hero.xray}
+                  alt={hero.alt}
                   note={
                     <>
                       Each <code className="font-mono text-[0.9em] break-all text-paper/90">l_{kit.product.cutout?.publicId.replaceAll("/", ":")}</code> layer is this sample{" "}

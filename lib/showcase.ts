@@ -7,8 +7,9 @@
  * stored asset or an already-rendered transformation.
  *
  * Two sources:
- *  - the featured sneaker (hand-assembled below): the landing hero, with a
- *    "before" photo aligned to the hero for the wipe slider;
+ *  - the hand-assembled sneaker (below): the original landing hero, still
+ *    reachable by link (the landing now features PRIMARY_SAMPLE, the steel
+ *    bottle, whose "before" is built from its raw photo alone, see landingBeforeAt);
  *  - the seeded kits (scripts/seed-showcase.mts → data/showcase.json): full
  *    live runs with a stored pack, reel, signed ZIP, step timings and every QA
  *    attempt (including real rejections the replay retells).
