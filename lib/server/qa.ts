@@ -7,6 +7,7 @@ import type { QaResult, Sku } from "../types";
 import { deliveryUrl, probe } from "./cld";
 import { HttpError } from "./http";
 import { pinJpeg } from "./guard";
+import { prebuiltQa } from "./prebuilt";
 import { cutoutId } from "./products";
 
 /**
@@ -104,11 +105,28 @@ export function decideFidelity(matched: string[], verdict: z.infer<typeof verdic
   };
 }
 
+/**
+ * Exact-QA verdicts by composite URL (this instance, 6 h): the same URL is the
+ * same image, so asking again (sample runs, "Update kit" with nothing changed)
+ * costs no AI Vision tokens. Showcase composites answer from their recorded verdict.
+ */
+const EXACT_TTL_MS = 6 * 3_600_000;
+const exactVerdicts = new Map<string, { qa: QaResult; at: number }>();
+
 export async function exactQa(url: string): Promise<QaOutcome> {
-  const fetchable = pinJpeg(url);
+  // q_90 JPEG: the very derivative POST /api/pack saves as the hero, so QA and pack share it.
+  const fetchable = pinJpeg(url, "q_90");
+  const recorded = prebuiltQa(url);
+  if (recorded) return { qa: recorded, tokens: 0 };
+  const hit = exactVerdicts.get(fetchable);
+  if (hit && Date.now() - hit.at < EXACT_TTL_MS) return { qa: hit.qa, tokens: 0 };
   await ensureRenderable(fetchable);
   const { result } = await withPooledAccount("ai_vision", (a) => visionTagging(a, { uri: fetchable }, EXACT_TAGS));
-  return { qa: decideExact(result.matched), tokens: result.quota?.usedByRequest ?? 0 };
+  const qa = decideExact(result.matched);
+  exactVerdicts.delete(fetchable);
+  exactVerdicts.set(fetchable, { qa, at: Date.now() });
+  if (exactVerdicts.size > 300) exactVerdicts.delete(exactVerdicts.keys().next().value as string);
+  return { qa, tokens: result.quota?.usedByRequest ?? 0 };
 }
 
 /** Reference cutout (left) next to the candidate (right) as one transformation URL. */
