@@ -142,7 +142,7 @@ export function RetouchCard({ sku, autoStart = true, onDone, onError, client = f
             )}
           </p>
         </div>
-        {phase.kind === "reading" || phase.kind === "fixing" ? (
+        {(phase.kind === "reading" && !busyIn) || phase.kind === "fixing" ? (
           <span aria-hidden className="mt-1 inline-flex shrink-0 items-center gap-1.5 rounded-full bg-marigold/14 px-2.5 py-1 text-[0.72rem] font-semibold text-marigold-hi ring-1 ring-marigold/35 ring-inset">
             <ScanEye className="size-3.5" />
             {phase.kind === "reading" ? "AI Vision" : "Retouching"}
@@ -233,8 +233,8 @@ export function RetouchCard({ sku, autoStart = true, onDone, onError, client = f
           ) : null}
 
           <p className="tabular text-[0.78rem] text-faint">
-            {fixed ? `About ${res.tx.toLocaleString("en-IN")} transformations, ` : ""}
-            {res.tokens ? `${res.tokens.toLocaleString("en-IN")} AI Vision tokens` : "plan reused, 0 AI tokens"}
+            {fixed ? `About ${res.tx.toLocaleString("en-IN")} ${res.tx === 1 ? "transformation" : "transformations"}, ` : ""}
+            {res.tokens ? `${res.tokens.toLocaleString("en-IN")} AI Vision tokens` : fixed ? "plan reused, 0 AI tokens" : "Plan reused, 0 AI tokens"}
             {res.ms ? `, answered in ${(res.ms / 1000).toFixed(1)} s` : ""}
           </p>
         </motion.div>

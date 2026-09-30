@@ -52,7 +52,7 @@ export function LabBench() {
   const [scene, setScene] = React.useState<{ scene: Scene; choice: SceneChoice } | null>(null);
   const [fixes, setFixes] = React.useState<RetouchFix[] | null>(null);
   const product = PRODUCTS.find((p) => p.sku === sku)!;
-  const theme = applied?.theme ?? brief?.kit.theme;
+  const theme = brief?.kit.theme ?? applied?.theme; // the latest parse leads
   const view = SCENE_THEMES.find((t) => t.slug === theme)?.view ?? "eye-level";
 
   const pick = (s: LabSku) => {
@@ -115,7 +115,7 @@ export function LabBench() {
           </Bench>
 
           <Bench title="Receipt" where="On the kit view, under the shelves. Pass the staged scene's publicId." width="lg:w-[24rem]">
-            <CostReceipt key={sku} sku={sku} scene={scene?.scene.publicId ?? DEFAULT_SCENE} />
+            <CostReceipt key={sku} sku={sku} scene={scene?.scene.publicId ?? DEFAULT_SCENE} refreshKey={fixes ? "retouched" : ""} />
           </Bench>
 
           <Bench

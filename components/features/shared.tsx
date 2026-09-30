@@ -136,6 +136,7 @@ export function Notice({
   children,
   onRetry,
   retryLabel = "Try again",
+  retryIcon,
   retryIn,
   className,
 }: {
@@ -144,6 +145,7 @@ export function Notice({
   children?: React.ReactNode;
   onRetry?: () => void;
   retryLabel?: string;
+  retryIcon?: React.ReactNode;
   retryIn?: number; // seconds until an automatic retry
   className?: string;
 }) {
@@ -172,7 +174,7 @@ export function Notice({
       </div>
       {onRetry ? (
         <Button size="sm" variant="secondary" onClick={onRetry} className="self-start sm:self-center">
-          <RefreshCw />
+          {retryIcon ?? <RefreshCw />}
           {retryLabel}
         </Button>
       ) : null}

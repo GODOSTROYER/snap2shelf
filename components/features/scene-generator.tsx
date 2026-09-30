@@ -203,6 +203,7 @@ export function SceneGenerator({ sku, theme, prompt, view, selectedId, onSelect,
                   type="button"
                   role="radio"
                   aria-checked={on}
+                  aria-label={m.reasons[0] ? `${m.scene.title}, ${matchReason(m.reasons[0])}` : m.scene.title}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.45, delay: i * 0.05, ease: EXPO }}
@@ -240,12 +241,17 @@ export function SceneGenerator({ sku, theme, prompt, view, selectedId, onSelect,
 
       {/* ── generate a new one */}
       <div className="grid gap-3 rounded-2xl bg-stage-2/60 p-4 ring-1 ring-line">
-        <label className="grid gap-1.5 text-sm" htmlFor={`${ids}-prompt`}>
-          <span className="font-medium text-paper">Describe a new backdrop</span>
-          <span className="text-[0.8rem] text-dim">An empty surface and background. No product, text or people: the scene check keeps those out.</span>
-        </label>
+        <div className="grid gap-1.5 text-sm">
+          <label htmlFor={`${ids}-prompt`} className="font-medium text-paper">
+            Describe a new backdrop
+          </label>
+          <p id={`${ids}-hint`} className="text-[0.8rem] text-dim">
+            An empty surface and background. No product, text or people: the scene check keeps those out.
+          </p>
+        </div>
         <textarea
           id={`${ids}-prompt`}
+          aria-describedby={`${ids}-hint`}
           value={text}
           maxLength={300}
           rows={3}
@@ -307,7 +313,7 @@ export function SceneGenerator({ sku, theme, prompt, view, selectedId, onSelect,
         ) : gen.kind === "error" ? (
           <motion.div key={`err-${gen.message}`} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
             {gen.locked ? (
-              <Notice tone="info" title="New scenes need the access code" onRetry={() => setAskCode(true)} retryLabel="Enter access code">
+              <Notice tone="info" title="New scenes need the access code" onRetry={() => setAskCode(true)} retryLabel="Enter access code" retryIcon={<KeyRound />}>
                 {gen.message}
               </Notice>
             ) : (

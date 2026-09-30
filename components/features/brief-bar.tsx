@@ -149,7 +149,7 @@ export function BriefBar({ sku, onApply, onResult, defaultBrief = "", defaultFes
             enterKeyHint="go"
             className="h-12 min-w-0 flex-1 bg-transparent text-base text-ellipsis text-paper focus:outline-none disabled:cursor-not-allowed"
           />
-          <Button type="submit" disabled={disabled || reading} className="h-11 shrink-0 max-sm:w-11 max-sm:px-0" aria-label="Build the kit settings">
+          <Button type="submit" disabled={disabled || reading} className="h-11 shrink-0 max-sm:w-11 max-sm:px-0">
             {reading ? <span aria-hidden className="size-[18px] animate-spin rounded-full border-2 border-marigold-ink/30 border-t-marigold-ink" /> : <ArrowUp className="sm:hidden" />}
             <span className="max-sm:sr-only">{reading ? "Reading…" : "Build kit"}</span>
           </Button>

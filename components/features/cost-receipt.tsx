@@ -39,7 +39,6 @@ const PRINT_MS = 1500;
 export function CostReceipt({ sku, scene, refreshKey, photoshootInr = PHOTOSHOOT_INR, client = featuresClient, className }: CostReceiptProps) {
   const [state, setState] = React.useState<State>({ kind: "loading" });
   const [attempt, setAttempt] = React.useState(0);
-  const titleId = React.useId();
 
   React.useEffect(() => {
     const ctl = new AbortController();
@@ -76,10 +75,7 @@ export function CostReceipt({ sku, scene, refreshKey, photoshootInr = PHOTOSHOOT
   };
 
   return (
-    <section aria-labelledby={titleId} className={cn("mx-auto w-full max-w-[26rem]", className)}>
-      <h2 id={titleId} className="sr-only">
-        What this kit cost
-      </h2>
+    <section aria-label="What this kit cost" className={cn("mx-auto w-full max-w-[26rem]", className)}>
       {/* the printer's slot */}
       <div aria-hidden className="relative z-10 mx-0 h-3.5 rounded-full bg-[color-mix(in_srgb,var(--color-studio)_40%,black)] shadow-[inset_0_2px_4px_rgb(0_0_0/0.9),0_1px_0_rgb(245_237_225/0.08)]" />
       <div className="-mt-2 overflow-hidden px-2.5 pt-1.5 pb-8">
@@ -139,7 +135,7 @@ function Printed({ data, photoshootInr }: { data: CostResponse; photoshootInr: n
   const date = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 
   const lines: { label: string; value: number; unit: (n: number) => string; note?: string; tone?: "saved" }[] = [
-    { label: "Image generation", value: c.generationCredits, unit: (n) => `${int(n)} ${Math.round(n) === 1 ? "credit" : "credits"}`, note: c.generationCredits === 0 ? "Your real photo, composited" : undefined },
+    { label: "Image generation", value: c.generationCredits, unit: (n) => `${int(n)} ${Math.round(n) === 1 ? "credit" : "credits"}`, note: c.generationCredits === 0 ? "Nothing generated: your real photo is used" : undefined },
     { label: "Saved by reusing a scene", value: c.creditsSavedByReuse, unit: (n) => `${int(n)} ${Math.round(n) === 1 ? "credit" : "credits"}`, tone: "saved" },
     { label: "AI Vision", value: c.aiVisionTokens, unit: (n) => `${int(n)} tokens` },
     { label: "Transformations", value: c.transformationsEstimate, unit: (n) => int(n), note: "Estimate" },
@@ -156,7 +152,7 @@ function Printed({ data, photoshootInr }: { data: CostResponse; photoshootInr: n
       <Paper>
         <div className="px-5 pt-5 pb-8 font-mono text-[0.8rem] leading-relaxed text-studio">
           <div className="text-center">
-            <p className="font-display text-[1.35rem] leading-none font-bold tracking-[-0.02em]">What this kit cost</p>
+            <h2 className="font-display text-[1.35rem] leading-none font-bold tracking-[-0.02em]">What this kit cost</h2>
             <p className="mt-2 text-[0.72rem] text-studio/65">
               Kit {data.sku} · {date}
             </p>
