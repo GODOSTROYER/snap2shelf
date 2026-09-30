@@ -205,7 +205,7 @@ Lessons we paid for:
 
 ## Architecture
 
-<p align="center"><img src="https://res.cloudinary.com/nyxyma1i/image/upload/f_png,w_1600/snap2shelf/docs/architecture" width="880" alt="Architecture diagram. Seller phone and laptop upload photos directly to Cloudinary's Upload API with signatures from Next.js route handlers on Vercel. The route handlers call Cloudinary's Upload, Analyze and Image Generation APIs; AI calls go through a key pool that can also use two organiser-approved pool environments, whose results are copied into the main environment. Every image, video and zip is delivered back to browsers as a Cloudinary URL."></p>
+<p align="center"><img src="https://res.cloudinary.com/nyxyma1i/image/upload/f_png,w_1600/v1790759006/snap2shelf/docs/architecture" width="880" alt="Architecture diagram. Seller phone and laptop upload photos directly to Cloudinary's Upload API with signatures from Next.js route handlers on Vercel. The route handlers call Cloudinary's Upload, Analyze and Image Generation APIs; AI calls go through a key pool that can also use two organiser-approved pool environments, whose results are copied into the main environment. Every image, video and zip is delivered back to browsers as a Cloudinary URL."></p>
 
 <sub>The diagram is an SVG ([`docs/architecture.svg`](docs/architecture.svg)) stored in Cloudinary and rasterised on delivery with `f_png,w_1600`. `node --import tsx scripts/docs/upload-diagram.mts` re-uploads it.</sub>
 
