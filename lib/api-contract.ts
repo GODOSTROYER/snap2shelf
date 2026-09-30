@@ -27,6 +27,7 @@ export interface ApiError {
     | "not_found"
     | "pending" // try again shortly (Cloudinary 423 still processing, or a rate-limit wait ≤ 15 s on a polled route); 202 + retryAfterMs
     | "locked" // access code required
+    | "read_only" // 403: a sample / showcase product or shelf (or another browser's product) can't be changed from this session; show `error` as written
     | "cap_reached" // per-session generation cap hit
     | "quota_low" // pool below threshold, main's transformation credits at the floor, or Cloudinary's hourly Admin API limit hit (retryAfterMs says when) → UI switches to showcase
     | "upstream"; // Cloudinary error
