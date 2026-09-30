@@ -501,14 +501,16 @@ The spikes themselves used 16 generation credits, about 7,100 AI Vision tokens, 
 ### The key pool (disclosed, approved by the organisers)
 
 > [!NOTE]
-> Image generation, AI Vision and captioning calls rotate across **three Cloudinary product environments**: our main one plus two extra free environments. **The hackathon organisers approved this.** We disclose it here because it is how a free-plan demo survives a day of judges pressing "generate".
+> Image generation, AI Vision, captioning and the heaviest AI transformations rotate across **three Cloudinary product environments**: our main one plus two extra free environments. **The hackathon organisers approved this.** We disclose it here because it is how a free-plan demo survives a day of judges pressing "generate".
 
 How it works ([`lib/cloudinary/pool.ts`](lib/cloudinary/pool.ts)):
 
 - Each call goes to the environment with the **most quota left** for that capability (`image_generation`, `ai_vision`, `object_detection` for captioning), ties going to main.
 - Quota is known from two sources: the Admin API `usage` endpoint (refreshed at most every 10 minutes) and the `limits` block that every generate and analyze response carries (real time). The lower estimate wins.
 - An environment is skipped when it would drop below a **floor** (2 generation credits, 2,000 AI Vision tokens, 5 detections), and **benched for an hour** when it answers with a quota or rate-limit error; the call moves on to the next one.
-- Every generated image is **copied into the main environment** (upload by URL), where all storage, layering, search and delivery happen.
+- Every generated image (and every offloaded render, below) is **copied into the main environment** (upload by URL), where all storage, layering, search and delivery happen.
+
+**Heavy AI transformations run on the pool too** (`S2S_OFFLOAD_POOL=1`; [`lib/server/offload.ts`](lib/server/offload.ts)). A kit's expensive effects (background removal, about 75 transformations; generative fill for the story and banner, about 50 each; generative recolor, about 50 per colour) run on a pool environment instead of main. That environment receives a plain copy of the seller's photo or of the approved hero (upload by URL), applies the effect on its own credits, and the finished image is stored in main under the same public id, tags and context as before. Everything is still served, layered and zipped from main, so a live kit costs main **about 8 transformations instead of about 190**. The environment is chosen like the others (most credits left, a floor of 2 credits, benched after an error); if none can do it, main renders the effect exactly as before. Pool URLs never reach the browser, the kit, the ZIP or the product facts, and the cost receipt marks these rows "key pool".
 
 What never leaves the server: every API key and secret, and the names of the pool environments. `/api/usage` returns pool **totals** only; a job handle is an AES-256-GCM sealed token, so the browser can't read which environment runs it; and [`scripts/e2e-http.mts`](scripts/e2e-http.mts) scans every API response for pool cloud names, pool labels, secrets, the access code and stack traces, and fails if any appears.
 
@@ -569,12 +571,13 @@ In your Cloudinary security settings, make sure **Resource list** is not a restr
 | `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | yes | server-only; the secret also derives the keys for the session cookie and job tokens |
 | `NEXT_PUBLIC_CLOUDINARY_API_KEY` | yes, for the Upload Widget | the API key (public by design for signed widget uploads; never the secret) |
 | `CLOUDINARY_URL` | optional | the same credentials in URL form, for the SDK |
-| `CLOUDINARY_POOL_<n>_CLOUD_NAME`, `_API_KEY`, `_API_SECRET` | optional | extra environments for the key pool (generation, AI Vision and captioning only) |
+| `CLOUDINARY_POOL_<n>_CLOUD_NAME`, `_API_KEY`, `_API_SECRET` | optional | extra environments for the key pool (generation, AI Vision, captioning and offloaded AI transformations) |
 | `DEMO_ACCESS_CODE` | for live generation | the code that unlocks Creative mode and new scenes |
 | `NEXT_PUBLIC_SITE_URL` | yes | e.g. `http://localhost:3000`; used for QR codes and links |
 | `LIVE_GEN_CAP`, `LIVE_GEN_MIN`, `OPEN_OP_CAP` | optional | defaults 4, 12 and 60 (see [How judges can test](#how-judges-can-test)) |
 | `LIVE_TX_MAX_USED` | optional | main's transformation-credit floor, default 21 of 25; `0` turns the live pipeline off |
 | `ADMIN_API_RESERVE` | optional | stop calling the Admin API when this many calls are left in the hour (default 5) |
+| `S2S_OFFLOAD_POOL` | optional | `1` renders background removal, generative fill and generative recolor on a pool environment and stores the results in main |
 | `S2S_DEBUG_ADMIN` | optional | `1` sends `x-s2s-admin-calls` debug headers in production too |
 
 </details>
