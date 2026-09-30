@@ -212,3 +212,26 @@ export interface CostResponse {
   wallClockSeconds: number | null; // raw upload → newest hero/pack asset (created_at), null without a hero
   estimated: true; // transformation counts are estimates from the documented per-effect counts
 }
+
+// ---------------------------------------------------------------- shelf & readiness (additive, feat/shelf)
+// Types live next to their logic (lib/shelf/types.ts, lib/readiness.ts); re-exported here so the UI has one import.
+export type {
+  CollectionItem,
+  CollectionRequest, // POST /api/collection   { skus[2..6], scenePublicId }
+  CollectionResponse,
+  PlateBox,
+  Shelf,
+  ShelfGetResponse, // GET  /api/shelf/:shop  (public, cached 60 s)
+  ShelfItem,
+  ShelfRequest, // POST /api/shelf        { shop, title, tagline?, skus[1..12] }
+  ShelfResponse,
+} from "./shelf/types";
+export type { ApplicableFix, CheckId, CheckStatus, Grade, ReadinessCheck, ReadinessFix, ReadinessReport } from "./readiness";
+
+// GET  /api/readiness/:sku[?vision=0]                      → { report, tokens }
+// POST /api/readiness/:sku { fixes: ["repad"|"sharpen"] } → re-materialise the marketplace image, then { report, tokens, applied }
+export interface ReadinessResponse {
+  report: import("./readiness").ReadinessReport;
+  tokens: number; // AI Vision tokens spent by this call (0 when cached)
+  applied?: { publicId: string; transformation: string };
+}
