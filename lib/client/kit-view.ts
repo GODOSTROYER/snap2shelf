@@ -5,13 +5,15 @@
 import { deliveryBase } from "../transform/composite";
 import { XRAY_KINDS } from "../transform/xray";
 import type { Kit, KitAsset, XraySegment } from "../types";
+import { sizedUrl, storedUrl } from "./img";
+import { reelCover, type ReelCover } from "./reel-cover";
 
 /** CSS colour for an X-ray segment kind: the theme token, with the module's swatch as fallback. */
 export const xrayColor = (kind: XraySegment["kind"]) => `var(${XRAY_KINDS[kind].token}, ${XRAY_KINDS[kind].swatch})`;
 
 export type ShelfItem =
   | { kind: "asset"; key: string; asset: KitAsset }
-  | { kind: "reel"; key: string; asset: KitAsset; src: string; poster: string };
+  | { kind: "reel"; key: string; asset: KitAsset; src: string; poster: string; cover: ReelCover };
 
 export interface ShelfGroup {
   id: string;
@@ -30,14 +32,31 @@ export function reelPoster(kit: Kit, w = 360) {
   return `${deliveryBase(cloud)}/c_fill,w_720,h_1280,g_center/c_scale,w_${w}/f_auto,q_auto/${id}`;
 }
 
+/**
+ * The stills that keep the reel lit through its fade-ups (lib/client/reel-cover.ts): the poster
+ * for the first clip, then each clip's own kit image at the shelf's smallest fixed width (the
+ * same URL a small card already loads), so no new derived image is asked for.
+ */
+function reelStills(kit: Kit, poster: string): ReelCover {
+  const cloud = /res\.cloudinary\.com\/([^/]+)\//.exec(kit.reel!.url)?.[1];
+  const known = [kit.hero, ...kit.assets];
+  return reelCover(kit.reel!.xray, (id, i) => {
+    if (i === 0) return poster;
+    const a = known.find((o) => o.publicId === id);
+    return a ? sizedUrl(a, 360) : storedUrl(id, 360, cloud);
+  });
+}
+
 /** Pseudo-asset for the reel so it can sit in a frame like everything else. */
 export function reelAsset(kit: Kit): ShelfItem | null {
   if (!kit.reel) return null;
+  const poster = reelPoster(kit);
   return {
     kind: "reel",
     key: "reel",
     src: kit.reel.url,
-    poster: reelPoster(kit),
+    poster,
+    cover: reelStills(kit, poster),
     asset: {
       id: "reel",
       format: "story",

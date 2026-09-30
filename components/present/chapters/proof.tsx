@@ -6,8 +6,8 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import { SAMPLE_PHOTO_LABEL } from "@/lib/claims";
 import type { QaCard } from "@/lib/present/data";
 import { preloadedVideo, preloadVideo } from "@/lib/present/preload";
-import { REEL_MOVES } from "@/lib/transform/reel";
-import type { BuiltUrl, KitAsset } from "@/lib/types";
+import { cardHoleMask, clipStarts, HANDOFF, kenBurnsAt, LEAD, reelCard, reelFade, stillAt } from "@/lib/client/reel-cover";
+import type { KitAsset } from "@/lib/types";
 import { CatalogTileFrame, FeedPostFrame, ListingCardFrame, PhoneFrame, StoryFrame, WebBannerFrame, type ShopFacts } from "../frames";
 import { EASE, Img, Mark, useBeat } from "../stage";
 import { abs, Rise, type ChapterProps } from "./common";
@@ -280,61 +280,6 @@ export function ChannelPack({ d }: ChapterProps) {
 
 // ─── 8. Kit Reel ──────────────────────────────────────────────────────────────
 
-/** Fade-up baked into the reel URL (e_fade:400 → 0.4 s): each clip after the first rises from black. */
-const reelFade = (b: BuiltUrl) => Number(/\be_fade:(\d+)/.exec(b.transformation)?.[1] ?? 0) / 1000;
-
-interface ReelCard {
-  frame: { w: number; h: number };
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  r: number;
-}
-
-/** The offer card laid over the reel (…/l_<id>/c_scale,w_W,h_H/…/r_R/…/fl_layer_apply,g_north,y_Y), in frame px. */
-function reelCard(b: BuiltUrl): ReelCard | null {
-  const frame = /c_fill,w_(\d+),h_(\d+)/.exec(b.transformation);
-  const card = /\/l_[^/]+\/c_scale,w_(\d+),h_(\d+)\/(?:[^/]+\/)*?fl_layer_apply,g_north,y_(\d+)/.exec(b.transformation);
-  if (!frame || !card) return null;
-  const fw = Number(frame[1]);
-  const [w, h, y] = [Number(card[1]), Number(card[2]), Number(card[3])];
-  const r = Number(/\/r_(\d+)\//.exec(card[0])?.[1] ?? 0);
-  return { frame: { w: fw, h: Number(frame[2]) }, x: (fw - w) / 2, y, w, h, r };
-}
-
-/** An SVG mask: the whole frame minus the offer card, so a still laid over the reel never hides the card. */
-function cardHoleMask({ frame: F, x, y, w, h, r }: ReelCard): string {
-  const hole = `M${x + r} ${y}H${x + w - r}A${r} ${r} 0 0 1 ${x + w} ${y + r}V${y + h - r}A${r} ${r} 0 0 1 ${x + w - r} ${y + h}H${x + r}A${r} ${r} 0 0 1 ${x} ${y + h - r}V${y + r}A${r} ${r} 0 0 1 ${x + r} ${y}Z`;
-  const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 ${F.w} ${F.h}' preserveAspectRatio='none'><path fill-rule='evenodd' d='M0 0H${F.w}V${F.h}H0Z${hole}'/></svg>`;
-  return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
-}
-
-/** CSS transform (origin 0 0) that frames a still like the clip's Ken Burns move at progress p (0..1). */
-function kenBurnsAt(move: string, p: number): string | undefined {
-  const m = REEL_MOVES.find((r) => r.label === move);
-  if (!m) return undefined;
-  const parse = (s: string) => {
-    const o: Record<string, number> = { zoom: 1, x: 0.5, y: 0.5 };
-    for (const kv of s.split(";")) {
-      const [k, v] = kv.split("_");
-      if (k in o && Number.isFinite(Number(v))) o[k] = Number(v);
-    }
-    return o;
-  };
-  const a = parse(m.from);
-  const b = parse(m.to);
-  const z = a.zoom + (b.zoom - a.zoom) * p;
-  const edge = 0.5 / z; // e_zoompan keeps its window inside the frame
-  const cx = Math.min(1 - edge, Math.max(edge, a.x + (b.x - a.x) * p));
-  const cy = Math.min(1 - edge, Math.max(edge, a.y + (b.y - a.y) * p));
-  return `translate(${((0.5 - z * cx) * 100).toFixed(2)}%, ${((0.5 - z * cy) * 100).toFixed(2)}%) scale(${z.toFixed(4)})`;
-}
-
-/** Seconds a still covers the reel at the start of a faded clip (LEAD before the cut, then the fade), and its hand-over. */
-const LEAD = 0.07;
-const HANDOFF = 0.3;
-
 export function Reel({ d }: ChapterProps) {
   const reel = d.reel!;
   // start on the preloaded copy when the deck already fetched it (no second load, no reset mid-chapter)
@@ -356,7 +301,7 @@ export function Reel({ d }: ChapterProps) {
     v.currentTime = 0;
     v.play().catch(() => {});
   }, [src]);
-  // clips are read back from the reel URL (lib/present/data.ts reelClipsFromUrl), so this count is the video's
+  // clips are read back from the reel URL (lib/transform/reel.ts reelClipsFromUrl), so this count is the video's
   const clips = reel.clips.length;
   const per = reel.clips[0]?.seconds || reel.seconds / Math.max(1, clips);
   const fade = reelFade(reel.built);
@@ -371,8 +316,7 @@ export function Reel({ d }: ChapterProps) {
     const v = video.current;
     const c = cover.current;
     if (!v || !c) return;
-    const lens = startsKey.split(",").map(Number);
-    const starts = lens.map((_, i) => lens.slice(0, i).reduce((n, s) => n + s, 0));
+    const starts = clipStarts(startsKey.split(",").map(Number));
     let raf = 0;
     let shown = -1;
     let playingAt = 0;
@@ -394,13 +338,8 @@ export function Reel({ d }: ChapterProps) {
       }
       const intro = 1 - (now - playingAt) / (HANDOFF * 1000);
       if (intro > 0 && (starts.length < 2 || time < starts[1] - LEAD)) return show(0, intro);
-      if (fade > 0) {
-        for (let i = 1; i < starts.length; i++) {
-          const b = starts[i];
-          if (time >= b - LEAD && time < b + fade) return show(i, 1);
-          if (time >= b + fade && time < b + fade + HANDOFF) return show(i, 1 - (time - b - fade) / HANDOFF);
-        }
-      }
+      const still = stillAt(time, starts, fade);
+      if (still) return show(still.clip, still.opacity);
       show(Math.max(0, shown), 0);
     };
     raf = requestAnimationFrame(tick);

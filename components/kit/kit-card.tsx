@@ -26,7 +26,7 @@ export function KitCard({ item, product, reelReady = true }: { item: ShelfItem; 
           asset={a}
           product={product}
           frame={item.kind === "reel" ? "reel" : undefined}
-          media={item.kind === "reel" ? <ReelVideo src={item.src} poster={item.poster} label={a.alt} ready={reelReady} /> : undefined}
+          media={item.kind === "reel" ? <ReelVideo src={item.src} poster={item.poster} cover={item.cover} label={a.alt} ready={reelReady} /> : undefined}
         />
       </div>
       <ShelfTag asset={a}>
