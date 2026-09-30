@@ -3,8 +3,8 @@
 import { ChevronDown } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import * as React from "react";
-import { PHOTOSHOOT_INR } from "@/components/kit/receipt";
 import type { CostResponse } from "@/lib/api-contract";
+import { PHOTOSHOOT_INR_ESTIMATE, PHOTOSHOOT_NOTE } from "@/lib/claims";
 import { BUSY_RETRIES, featureMessage, featuresClient, formatBytes, formatLabel, isBusy, type FeaturesClient } from "@/lib/client/features";
 import { cn, isAborted, sleep } from "@/lib/client/util";
 import type { Sku } from "@/lib/types";
@@ -21,6 +21,11 @@ export interface CostReceiptProps {
   client?: FeaturesClient;
   /** A ledger already in hand (a sample's saved run, a server render): printed without a request. */
   initial?: CostResponse;
+  /**
+   * A saved sample's receipt: the note under its processing time (what that run
+   * did). No end-to-end line: the seed script's own upload isn't a seller's.
+   */
+  replay?: string;
   className?: string;
 }
 
@@ -38,7 +43,7 @@ const PRINT_MS = 1500;
  * each line counts up as it prints, and the photo's weight counts down from the
  * original upload to what a browser actually downloads.
  */
-export function CostReceipt({ sku, scene, refreshKey, photoshootInr = PHOTOSHOOT_INR, client = featuresClient, initial, className }: CostReceiptProps) {
+export function CostReceipt({ sku, scene, refreshKey, photoshootInr = PHOTOSHOOT_INR_ESTIMATE, client = featuresClient, initial, replay, className }: CostReceiptProps) {
   const [state, setState] = React.useState<State>(initial ? { kind: "ready", data: initial } : { kind: "loading" });
   const hasInitial = !!initial;
   const [attempt, setAttempt] = React.useState(0);
@@ -85,7 +90,7 @@ export function CostReceipt({ sku, scene, refreshKey, photoshootInr = PHOTOSHOOT
       <div className="-mt-2 overflow-hidden px-2.5 pt-1.5 pb-8">
         <AnimatePresence mode="wait" initial={false}>
           {state.kind === "ready" ? (
-            <Printed key={`ready-${attempt}-${String(refreshKey ?? "")}`} data={state.data} photoshootInr={photoshootInr} />
+            <Printed key={`ready-${attempt}-${String(refreshKey ?? "")}`} data={state.data} photoshootInr={photoshootInr} replay={replay} />
           ) : state.kind === "error" ? (
             <motion.div key="error" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="pt-3">
               <Notice
@@ -125,7 +130,7 @@ function Printing({ busyUntil }: { busyUntil?: number }) {
   );
 }
 
-function Printed({ data, photoshootInr }: { data: CostResponse; photoshootInr: number }) {
+function Printed({ data, photoshootInr, replay }: { data: CostResponse; photoshootInr: number; replay?: string }) {
   const reduce = useReducedMotion();
   const [open, setOpen] = React.useState(false);
   const itemsId = React.useId();
@@ -139,12 +144,15 @@ function Printed({ data, photoshootInr }: { data: CostResponse; photoshootInr: n
   const date = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 
   const lines: { label: string; value: number; unit: (n: number) => string; note?: string; tone?: "saved" }[] = [
-    { label: "Image generation", value: c.generationCredits, unit: (n) => `${int(n)} ${Math.round(n) === 1 ? "credit" : "credits"}`, note: c.generationCredits === 0 ? "Nothing generated: your real photo is used" : undefined },
+    { label: "Image generation", value: c.generationCredits, unit: (n) => `${int(n)} ${Math.round(n) === 1 ? "credit" : "credits"}`, note: c.generationCredits === 0 ? "Nothing generated: the product photo itself is used" : undefined },
     { label: "Saved by reusing a scene", value: c.creditsSavedByReuse, unit: (n) => `${int(n)} ${Math.round(n) === 1 ? "credit" : "credits"}`, tone: "saved" },
     { label: "AI Vision", value: c.aiVisionTokens, unit: (n) => `${int(n)} tokens` },
     { label: "Transformations", value: c.transformationsEstimate, unit: (n) => int(n), note: "Estimate" },
   ];
-  if (c.seconds > 0) lines.push({ label: "Server time", value: c.seconds, unit: (n) => `${n.toFixed(1)} s` });
+  // the pipeline's own steps (read, cut out, stage, check, pack), not the upload or the seller's time in the studio
+  if (c.seconds > 0) lines.push({ label: "Cloudinary processing", value: c.seconds, unit: (n) => `${n.toFixed(1)} s`, note: replay ?? "Every step after the upload" });
+  // end to end, live kits only: this kit's own upload → its last format saved
+  const photoToKit = replay ? null : wall !== null && wall > 0 && wall < 3600 ? `${wall < 90 ? `${wall} s` : `${Math.round(wall / 60)} min`} from upload to the last format saved` : null;
 
   return (
     <motion.div
@@ -188,10 +196,7 @@ function Printed({ data, photoshootInr }: { data: CostResponse; photoshootInr: n
                 </div>
                 <p className="mt-1 flex flex-wrap items-baseline gap-x-2 font-display text-[1.25rem] leading-tight font-bold tracking-[-0.01em]">
                   <span className="tabular">{formatBytes(orig)}</span>
-                  <span aria-hidden className="text-studio/40">
-                    to
-                  </span>
-                  <span className="sr-only">to</span>
+                  <span className="text-studio/40">to</span>
                   <CountUp value={deliv} from={orig} format={formatBytes} delay={at(lines.length) + 150} duration={1600} />
                   {fmt ? <span className="rounded bg-studio px-1.5 py-0.5 font-mono text-[0.68rem] font-semibold text-paper">{fmt}</span> : null}
                 </p>
@@ -212,20 +217,25 @@ function Printed({ data, photoshootInr }: { data: CostResponse; photoshootInr: n
           <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-1">
             <div>
               <p className="font-semibold">Photoshoot you skipped</p>
-              <p className="text-[0.7rem] text-studio/60">Estimate, for scale</p>
+              <p className="text-[0.7rem] text-studio/60">{PHOTOSHOOT_NOTE}</p>
             </div>
             <p className="font-display text-[1.9rem] leading-none font-bold tracking-[-0.02em] whitespace-nowrap">
               ≈ <CountUp value={photoshootInr} format={inr} delay={at(lines.length + 2)} duration={1300} />
             </p>
           </div>
-          {wall !== null && wall > 0 && wall < 3600 ? <p className="mt-2 text-[0.72rem] text-studio/65">Photo to finished kit in {wall < 90 ? `${wall} s` : `${Math.round(wall / 60)} min`}.</p> : null}
+          {photoToKit ? (
+            <p className="mt-3 flex flex-wrap items-baseline gap-x-2 text-[0.72rem] text-studio/65">
+              <span className="font-semibold text-studio">Photo to kit</span>
+              {photoToKit}
+            </p>
+          ) : null}
 
           <button
             type="button"
             aria-expanded={open}
             aria-controls={itemsId}
             onClick={() => setOpen((o) => !o)}
-            className="mt-4 inline-flex items-center gap-1.5 rounded-md font-semibold text-studio underline decoration-studio/30 underline-offset-4 hover:decoration-studio focus-visible:outline-studio"
+            className="mt-3 inline-flex min-h-8 items-center gap-1.5 rounded-md py-1 font-semibold text-studio underline decoration-studio/30 underline-offset-4 hover:decoration-studio focus-visible:outline-studio"
           >
             {open ? "Hide itemised lines" : "Show itemised lines"}
             <ChevronDown aria-hidden className={cn("size-4 transition-transform duration-300", open && "rotate-180")} />
@@ -248,8 +258,8 @@ function Printed({ data, photoshootInr }: { data: CostResponse; photoshootInr: n
 
           <Rule />
           <p className="text-[0.68rem] leading-snug text-studio/60">
-            The photoshoot figure is an estimate: a basic studio shoot for one product in India is typically around {inr(photoshootInr)}. Transformation counts are estimates from
-            Cloudinary&apos;s documented per-effect counts; credits and tokens are what the pipeline recorded.
+            Transformation counts are estimates from Cloudinary&apos;s documented per-effect counts; credits, tokens and times are what the pipeline recorded
+            {replay ? " on this sample's live run" : ""}.
           </p>
         </div>
       </Paper>
@@ -263,7 +273,7 @@ function Itemised({ data }: { data: CostResponse }) {
     { title: "Transformations", rows: b.transformations.map((t) => ({ label: tidy(t.label), value: int(t.tx) })) },
     { title: "AI Vision tokens", rows: b.tokens.map((t) => ({ label: tidy(t.label), value: int(t.tokens) })) },
     { title: "Generation credits", rows: b.generation.map((g) => ({ label: tidy(g.label), value: int(g.credits) })) },
-    { title: "Server time", rows: b.steps.map((s) => ({ label: tidy(s.label), value: `${(s.ms / 1000).toFixed(1)} s` })) },
+    { title: "Time per step", rows: b.steps.map((s) => ({ label: tidy(s.label), value: `${(s.ms / 1000).toFixed(1)} s` })) },
   ].filter((g) => g.rows.length);
   if (!groups.length) return <p className="pt-3 text-[0.75rem] text-studio/65">No itemised lines recorded for this product yet.</p>;
   return (

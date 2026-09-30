@@ -21,9 +21,20 @@ export function AiBadge({ className, label = "AI Vision" }: { className?: string
   );
 }
 
+const useIsoLayoutEffect = typeof window === "undefined" ? React.useEffect : React.useLayoutEffect;
+
+/** Rewrite the span's own text node, so React keeps a live reference to it. */
+function write(el: HTMLElement, text: string) {
+  if (el.firstChild) el.firstChild.nodeValue = text;
+  else el.textContent = text;
+}
+
 /**
- * A number that counts to `value` once `start` is true (ease-out-expo). Writes to
- * the DOM directly, so it never re-renders React; screen readers get the final value.
+ * A number that counts to `value` once `start` is true (ease-out-expo). One text
+ * node: the server HTML (and anything reading the page without script) carries the
+ * final value; before the first paint the layout effect rewinds it to `from` and
+ * counts up, writing to the DOM directly so React never re-renders. Screen
+ * readers and text extraction read the number once.
  */
 export function CountUp({
   value,
@@ -48,11 +59,15 @@ export function CountUp({
     fmt.current = format;
   });
 
-  React.useEffect(() => {
+  useIsoLayoutEffect(() => {
     const el = ref.current;
-    if (!el || !start) return;
+    if (!el) return;
+    if (!start) {
+      write(el, fmt.current(from));
+      return;
+    }
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || from === value) {
-      el.textContent = fmt.current(value);
+      write(el, fmt.current(value));
       return;
     }
     let raf = 0;
@@ -60,20 +75,17 @@ export function CountUp({
     const ease = (t: number) => (t >= 1 ? 1 : 1 - Math.pow(2, -10 * t));
     const tick = (now: number) => {
       const t = Math.max(0, (now - t0) / duration);
-      el.textContent = fmt.current(from + (value - from) * ease(t));
+      write(el, fmt.current(from + (value - from) * ease(t)));
       if (t < 1) raf = requestAnimationFrame(tick);
     };
-    el.textContent = fmt.current(from);
+    write(el, fmt.current(from));
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
   }, [value, from, duration, delay, start]);
 
   return (
-    <span className={cn("tabular", className)}>
-      <span ref={ref} aria-hidden>
-        {format(from)}
-      </span>
-      <span className="sr-only">{format(value)}</span>
+    <span ref={ref} className={cn("tabular", className)} suppressHydrationWarning>
+      {format(value)}
     </span>
   );
 }
