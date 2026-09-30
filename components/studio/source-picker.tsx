@@ -1,28 +1,23 @@
 "use client";
 
 import { ImageUp, Sparkles } from "lucide-react";
-import { CldUploadWidget, type CloudinaryUploadWidgetResults } from "next-cloudinary";
 import * as React from "react";
 import { CloudImg } from "@/components/cloud-img";
 import { PhoneButton } from "@/components/phone/phone-button";
 import { Button } from "@/components/ui/button";
 import type { UsageResponse } from "@/lib/api-contract";
 import * as api from "@/lib/client/api";
-import { UPLOAD_WIDGET_STYLES } from "@/lib/client/theme";
-import { rawPublicId, rawTags, UPLOAD_PRESET, type RawInfo } from "@/lib/client/upload";
+import type { RawInfo } from "@/lib/client/upload";
 import { PHOTO_TO_KIT_COPY } from "@/lib/claims";
 import { cn, newSku } from "@/lib/client/util";
 import { heroAt, LISTED_SAMPLES, rawAt, type SampleProduct } from "@/lib/showcase";
 import type { Sku } from "@/lib/types";
+import type { UploadWidget as UploadWidgetType } from "./upload-widget";
 
 export interface SourceReady {
   sku: Sku;
   info: RawInfo;
   via: "upload" | "phone" | "sample";
-}
-
-function isInfo(x: unknown): x is { public_id: string; width: number; height: number; bytes: number } {
-  return !!x && typeof x === "object" && "public_id" in x && "width" in x;
 }
 
 /** The studio's empty state: three ways to bring a product in. */
@@ -49,11 +44,6 @@ export function SourcePicker({ onReady }: { onReady: (s: SourceReady) => void })
     };
   }, []);
 
-  const onSuccess = (r: CloudinaryUploadWidgetResults) => {
-    if (!isInfo(r.info)) return;
-    onReady({ sku, info: { width: r.info.width, height: r.info.height, bytes: r.info.bytes }, via: "upload" });
-  };
-
   return (
     <div className="mx-auto grid w-full max-w-[64rem] gap-10 py-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-center lg:gap-16 lg:py-14">
       <div className={cn(paused && "order-last lg:order-none")}>
@@ -66,39 +56,13 @@ export function SourcePicker({ onReady }: { onReady: (s: SourceReady) => void })
           </p>
         ) : null}
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-          <CldUploadWidget
-            signatureEndpoint="/api/sign-upload"
-            uploadPreset={UPLOAD_PRESET}
-            options={{
-              publicId: rawPublicId(sku),
-              tags: rawTags(sku).split(","),
-              context: { origin: "upload" },
-              sources: ["local", "camera", "url"],
-              multiple: false,
-              maxFiles: 1,
-              maxFileSize: 10_000_000,
-              clientAllowedFormats: ["jpg", "jpeg", "png", "webp", "heic", "avif"],
-              styles: UPLOAD_WIDGET_STYLES,
-            }}
-            onSuccess={onSuccess}
-            onQueuesEnd={(_, { widget }) => widget.close()}
+          <UploadButton
+            sku={sku}
+            primary={!paused}
+            onStart={() => setError(null)}
+            onUploaded={(info) => onReady({ sku, info, via: "upload" })}
             onError={() => setError("That upload didn't go through. Check the file is a photo under 10 MB and try again, or try a sample.")}
-          >
-            {({ open, isLoading }) => (
-              <Button
-                size="lg"
-                variant={paused ? "secondary" : "primary"}
-                disabled={isLoading}
-                onClick={() => {
-                  setError(null);
-                  open();
-                }}
-              >
-                <ImageUp />
-                {isLoading ? "Opening uploader…" : "Upload a photo"}
-              </Button>
-            )}
-          </CldUploadWidget>
+          />
           <PhoneButton size="lg" onArrived={(s, info) => onReady({ sku: s, info, via: "phone" })} />
         </div>
         {error ? (
@@ -110,6 +74,53 @@ export function SourcePicker({ onReady }: { onReady: (s: SourceReady) => void })
 
       <SamplePicker onPick={(s) => onReady({ sku: s.sku, info: { width: s.product.rawWidth, height: s.product.rawHeight, bytes: s.product.rawBytes }, via: "sample" })} />
     </div>
+  );
+}
+
+/**
+ * "Upload a photo". The Upload Widget (its script, and the megabyte it pulls in)
+ * loads when a seller reaches for the button: pointer over it, focus or touch.
+ * A click before it's ready says "Opening uploader…" and opens it once it is.
+ */
+function UploadButton({ sku, primary, onStart, onUploaded, onError }: { sku: Sku; primary: boolean; onStart: () => void; onUploaded: (info: RawInfo) => void; onError: () => void }) {
+  const [Widget, setWidget] = React.useState<typeof UploadWidgetType | null>(null);
+  const [want, setWant] = React.useState(false);
+  const [armed, setArmed] = React.useState(false);
+  const arm = () => {
+    if (armed) return;
+    setArmed(true);
+    import("./upload-widget")
+      .then((m) => setWidget(() => m.UploadWidget))
+      .catch(() => {
+        setArmed(false);
+        setWant(false);
+        onError();
+      });
+  };
+  const opened = React.useCallback(() => setWant(false), []);
+  const button = (onClick: () => void, busy: boolean) => (
+    <Button size="lg" variant={primary ? "primary" : "secondary"} disabled={busy} onPointerEnter={arm} onFocus={arm} onTouchStart={arm} onClick={onClick}>
+      <ImageUp />
+      {busy ? "Opening uploader…" : "Upload a photo"}
+    </Button>
+  );
+  if (!Widget) {
+    return button(() => {
+      onStart();
+      setWant(true);
+      arm();
+    }, want);
+  }
+  return (
+    <Widget sku={sku} wantOpen={want} onOpened={opened} onUploaded={onUploaded} onError={onError}>
+      {({ open, isLoading }) =>
+        button(() => {
+          onStart();
+          if (isLoading) setWant(true);
+          else open();
+        }, want && isLoading)
+      }
+    </Widget>
   );
 }
 
