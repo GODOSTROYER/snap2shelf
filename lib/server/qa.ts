@@ -73,6 +73,20 @@ export interface QaOutcome {
   sheetUrl?: string;
 }
 
+/**
+ * Is this delivery path an image of `sku`: one of its stored assets, or a composite
+ * with its cutout as a layer? Decides which product's cost ledger QA tokens go to.
+ */
+export function imageOfProduct(sku: Sku, pathname: string): boolean {
+  let p = pathname;
+  try {
+    p = decodeURIComponent(pathname);
+  } catch {
+    return false;
+  }
+  return p.includes(`/snap2shelf/products/${sku}/`) || p.includes(`l_${layerId(`snap2shelf/products/${sku}/`)}`);
+}
+
 /** Make sure Cloudinary can render the URL before AI Vision fetches it (and fail fast on a bad one). */
 async function ensureRenderable(url: string): Promise<void> {
   const p = await probe(url, 8000);

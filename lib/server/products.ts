@@ -19,6 +19,7 @@ import { assetInfo, deliveryUrl, mainAuth, probe, uploadToMain, type AssetInfo, 
 import { assertLivePipeline } from "./budget";
 import { loadProduct, updateProduct, type LoadedProduct } from "./facts";
 import { HttpError, notFound, pending } from "./http";
+import { readOnly } from "./protect";
 import { fixesFromContext } from "./retouch-plan";
 
 /**
@@ -147,7 +148,11 @@ export interface AnalyzeOutcome {
   cached: boolean;
 }
 
-export async function analyzeProduct(sku: Sku): Promise<AnalyzeOutcome> {
+/**
+ * `readOnly` (a sample / showcase product without the access code, lib/server/protect.ts):
+ * answer only from the stored analysis; never analyse, spend or write.
+ */
+export async function analyzeProduct(sku: Sku, opts: { readOnly?: boolean } = {}): Promise<AnalyzeOutcome> {
   const { raw } = await loadProduct(sku);
   const cachedU = raw.context.analyzed === "1" ? understandingFromContext(raw.context) : null;
   if (cachedU) {
@@ -165,6 +170,7 @@ export async function analyzeProduct(sku: Sku): Promise<AnalyzeOutcome> {
     };
   }
 
+  if (opts.readOnly) throw readOnly();
   // A fresh analysis derives the analysis JPEG and starts a kit: respect the credit floor.
   await assertLivePipeline();
   const t0 = Date.now();
@@ -229,15 +235,15 @@ export const cutoutRecord = (a: AssetInfo): CutoutRecord => ({ publicId: a.publi
 /**
  * The saved cutout, from the product's facts; when facts don't list one (older
  * product, or a facts write that failed) one Upload-API explicit checks, and a
- * hit is recorded. No Admin API call either way.
+ * hit is recorded (unless `record` is false: read-only callers). No Admin API call either way.
  */
-export async function getCutout(sku: Sku, loaded?: LoadedProduct): Promise<CutoutRecord | null> {
+export async function getCutout(sku: Sku, loaded?: LoadedProduct, record = true): Promise<CutoutRecord | null> {
   const p = loaded ?? (await loadProduct(sku));
   const c = p.facts.cutout;
   if (c) return { publicId: c.publicId, width: c.width, height: c.height, version: c.version };
   const a = await assetInfo(cutoutId(sku));
   if (!a) return null;
-  await updateProduct(sku, { mutate: (f) => void (f.cutout ??= { publicId: a.publicId, width: a.width, height: a.height, version: a.version, bytes: a.bytes, at: Date.parse(a.createdAt) || Date.now() }) }, { critical: false });
+  if (record) await updateProduct(sku, { mutate: (f) => void (f.cutout ??= { publicId: a.publicId, width: a.width, height: a.height, version: a.version, bytes: a.bytes, at: Date.parse(a.createdAt) || Date.now() }) }, { critical: false });
   return cutoutRecord({ ...a, context: {} });
 }
 
@@ -259,12 +265,16 @@ export async function cutoutSource(sku: Sku): Promise<string> {
   return cutoutSourceFrom(sku, (await requireRaw(sku)).context);
 }
 
-/** Probe budget per call; the save afterwards takes ~1.2 s, keeping one call under ~8 s. */
-export async function ensureCutout(sku: Sku, budgetMs = 6000): Promise<CutoutOutcome> {
+/**
+ * Probe budget per call; the save afterwards takes ~1.2 s, keeping one call under ~8 s.
+ * `readOnly` (sample / showcase product without the access code): the saved cutout or 403.
+ */
+export async function ensureCutout(sku: Sku, budgetMs = 6000, opts: { readOnly?: boolean } = {}): Promise<CutoutOutcome> {
   const t0 = Date.now();
   const p = await loadProduct(sku);
-  const existing = await getCutout(sku, p);
+  const existing = await getCutout(sku, p, !opts.readOnly);
   if (existing) return { created: false, response: { sku, cutout: existing, ms: Date.now() - t0 } };
+  if (opts.readOnly) throw readOnly();
 
   // Background removal is 75 transformations: respect the credit floor.
   await assertLivePipeline();

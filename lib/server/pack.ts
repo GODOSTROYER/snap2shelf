@@ -128,6 +128,10 @@ export function reusableDone(facts: Pick<ProductFacts, "pack">, hero: string, as
  * Materialise what isn't saved yet, within a time budget. Formats already saved
  * for the current hero + recipe are skipped; formats from an older pack lose
  * the pack tag so they drop out of the ZIP.
+ *
+ * `readOnly` (a sample / showcase product without the access code): report what is
+ * saved and never probe, upload, retag or write; formats that aren't saved come
+ * back as failed (this session can't build them), so the client stops polling.
  */
 async function materialise(
   sku: Sku,
@@ -135,9 +139,14 @@ async function materialise(
   assets: KitAsset[],
   budgetMs: number,
   facts: ProductFacts,
+  readOnly = false,
 ): Promise<{ assets: KitAsset[]; pending: string[]; failed: string[] }> {
   const deadline = Date.now() + budgetMs;
   const { done, stale } = reusableDone(facts, hero, assets);
+  if (readOnly) {
+    const out = assets.map((a): [KitAsset, Outcome] => (done[a.id] ? [finishedAsset(a, packId(sku, a.id), done[a.id].v), "done"] : [a, "failed"]));
+    return { assets: out.map(([a]) => a), pending: [], failed: out.filter(([, o]) => o === "failed").map(([a]) => a.id) };
+  }
   if (stale.length) {
     await removeTag(
       stale.map((id) => packId(sku, id)),
@@ -249,11 +258,20 @@ export async function startPack(req: PackRequest & { textZone?: SceneDNA["text_z
   return { sku: req.sku, heroPublicId: hero, assets: m.assets, pending: m.pending, failed: m.failed };
 }
 
-export async function packStatus(sku: Sku, budgetMs = 7000): Promise<PackStatusResponse & { failed: string[]; heroPublicId: string }> {
+/**
+ * GET /api/pack/:sku. `readOnly` (sample / showcase product without the access code,
+ * lib/server/protect.ts): the prebuilt pack whatever the saved spec says, else only
+ * what is already materialised; nothing is derived, uploaded or written.
+ */
+export async function packStatus(sku: Sku, budgetMs = 7000, opts: { readOnly?: boolean } = {}): Promise<PackStatusResponse & { failed: string[]; heroPublicId: string }> {
   if (isRawlessSample(sku)) {
     // Prebuilt sample without a raw upload: nothing is (or can be) materialised under its sku, so no ZIP link.
     const s = prebuiltPackStatus(sku);
     if (s) return { heroPublicId: s.heroPublicId, assets: s.assets, pending: [], failed: s.failed };
+  }
+  if (opts.readOnly) {
+    const s = prebuiltPackStatus(sku);
+    if (s) return { heroPublicId: s.heroPublicId, assets: s.assets, pending: [], failed: s.failed, zipUrl: zipUrl(sku) };
   }
   const p = await loadProduct(sku);
   const spec = specFromContext(p.facts.ctx);
@@ -261,7 +279,7 @@ export async function packStatus(sku: Sku, budgetMs = 7000): Promise<PackStatusR
   const shown = prebuiltPackStatus(sku, spec.hero); // showcase kit whose pack is still the prebuilt one
   if (shown) return { heroPublicId: shown.heroPublicId, assets: shown.assets, pending: [], failed: shown.failed, zipUrl: zipUrl(sku) };
 
-  const m = await materialise(sku, spec.hero, buildAssets(sku, p.facts.ctx, spec), budgetMs, p.facts);
+  const m = await materialise(sku, spec.hero, buildAssets(sku, p.facts.ctx, spec), budgetMs, p.facts, opts.readOnly);
   return {
     heroPublicId: spec.hero,
     assets: m.assets,

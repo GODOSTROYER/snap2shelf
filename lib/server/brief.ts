@@ -27,8 +27,9 @@ import {
   type Placement,
   type Sku,
 } from "../types";
-import { updateProduct } from "./facts";
+import { addTokens, TOKEN_KEYS, updateProduct } from "./facts";
 import { analysisSourceUrl, requireRaw, understandingFromContext } from "./products";
+import { readOnly } from "./protect";
 
 /**
  * Brief bar: one line of seller intent → kit settings.
@@ -432,7 +433,7 @@ export async function runBrief(
   sku: Sku,
   brief: string,
   festival: FestivalSlug | undefined,
-  opts: { beforeSpend?: () => void } = {},
+  opts: { beforeSpend?: () => void; readOnly?: boolean } = {},
 ): Promise<{ response: BriefResponse; spent: boolean }> {
   const t0 = Date.now();
   const raw = await requireRaw(sku);
@@ -453,6 +454,8 @@ export async function runBrief(
     };
   }
 
+  // Sample / showcase product without the access code: cached kits only (lib/server/protect.ts).
+  if (opts.readOnly) throw readOnly();
   opts.beforeSpend?.();
   const rules = parseBriefRules(brief, festival);
   const u = understandingFromContext(raw.context);
@@ -477,15 +480,15 @@ export async function runBrief(
     tokens,
     cached: false,
   };
-  const prevTokens = Number(raw.context.t_brief) || 0;
   await updateProduct(
     sku,
     {
       ctx: {
         ...briefCachePatch(raw.context, hash, { kit: merged.kit, festival: rules.festival?.slug, scenePrompt: merged.scenePrompt, sources: merged.sources }),
-        t_brief: String(prevTokens + tokens),
         ms_brief: String(Date.now() - t0),
       },
+      // cumulative on the latest facts doc, so two briefs in flight never overwrite each other's tokens
+      mutate: (f) => addTokens(f, TOKEN_KEYS.brief, tokens),
     },
     { critical: false },
   );

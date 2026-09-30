@@ -2,7 +2,9 @@
 //   npx next dev -p 3001
 //   node --conditions=react-server --import tsx scripts/e2e-http.mts [--base http://localhost:3001] [--photo <file>] [--no-generate] [--min-admin 60]
 // Uploads one photo to a fresh sku through /api/sign-upload (as the widget / phone page would),
-// then capture → analyze → cutout → scenes → QA → pack → zip → generate → jobs, plus negative cases.
+// then capture → analyze → cutout → scenes → QA (+ its tokens on the cost receipt) → pack → zip →
+// anonymous write locks on the showcase (all refused before any Cloudinary spend) → generate → jobs,
+// plus negative cases.
 // Finally scans every response body for pool account names (must never appear).
 // Dev servers answer with x-s2s-admin-calls (Admin API calls main has received from this
 // process): the run prints the delta per step, and aborts early when the hourly Admin
@@ -24,6 +26,7 @@ const { values } = parseArgs({
 const BASE = values.base!;
 const cloud = process.env.CLOUDINARY_CLOUD_NAME!;
 const { compositeUrl, defaultControls } = await import("../lib/transform/composite.ts");
+const { SHOWCASE } = await import("../lib/showcase-data.ts");
 
 const bodies: string[] = [];
 /** Admin API calls to main, as reported by the dev server (cumulative per process). */
@@ -196,6 +199,12 @@ const built = compositeUrl({ scenePublicId: "snap2shelf/spikes/scenes/diwali_tea
   const q = await jar.call("POST", "/api/qa", { sku, url: built.url, kind: "exact" });
   const qa = q.json.qa as { status: string; matched: string[]; reasons: string[] };
   check(q.status === 200 && (qa?.status === "approved" || qa?.status === "rejected"), `exact QA → ${q.status} (${q.ms} ms) ${qa?.status} ${JSON.stringify(qa?.matched)} tokens=${q.json.tokens}`);
+  // The receipt counts QA tokens next to the analysis (they used to be missing from aiVisionTokens).
+  const c = await jar.call("GET", `/api/cost/${sku}`);
+  const rows = ((c.json.breakdown as { tokens?: { label: string; tokens: number }[] })?.tokens ?? []).map((t) => `${t.label}=${t.tokens}`);
+  const qaRow = ((c.json.breakdown as { tokens?: { label: string; tokens: number }[] })?.tokens ?? []).find((t) => t.label === "QA checks");
+  const qaTokens = Number(q.json.tokens) || 0;
+  check(c.status === 200 && (qaTokens === 0 || qaRow?.tokens === qaTokens), `cost receipt → aiVisionTokens=${(c.json.cost as { aiVisionTokens?: number })?.aiVisionTokens} [${rows.join(", ")}]`);
 }
 
 step("pack");
@@ -223,6 +232,54 @@ step("pack");
   const sp = await jar.call("POST", "/api/pack", { sku: "sneaker1", heroUrl: sampleHero, sceneSlug: "diwali-teak" });
   const ss = await jar.call("GET", "/api/pack/sneaker1");
   check(sp.status === 200 && (sp.json.pending as string[]).length === 0 && ss.status === 200, `sample pack → ${sp.status} (${sp.ms} ms) ${(sp.json.assets as unknown[])?.length} prebuilt formats; status → ${ss.status} (${ss.ms} ms)`);
+}
+
+step("anonymous write locks (showcase is read-only)");
+{
+  // A visitor without the access code. Every refusal below happens before any Cloudinary spend.
+  const anon = new Jar();
+  const kit = SHOWCASE.kits.find((k) => k.sku === "shbottle")!;
+  const approved = kit.attempts.find((a) => a.qa.status === "approved")!.url;
+  const otherHero = `https://res.cloudinary.com/${cloud}/image/upload/f_jpg,q_90/snap2shelf/products/shbottle/cutout`;
+  const ts = Math.floor(Date.now() / 1000);
+  const signFor = (s: string) => ({ paramsToSign: { timestamp: ts, source: "uw", upload_preset: "s2s_ingest", public_id: `snap2shelf/products/${s}/raw`, tags: `s2s,s2s-raw,s2s-sku-${s}` } });
+  const ro = (r: { status: number; json: Record<string, unknown> }) => r.status === 403 && r.json.code === "read_only";
+
+  const sg = await anon.call("POST", "/api/sign-upload", signFor("shbottle"));
+  check(sg.status === 400 && !("signature" in sg.json), `sign-upload refuses a showcase public id → ${sg.status}`);
+  const fix = await anon.call("POST", "/api/readiness/shbottle", { fixes: ["repad"] });
+  check(ro(fix), `readiness fix on a sample → ${fix.status} ${fix.json.code} "${fix.json.error}"`);
+  const notMine = await anon.call("POST", `/api/readiness/${sku}`, { fixes: ["repad"] });
+  check(ro(notMine), `readiness fix on another browser's product → ${notMine.status} "${notMine.json.error}"`);
+  const pre = await anon.call("POST", "/api/pack", { sku: "shbottle", heroUrl: approved, sceneSlug: "cafe" });
+  check(pre.status === 200 && pre.json.heroPublicId === kit.hero.publicId && (pre.json.pending as unknown[]).length === 0, `pack of a sample's own composite → prebuilt (${pre.ms} ms)`);
+  const live = await anon.call("POST", "/api/pack", { sku: "shbottle", heroUrl: otherHero, sceneSlug: "cafe" });
+  check(ro(live), `live pack over a sample → ${live.status} ${live.json.code}`);
+  const st = await anon.call("GET", "/api/pack/shbottle");
+  check(st.status === 200 && st.json.heroPublicId === kit.hero.publicId, `pack status of a sample → its prebuilt pack (${st.ms} ms)`);
+  const demo = await anon.call("POST", "/api/shelf", { shop: "demo-studio", title: "Hacked", tagline: "x", skus: [sku] });
+  check(ro(demo), `demo-studio shelf → ${demo.status} "${demo.json.error}"`);
+  const sampleShelf = await anon.call("POST", "/api/shelf", { shop: `e2e-${sku}`, title: "Mine", skus: ["shbottle"] });
+  check(ro(sampleShelf), `new shelf of sample products → ${sampleShelf.status}`);
+  const coll = await anon.call("POST", "/api/collection", { skus: ["shbottle", "shtrail1"], scenePublicId: "snap2shelf/scenes/diwali/final-59f4388a" });
+  check(ro(coll), `collection over samples → ${coll.status}`);
+  const rt = await anon.call("POST", "/api/products/shbottle/retouch");
+  check(ro(rt) || rt.status === 200, `retouch a sample → ${rt.status} ${rt.json.code ?? rt.json.status}`);
+  const br = await anon.call("POST", "/api/brief", { sku: "shbottle", brief: "E2E lock check, 10% off" });
+  check(ro(br), `new brief on a sample → ${br.status}`);
+  const qx = await anon.call("POST", "/api/qa", { sku: "shbottle", url: otherHero, kind: "exact" });
+  check(ro(qx), `QA of a changed sample composite → ${qx.status}`);
+  const qr = await anon.call("POST", "/api/qa", { sku: "shbottle", url: approved, kind: "exact" });
+  check(qr.status === 200 && qr.json.tokens === 0, `QA of the sample's own composite → recorded verdict ${(qr.json.qa as { status?: string })?.status}, tokens=0`);
+  const an = await anon.call("POST", "/api/products/shbottle/analyze");
+  check((an.status === 200 && an.json.tokens === 0) || ro(an), `analyze a sample → ${an.status} tokens=${an.json.tokens ?? "-"} (stored reading only)`);
+
+  // A browser that signs the first upload of a new sku owns it: the fix passes the lock (no photo here → 404).
+  const mine = new Jar();
+  const sku2 = Array.from({ length: 8 }, () => "abcdefghijklmnopqrstuvwxyz0123456789"[Math.floor(Math.random() * 36)]).join("");
+  const s2 = await mine.call("POST", "/api/sign-upload", signFor(sku2));
+  const own = await mine.call("POST", `/api/readiness/${sku2}`, { fixes: ["repad"] });
+  check(s2.status === 200 && own.status === 404, `own new sku passes the lock → sign ${s2.status}, fix ${own.status} ${own.json.code}`);
 }
 
 step("generate + jobs");

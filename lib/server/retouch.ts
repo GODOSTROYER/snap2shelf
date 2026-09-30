@@ -7,6 +7,7 @@ import { assertLivePipeline } from "./budget";
 import { deliveryUrl, probe, uploadToMain, type AssetInfo } from "./cld";
 import { loadProduct, updateProduct } from "./facts";
 import { HttpError } from "./http";
+import { readOnly } from "./protect";
 import { analysisSourceUrl, rawId, retouchedId, skuTag } from "./products";
 import { RETOUCH_TAGS, bmpMeanLuma, planRetouch, retouchChain, retouchStateFromContext, retouchXray, type RetouchPlan } from "./retouch-plan";
 
@@ -56,9 +57,11 @@ export type RetouchOutcome =
 /**
  * One retouch step within ~budgetMs. `beforeSpend` runs right before the first
  * paid call (AI Vision), so a session over its cap is refused before any spend
- * while its later polls still work.
+ * while its later polls still work. `readOnly` (sample / showcase product without the
+ * access code, lib/server/protect.ts): answer only from the stored plan / retouched
+ * photo; anything that would spend, derive or write is refused with 403 read_only.
  */
-export async function retouchProduct(sku: Sku, opts: { budgetMs?: number; beforeSpend?: () => void } = {}): Promise<RetouchOutcome> {
+export async function retouchProduct(sku: Sku, opts: { budgetMs?: number; beforeSpend?: () => void; readOnly?: boolean } = {}): Promise<RetouchOutcome> {
   const budgetMs = opts.budgetMs ?? 6000;
   const t0 = Date.now();
   const { raw } = await loadProduct(sku);
@@ -68,6 +71,7 @@ export async function retouchProduct(sku: Sku, opts: { budgetMs?: number; before
   let plan: RetouchPlan;
 
   if (!state.planned) {
+    if (opts.readOnly) throw readOnly();
     await assertLivePipeline(); // planning derives a luma probe and starts a kit
     opts.beforeSpend?.();
     spent = true;
@@ -160,6 +164,7 @@ export async function retouchProduct(sku: Sku, opts: { budgetMs?: number; before
     },
   });
 
+  if (opts.readOnly) throw readOnly();
   // The retouch chain can include generative / AI effects: respect the credit floor.
   await assertLivePipeline();
   // Planning may have used most of this call's budget: just kick the derivation off.

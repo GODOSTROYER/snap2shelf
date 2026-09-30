@@ -79,11 +79,13 @@ export function computeCost(i: CostInput): Omit<CostResponse, "delivered"> {
     saved = num(c.sc_saved);
   }
 
-  // AI Vision tokens recorded along the way
+  // AI Vision tokens recorded along the way (facts ledger keys: lib/server/facts.ts TOKEN_KEYS)
   const tokens = [
     { label: "Analyze (product understanding)", tokens: num(c.t_an) },
     { label: "Auto-retouch check", tokens: num(c.t_fix) },
     { label: "Brief", tokens: num(c.t_brief) },
+    { label: "QA checks", tokens: num(c.t_qa) },
+    { label: "Readiness text check", tokens: num(c.t_rd) },
     ...creatives.map((a) => ({ label: `Fidelity QA · ${leaf(a)}`, tokens: num(a.context.qa_tokens) })),
     { label: "New scene DNA + QA", tokens: num(c.t_scene) },
   ].filter((t) => t.tokens > 0);

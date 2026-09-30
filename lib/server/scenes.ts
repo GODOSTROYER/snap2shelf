@@ -7,7 +7,7 @@ import { copyToMain } from "../cloudinary/copy";
 import { getGenerationTask, startGeneration, type GenerateRequest, type GeneratedAsset, type GenerationOutcome } from "../cloudinary/generate";
 import { withPooledAccount } from "../cloudinary/pool";
 import { parseJsonAnswer, visionGeneral, visionTagging, type TagDefinition } from "../cloudinary/vision";
-import { detectFestival } from "../festivals";
+import { detectFestival, FESTIVAL_SLUGS } from "../festivals";
 import { SCENE_RECIPES, sceneDnaPrompt } from "../scene-prompts";
 import { SCENE_TAG, sceneFromListResource, sceneListUrl, sceneToContext } from "../scenes";
 import { PLATE, SCENE_ROOT, SCENE_THEMES, type QaResult, type Scene, type SceneDNA, type SceneTier, type SceneView } from "../types";
@@ -147,12 +147,32 @@ export const sceneXrayRequest = (spec: SceneSpec) => ({ endpoint: "POST /v2/gene
 
 type ListResource = Parameters<typeof sceneFromListResource>[0];
 
+/**
+ * Plates that suit only one festival although they are filed under a general theme
+ * (lib/festivals.ts maps a Christmas brief to the "cafe" theme, so a custom Christmas
+ * backdrop lands in snap2shelf/scenes/cafe/). Marked with context `fest=<festival slug>`
+ * (scripts/fix-scene-context.mts); this list covers plates marked before a fresh list read.
+ * rankScenes() only offers them when the query names that festival.
+ */
+export const FESTIVAL_ONLY_SCENES: Readonly<Record<string, string>> = {
+  "snap2shelf/scenes/cafe/draft-d9727c98": "christmas", // pine branches, red and gold baubles
+};
+const listedFestival = new Map<string, string>();
+const FEST_SLUGS = new Set<string>(FESTIVAL_SLUGS);
+
+/** The festival a library plate is reserved for, if any. */
+export const sceneFestival = (publicId: string): string | undefined => listedFestival.get(publicId) ?? FESTIVAL_ONLY_SCENES[publicId];
+
 /** Approved library scenes from the client-side list JSON (CDN-cached ~60 s; no Admin API). */
 export async function libraryScenes(): Promise<Scene[]> {
   const res = await fetch(sceneListUrl(mainCloud(), SCENE_TAG), { next: { revalidate: 60 } } as RequestInit);
   if (res.status === 404) return []; // no asset carries the tag yet
   if (!res.ok) throw new Error(`scene list HTTP ${res.status}`);
   const json = (await res.json()) as { resources?: ListResource[] };
+  for (const r of json.resources ?? []) {
+    const fest = r.context?.custom?.fest;
+    if (fest && FEST_SLUGS.has(fest)) listedFestival.set(r.public_id, fest);
+  }
   return (json.resources ?? []).map(sceneFromListResource).filter((s): s is Scene => s !== null);
 }
 
@@ -360,16 +380,22 @@ const COOL = /\b(?:cool|fresh|clean|crisp|morning|minimal|bright|airy)\b/;
  * Rank library scenes for a theme and/or free text. Keyword weight is IDF over
  * the library, so words every recipe shares ("backdrop", "surface", "light") count
  * for nothing and distinctive ones ("brass", "marigold", "marble") decide.
+ * A festival-only plate (sceneFestival) is offered only when the text names its festival.
  */
-export function rankScenes(scenes: Scene[], q: { theme?: string; text?: string; view?: SceneView }, limit = 6): SceneMatch[] {
-  const pool = q.view ? scenes.filter((s) => s.view === q.view) : scenes;
+export function rankScenes(
+  scenes: Scene[],
+  q: { theme?: string; text?: string; view?: SceneView },
+  limit = 6,
+  festivalOf: (publicId: string) => string | undefined = sceneFestival,
+): SceneMatch[] {
+  const text = (q.text ?? "").toLowerCase();
+  const festival = text ? detectFestival(text) : null;
+  const pool = scenes.filter((s) => (!q.view || s.view === q.view) && (!festivalOf(s.publicId) || festivalOf(s.publicId) === festival?.slug));
   const docs = pool.map((s) => new Set(tokens(`${s.title} ${s.theme.replace(/-/g, " ")} ${s.prompt}`)));
   const n = Math.max(1, docs.length);
   const df = new Map<string, number>();
   for (const d of docs) for (const t of d) df.set(t, (df.get(t) ?? 0) + 1);
-  const text = (q.text ?? "").toLowerCase();
   const qTokens = [...new Set(tokens(text))];
-  const festival = text ? detectFestival(text) : null;
 
   const scored = pool.map((scene, i) => {
     let score = 0;

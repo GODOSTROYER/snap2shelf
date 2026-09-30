@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { SceneGenerateResponse } from "@/lib/api-contract";
 import { readJson, route, skuSchema } from "@/lib/server/http";
+import { canWrite } from "@/lib/server/protect";
 import { requestScene } from "@/lib/server/scene-jobs";
 
 export const runtime = "nodejs";
@@ -21,9 +22,12 @@ const schema = z
  * C2 first: the prompt-hash plate already exists → { reused: true, credits: 0, creditsSaved } at once.
  * Otherwise [gated] (access cookie + session cap + pool quota floor): starts a pinned-model job
  * → { reused: false, job }. Poll GET /api/scene-jobs/:job.
+ * `sku` only names whose cost ledger the reuse / credits are written to: it is dropped
+ * (same answer, nothing written) for a sample / showcase product without the access code.
  */
 export const POST = route("scenes-generate", async (req, session) => {
   const body = await readJson(req, schema, 4096);
-  const { response, started } = await requestScene(body, session);
+  const sku = body.sku && canWrite(session, body.sku) ? body.sku : undefined;
+  const { response, started } = await requestScene({ ...body, sku }, session);
   return { body: response satisfies SceneGenerateResponse, session: started ? { ...session, g: session.g + 1 } : undefined };
 });

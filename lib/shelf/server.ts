@@ -247,7 +247,23 @@ async function heroesByTag(tag: string): Promise<AssetInfo[]> {
   return (res.resources as unknown as Parameters<typeof toAssetInfo>[0][]).map(toAssetInfo);
 }
 
-export async function publishShelf(req: ShelfRequest): Promise<ShelfResponse> {
+/** A hero already on a shelf: its public id and the product it belongs to. */
+export interface ShelfMember {
+  publicId: string;
+  sku: string;
+}
+
+export const memberSku = (a: Pick<AssetInfo, "publicId" | "context">) => a.context.sku || a.publicId.split("/")[2] || "";
+
+export interface PublishOptions {
+  /**
+   * Called with the shelf's current members once they are read and before anything
+   * is written; throw to refuse (POST /api/shelf: reserved / taken shelves, lib/server/protect.ts).
+   */
+  authorize?: (members: ShelfMember[]) => void;
+}
+
+export async function publishShelf(req: ShelfRequest, opts: PublishOptions = {}): Promise<ShelfResponse> {
   const shopCheck = checkShop(req.shop);
   if (!shopCheck.ok) throw badRequest(shopCheck.reason);
   const shop = shopCheck.shop;
@@ -264,6 +280,7 @@ export async function publishShelf(req: ShelfRequest): Promise<ShelfResponse> {
       .then((l) => l ?? [])
       .catch(() => heroesByTag(shopTag(shop))),
   ]);
+  opts.authorize?.(members.map((m) => ({ publicId: m.publicId, sku: memberSku(m) })));
 
   const keys = shopContextKeys(shop);
   const items: ShelfResponse["items"] = [];
@@ -318,7 +335,7 @@ function shelfFromAssets(shop: string, assets: AssetInfo[]): Shelf | null {
   const items: ShelfItem[] = assets
     .filter((a) => a.context[keys.title])
     .map((a) => ({
-      sku: a.context.sku || a.publicId.split("/")[2] || "",
+      sku: memberSku(a),
       heroPublicId: a.publicId,
       version: a.version,
       width: a.width || PLATE.width,

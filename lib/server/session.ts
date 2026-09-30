@@ -3,6 +3,7 @@ import { randomBytes } from "node:crypto";
 import { z } from "zod";
 import type { NextResponse } from "next/server";
 import { poolSummary } from "../cloudinary/pool";
+import { SKU_RE } from "../types";
 import { liveGenCap, liveGenMin } from "./config";
 import { deriveKey, signJson, verifyJson } from "./crypto";
 
@@ -14,6 +15,10 @@ import { deriveKey, signJson, verifyJson } from "./crypto";
  *   g    live generations started
  *   o    open paid operations used (analyze, cutout, QA, pack)
  *   iat  issued-at (seconds); sessions older than MAX_AGE are replaced
+ *   k    (optional) skus this browser created: a signed upload of a raw that
+ *        didn't exist yet, or a phone capture it saw land (lib/server/protect.ts)
+ *   sp   (optional) shelves this browser created without the access code
+ * Both lists are optional so cookies issued before they existed stay valid.
  * Clearing cookies resets the counters but also drops the unlock, so the
  * generation cap can only be reset by re-entering the access code; the pool
  * quota floor (LIVE_GEN_MIN) is the hard backstop either way.
@@ -21,14 +26,36 @@ import { deriveKey, signJson, verifyJson } from "./crypto";
 export const SESSION_COOKIE = "s2s_access";
 const MAX_AGE_S = 7 * 24 * 3600;
 
+/** Most skus / shelves a session remembers (oldest dropped first); keeps the cookie small. */
+export const OWNED_MAX = 20;
+export const SHELVES_MAX = 3;
+
 const sessionSchema = z.object({
   sid: z.string().regex(/^[A-Za-z0-9_-]{8,32}$/),
   u: z.boolean(),
   g: z.number().int().min(0).max(10_000),
   o: z.number().int().min(0).max(1_000_000),
   iat: z.number().int(),
+  k: z.array(z.string().regex(SKU_RE)).max(OWNED_MAX).optional(),
+  sp: z.array(z.string().regex(/^[a-z0-9-]{3,32}$/)).max(SHELVES_MAX).optional(),
 });
 export type Session = z.infer<typeof sessionSchema>;
+
+/** Did this browser create the sku (signed its first upload, or saw its phone capture land)? */
+export const ownsSku = (s: Session, sku: string) => s.k?.includes(sku) ?? false;
+
+/** The session with `sku` recorded as created here (most recent last, at most OWNED_MAX). */
+export function withOwnedSku(s: Session, sku: string): Session {
+  if (!SKU_RE.test(sku)) return s;
+  const k = [...(s.k ?? []).filter((x) => x !== sku), sku].slice(-OWNED_MAX);
+  return { ...s, k };
+}
+
+/** The session with `shop` recorded as a shelf it created (callers enforce SHELVES_MAX first). */
+export function withShelf(s: Session, shop: string): Session {
+  if (s.sp?.includes(shop)) return s;
+  return { ...s, sp: [...(s.sp ?? []), shop].slice(-SHELVES_MAX) };
+}
 
 export const sessionKey = () => deriveKey("s2s-session");
 
