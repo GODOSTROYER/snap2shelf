@@ -7,6 +7,7 @@
 import { Bookmark, ChevronUp, Ellipsis, Heart, MessageCircle, Send, Star, VolumeX } from "lucide-react";
 import * as React from "react";
 import { CloudImg } from "@/components/cloud-img";
+import { DEMO_HANDLE } from "@/lib/claims";
 import { sizedUrl } from "@/lib/client/img";
 import { cn } from "@/lib/client/util";
 import type { KitAsset, PreviewFrame } from "@/lib/types";
@@ -27,7 +28,8 @@ type Props = {
   frame?: PreviewFrame | "reel";
 };
 
-const shop = "yourshop";
+/** The mock account every frame posts from (lib/claims.ts). */
+const shop = DEMO_HANDLE;
 
 function Avatar({ size = 22 }: { size?: number }) {
   return (
@@ -36,7 +38,7 @@ function Avatar({ size = 22 }: { size?: number }) {
       style={{ width: size, height: size }}
       className="grid shrink-0 place-items-center rounded-full bg-gradient-to-br from-marigold to-sindoor text-[0.75rem] font-bold text-marigold-ink"
     >
-      Y
+      D
     </span>
   );
 }
@@ -204,7 +206,7 @@ export function AssetFrame({ asset, product, className, media, frame = asset.fra
             <span className="size-2 rounded-full bg-frame-soft/40" />
             <span className="size-2 rounded-full bg-frame-soft/40" />
             <span className="size-2 rounded-full bg-frame-soft/40" />
-            <span className="ml-2 h-[18px] flex-1 truncate rounded-md bg-frame-light px-2 text-[0.75rem] leading-[18px] text-frame-soft">{shop}.in</span>
+            <span className="ml-2 h-[18px] flex-1 truncate rounded-md bg-frame-light px-2 text-[0.75rem] leading-[18px] text-frame-soft">{shop}</span>
           </div>
           <div className="min-h-0 flex-1">{media ?? <Img asset={asset} frame={frame} />}</div>
         </div>

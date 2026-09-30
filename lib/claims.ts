@@ -6,9 +6,55 @@
 
 /** Live production run, 30 Sep 2026: file selected → ZIP link live (06_steel_bottle.png, desktop, Upload Widget). */
 export const MEASURED_PHOTO_TO_ZIP_S = 36;
-/** Copy form of the headline speed claim. */
-export const PHOTO_TO_KIT_COPY = "about 40 seconds";
+/** Copy form of the headline speed claim: the measured run, never a rounder number. */
+export const PHOTO_TO_KIT_COPY = `about ${MEASURED_PHOTO_TO_ZIP_S} seconds`;
 export const PHOTO_TO_KIT_MEASURED_COPY = `${MEASURED_PHOTO_TO_ZIP_S} s photo → ZIP, measured on the live site`;
+
+/**
+ * The one duration story for a saved sample's receipt. Its "Cloudinary
+ * processing" figure is that sample's own steps after the upload (seed run,
+ * data/showcase.json timings); the headline number stays the live
+ * end-to-end run. `qaChecks` is the number of QA attempts the run recorded.
+ */
+export function sampleTimeNote(run: { seconds: number; qaChecks: number }): string {
+  const live = `${MEASURED_PHOTO_TO_ZIP_S} s end-to-end on the live site (photo → ZIP)`;
+  const s = `${Math.round(run.seconds)} s`;
+  const rejected = run.qaChecks - 1;
+  if (rejected > 0) {
+    return `${live}. This sample's steps took ${s} because QA rejected the placement ${rejected === 1 ? "once" : rejected === 2 ? "twice" : `${rejected} times`} before approving it (${run.qaChecks} checks).`;
+  }
+  return `${live}. This sample's steps after the upload took ${s}, with one QA check.`;
+}
+
+/**
+ * File weight of a kit hero, as a browser receives it: the stored 1080 × 1350
+ * hero at f_auto,q_auto (HEAD with Chrome's image Accept header, 30 Sep 2026).
+ * The account's f_auto answers WebP for most heroes and JPEG for the kurta.
+ * `original` is the sample photo as uploaded.
+ */
+export const HERO_WEIGHT_SIZE = { width: 1080, height: 1350 } as const;
+export const MEASURED_HERO_WEIGHT: Record<string, { original: number; delivered: number; format: "webp" | "jpeg" }> = {
+  shmessy1: { original: 2249535, delivered: 41672, format: "webp" },
+  shbottle: { original: 1783788, delivered: 105598, format: "webp" },
+  shsneakr: { original: 1945200, delivered: 104308, format: "webp" },
+  shtrail1: { original: 1814024, delivered: 117238, format: "webp" },
+  shkurta1: { original: 2906917, delivered: 218479, format: "jpeg" },
+  sneaker1: { original: 2028411, delivered: 104308, format: "webp" },
+};
+
+/** The measurement conditions, said next to any hero weight ("the 1080 × 1350 px hero, WebP via f_auto,q_auto"). */
+export function heroWeightConditions(format?: string): string {
+  const f = (format ?? "").replace(/^image\//, "").toLowerCase();
+  const name = f === "jpg" || f === "jpeg" ? "JPEG" : f === "webp" ? "WebP" : f === "avif" ? "AVIF" : f ? f.toUpperCase() : "";
+  return `the ${HERO_WEIGHT_SIZE.width} × ${HERO_WEIGHT_SIZE.height} px hero${name ? `, ${name}` : ""} via f_auto,q_auto`;
+}
+
+/** Brand line, in one punctuation everywhere. */
+export const TAGLINE = "One photo. A whole shelf.";
+export const STAGE_LINE = "AI builds the stage — your product stays real.";
+
+/** Mock social handle inside the preview frames (feed, story, reel, banner). */
+export const DEMO_HANDLE = "demo.studio";
 
 /** A basic studio shoot for ONE product in India — an estimate, always labelled as one. */
 export const PHOTOSHOOT_INR_ESTIMATE = 2500;
@@ -43,7 +89,7 @@ export const SAMPLE_PHOTO_DISCLOSURE = "Sample input photo (AI-generated test im
 export const SAMPLE_PHOTO_LABEL = "Sample photo";
 
 /** The product pixels are never redrawn in Exact mode — true for any input photo. */
-export const FIDELITY_CLAIM = "Your product's pixels are never redrawn: AI builds only the stage.";
+export const FIDELITY_CLAIM = "The product's pixels are never redrawn: AI builds only the stage.";
 
 /** Public storefront built from the sample kits. */
 export const DEMO_SHELF = { slug: "demo-studio", path: "/shelf/demo-studio", title: "Demo Studio" } as const;
@@ -52,3 +98,10 @@ export const DEMO_SHELF = { slug: "demo-studio", path: "/shelf/demo-studio", tit
 export const PRIMARY_SAMPLE_SKU = "shmessy1";
 /** Best-looking finished kit for "See a finished kit" links. */
 export const SHOWCASE_KIT_SKU = "shbottle";
+
+/**
+ * Kit links that permanently point at another kit. sneaker1 is the landing's
+ * hand-built sneaker (no stored ZIP); shsneakr is the same sample photo on the
+ * same scene with a full kit and ZIP.
+ */
+export const KIT_REDIRECTS: Record<string, string> = { sneaker1: "shsneakr" };
