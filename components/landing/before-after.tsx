@@ -4,6 +4,9 @@
 import { ChevronsLeftRight } from "lucide-react";
 import * as React from "react";
 
+/** Fired on window once the hero's compare intro has played out (or the visitor took the slider first). */
+export const HERO_INTRO_DONE = "s2s:hero-intro-done";
+
 interface Img {
   src: string;
   srcSet: string;
@@ -20,6 +23,8 @@ interface Img {
  * product and the handle settles in the middle. Touching the slider stops it.
  * The range input covers the whole frame, so it works with drag, tap and arrow
  * keys, and reads as a slider to screen readers. Dragging never re-renders React.
+ * When the intro ends (or is cut short) it fires HERO_INTRO_DONE, the cue for the
+ * kit to be dealt onto the shelf below.
  */
 export function BeforeAfter({
   before,
@@ -42,18 +47,26 @@ export function BeforeAfter({
   const input = React.useRef<HTMLInputElement>(null);
   const loaded = React.useRef(0);
 
+  /** The intro is over: say so once. */
+  const finish = React.useCallback(() => {
+    const el = box.current;
+    if (!el || el.dataset.intro === "done") return;
+    el.dataset.intro = "done";
+    window.dispatchEvent(new Event(HERO_INTRO_DONE));
+  }, []);
+
   const set = React.useCallback(
     (v: number) => {
       const el = box.current;
       if (!el) return;
-      el.dataset.intro = "done";
+      finish();
       el.style.setProperty("--pos", `${v}%`);
       if (input.current) {
         input.current.value = String(Math.round(v));
         input.current.setAttribute("aria-valuetext", `${Math.round(v)}% ${what}`);
       }
     },
-    [what],
+    [what, finish],
   );
 
   const arm = React.useCallback(() => {
@@ -79,8 +92,9 @@ export function BeforeAfter({
   return (
     <div
       ref={box}
+      data-hero-compare=""
       onAnimationEnd={(e) => {
-        if (e.animationName === "ba-intro" && box.current) box.current.dataset.intro = "done";
+        if (e.animationName === "ba-intro") finish();
       }}
       className="ba group relative isolate aspect-[4/5] w-full overflow-hidden rounded-[22px] bg-stage-2 shadow-[0_50px_90px_-40px_rgb(0_0_0/0.95)] ring-1 ring-line"
     >
@@ -131,9 +145,7 @@ export function BeforeAfter({
         defaultValue={50}
         aria-label={`Compare the ${what} with the finished hero`}
         aria-valuetext={`50% ${what}`}
-        onPointerDown={() => {
-          if (box.current) box.current.dataset.intro = "done";
-        }}
+        onPointerDown={finish}
         onInput={(e) => set(Number(e.currentTarget.value))}
         onKeyDown={() => {
           if (box.current?.dataset.intro !== "done") set(Number(input.current?.value ?? 50));
