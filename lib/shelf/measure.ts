@@ -25,7 +25,8 @@ import {
   type ReadinessCheck,
   type ReadinessReport,
 } from "../readiness";
-import { addContext, deliveryUrl, mainCloud, probe, uploadToMain, type AssetInfo } from "../server/cld";
+import { deliveryUrl, mainCloud, probe, uploadToMain, type AssetInfo } from "../server/cld";
+import { addTokens, TOKEN_KEYS, updateProduct } from "../server/facts";
 import { notFound, pending } from "../server/http";
 import { packId } from "../server/pack";
 import { skuTag } from "../server/products";
@@ -160,7 +161,14 @@ export async function measureReadiness(sku: Sku, opts: MeasureOptions = {}): Pro
         matched = result.matched;
         tokens = result.quota?.usedByRequest ?? 0;
         visionMemo.set(src, matched);
-        await addContext([raw.publicId], { rd_tags: matched.join(","), rd_src: src, rd_at: new Date().toISOString() });
+        // Verdict cached on the raw (context mirror, read back from the CDN list) and its tokens
+        // added to the product's cost ledger (facts t_rd → GET /api/cost/:sku). Never fails the report.
+        const spent = tokens;
+        await updateProduct(
+          sku,
+          { ctx: { rd_tags: matched.join(","), rd_src: src, rd_at: new Date().toISOString() }, mutate: (f) => addTokens(f, TOKEN_KEYS.readiness, spent) },
+          { critical: false },
+        ).catch(() => null);
       } catch (err) {
         console.error(`[readiness] vision failed: ${String((err as Error)?.message ?? err).slice(0, 160)}`);
       }

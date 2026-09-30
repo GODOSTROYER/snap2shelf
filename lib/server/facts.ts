@@ -324,6 +324,24 @@ async function migrateLegacy(sku: Sku, raw: RawFacts): Promise<{ facts: ProductF
 
 const locks = F.locks;
 
+/**
+ * AI Vision token ledger keys in facts.ctx, read by GET /api/cost/:sku (lib/server/cost.ts).
+ * t_an / t_fix are written once per product; the others add up over repeated calls.
+ */
+export const TOKEN_KEYS = { analyze: "t_an", retouch: "t_fix", brief: "t_brief", qa: "t_qa", readiness: "t_rd", scene: "t_scene" } as const;
+
+/** Add `n` tokens to a cumulative ledger key (use inside an updateProduct mutate, so concurrent adds never overwrite each other). */
+export function addTokens(f: Pick<ProductFacts, "ctx">, key: string, n: number): void {
+  if (!(n > 0) || !Number.isFinite(n)) return;
+  f.ctx[key] = String((Number(f.ctx[key]) || 0) + Math.round(n));
+}
+
+/** Bookkeeping only: never fails the request (the tokens are already spent). */
+export async function recordTokens(sku: Sku, key: string, n: number): Promise<void> {
+  if (!(n > 0)) return;
+  await updateProduct(sku, { mutate: (f) => addTokens(f, key, n) }, { critical: false }).catch(() => null);
+}
+
 export interface FactsPatch {
   /** Keys merged into facts.ctx AND mirrored to the raw asset's context (add_context). */
   ctx?: Ctx;

@@ -27,7 +27,7 @@ import {
   type Placement,
   type Sku,
 } from "../types";
-import { updateProduct } from "./facts";
+import { addTokens, TOKEN_KEYS, updateProduct } from "./facts";
 import { analysisSourceUrl, requireRaw, understandingFromContext } from "./products";
 import { readOnly } from "./protect";
 
@@ -480,15 +480,15 @@ export async function runBrief(
     tokens,
     cached: false,
   };
-  const prevTokens = Number(raw.context.t_brief) || 0;
   await updateProduct(
     sku,
     {
       ctx: {
         ...briefCachePatch(raw.context, hash, { kit: merged.kit, festival: rules.festival?.slug, scenePrompt: merged.scenePrompt, sources: merged.sources }),
-        t_brief: String(prevTokens + tokens),
         ms_brief: String(Date.now() - t0),
       },
+      // cumulative on the latest facts doc, so two briefs in flight never overwrite each other's tokens
+      mutate: (f) => addTokens(f, TOKEN_KEYS.brief, tokens),
     },
     { critical: false },
   );
