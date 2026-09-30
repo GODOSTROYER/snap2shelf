@@ -11,7 +11,9 @@
     "secret-scan": "node scripts/secret-scan.mjs",
     "spikes": "node scripts/spikes/run-all.mjs",
     "setup:cloudinary": "node scripts/setup-cloudinary.mjs",
-    "seed:showcase": "node scripts/seed-showcase.mjs"
+    "seed:showcase": "node --conditions=react-server --import tsx scripts/seed-showcase.mts",
+    "seed:scenes": "node --conditions=react-server --import tsx scripts/seed-scenes.mts",
+    "test": "node --conditions=react-server --import tsx --test tests/*.mts"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.23",
