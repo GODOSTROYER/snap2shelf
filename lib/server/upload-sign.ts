@@ -1,6 +1,7 @@
 import "server-only";
 import { v2 as cloudinary } from "cloudinary";
 import { INGEST_PRESET } from "./config";
+import { isProtectedSku } from "./protect";
 
 /**
  * Strict allowlist for POST /api/sign-upload (next-cloudinary CldUploadWidget
@@ -8,6 +9,8 @@ import { INGEST_PRESET } from "./config";
  * refused, so a signature can only ever create
  *   snap2shelf/products/<sku>/raw  through the s2s_ingest preset
  * (preset: signed, overwrite false, c_limit 2400, image formats only).
+ * Never for a sample / showcase product (lib/server/protect.ts), whatever the
+ * session: e.g. the raw-less sample "sneaker1" must never get an uploaded raw.
  */
 
 export const RAW_PUBLIC_ID = /^snap2shelf\/products\/([a-z0-9]{8})\/raw$/;
@@ -15,7 +18,7 @@ const ALLOWED_KEYS = new Set(["timestamp", "source", "upload_preset", "public_id
 const CONTEXT_KEYS = new Set(["origin", "capture"]);
 const MAX_SKEW_S = 10 * 60;
 
-export type SignCheck = { ok: true; params: Record<string, string | number> } | { ok: false; reason: string };
+export type SignCheck = { ok: true; params: Record<string, string | number>; sku: string } | { ok: false; reason: string };
 
 export function checkParamsToSign(input: unknown, now = Date.now()): SignCheck {
   if (!input || typeof input !== "object" || Array.isArray(input)) return { ok: false, reason: "shape" };
@@ -36,6 +39,7 @@ export function checkParamsToSign(input: unknown, now = Date.now()): SignCheck {
   const m = RAW_PUBLIC_ID.exec(String(out.public_id ?? ""));
   if (!m) return { ok: false, reason: "public_id" };
   const sku = m[1];
+  if (isProtectedSku(sku)) return { ok: false, reason: "protected" };
 
   if (out.tags !== undefined) {
     const allowed = new Set(["s2s", "s2s-raw", "s2s-capture", `s2s-sku-${sku}`]);
@@ -52,7 +56,7 @@ export function checkParamsToSign(input: unknown, now = Date.now()): SignCheck {
       if (!cm || !CONTEXT_KEYS.has(cm[1])) return { ok: false, reason: "context" };
     }
   }
-  return { ok: true, params: out };
+  return { ok: true, params: out, sku };
 }
 
 /** Signature for the upload, same algorithm the SDK uses (api_sign_request). */
