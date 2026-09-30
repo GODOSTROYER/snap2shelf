@@ -26,6 +26,15 @@ const BASE = values.base!;
 const SKU = values.sku!;
 const cloud = process.env.CLOUDINARY_CLOUD_NAME!;
 const auth = { cloud_name: cloud, api_key: process.env.CLOUDINARY_API_KEY!, api_secret: process.env.CLOUDINARY_API_SECRET! };
+/** Admin lookup whose failures carry the API message only: SDK rejections include request_options.auth (the secret). */
+async function adminResource<T>(publicId: string, opts: object = {}): Promise<T> {
+  try {
+    return (await cloudinary.api.resource(publicId, { ...auth, ...opts })) as T;
+  } catch (e) {
+    const err = e as { error?: { message?: unknown; http_code?: unknown } };
+    throw new Error(`Admin resource lookup failed (${String(err?.error?.http_code ?? "-")}): ${typeof err?.error?.message === "string" ? err.error.message : "unknown"}`);
+  }
+}
 
 const bodies: string[] = [];
 let failures = 0;
@@ -235,7 +244,7 @@ const messy = values["messy-sku"] ?? randomSku();
     else if (c.status === 202) await sleep(Number(c.json.retryAfterMs ?? 2000));
     else break;
   }
-  const res = (await cloudinary.api.resource(`snap2shelf/products/${messy}/cutout`, { ...auth, context: true })) as { context?: { custom?: Record<string, string> }; width: number; height: number };
+  const res = await adminResource<{ context?: { custom?: Record<string, string> }; width: number; height: number }>(`snap2shelf/products/${messy}/cutout`, { context: true });
   check(res.context?.custom?.source === `snap2shelf/products/${messy}/retouched`, `cutout ${res.width}x${res.height} cut from ${res.context?.custom?.source} in ${res.context?.custom?.ms} ms`);
 }
 
@@ -252,7 +261,7 @@ if (!values["no-damaged"]) {
   if (r?.json.url) {
     const h = await fetch(String(r.json.url), { method: "HEAD" });
     console.log(`  retouched view ${h.status} ${h.headers.get("content-type")} ${h.headers.get("content-length")} B`);
-    const info = (await cloudinary.api.resource(`snap2shelf/products/${damaged}/retouched`, auth)) as { width: number; height: number; bytes: number };
+    const info = await adminResource<{ width: number; height: number; bytes: number }>(`snap2shelf/products/${damaged}/retouched`);
     check(info.width > 640, `retouched asset ${info.width}x${info.height} (${info.bytes} B) vs 640 px upload`);
   }
 }

@@ -1,5 +1,6 @@
 import "server-only";
 import { basicAuth, getAccounts, type CloudinaryAccount } from "./accounts";
+import { adminFetch } from "./admin";
 
 /**
  * Key pool for add-on quota.
@@ -21,6 +22,10 @@ import { basicAuth, getAccounts, type CloudinaryAccount } from "./accounts";
  * State is per server instance. On serverless that means each instance learns
  * independently, which is fine: the worst case is one extra quota error that
  * benches the account on that instance.
+ *
+ * The usage call is an Admin API call (500/hour on Free): it goes through the
+ * breaker in admin.ts, and while an account is rate limited the last numbers
+ * are kept (and reported as stale) instead of failing.
  */
 
 /**
@@ -55,6 +60,16 @@ interface AccountState {
 const state = new Map<string, AccountState>();
 let usageFetchedAt = 0;
 let usageInFlight: Promise<void> | null = null;
+
+/** Main's plan credits (transformations + storage + bandwidth) from its usage call. */
+export interface CreditsSnapshot {
+  used: number;
+  limit: number;
+  at: number; // when Cloudinary last answered with these numbers
+}
+let mainCredits: CreditsSnapshot | null = null;
+/** Accounts whose last usage refresh failed (rate limited, network, 5xx): their numbers are stale. */
+const staleAccounts = new Set<string>();
 
 const stateKey = (label: string, cap: PooledCapability) => `${label}:${cap}`;
 const getState = (label: string, cap: PooledCapability) => {
@@ -111,12 +126,29 @@ export function bench(account: CloudinaryAccount | string, cap: PooledCapability
 }
 
 async function fetchUsage(account: CloudinaryAccount): Promise<void> {
-  const res = await fetch(`https://api.cloudinary.com/v1_1/${account.cloudName}/usage`, {
-    headers: { Authorization: basicAuth(account) },
-    cache: "no-store",
-  });
-  if (!res.ok) return; // keep whatever we knew; a failing usage call must not block generation
+  let res: Response;
+  try {
+    res = await adminFetch("usage", account.label, () =>
+      fetch(`https://api.cloudinary.com/v1_1/${account.cloudName}/usage`, {
+        headers: { Authorization: basicAuth(account) },
+        cache: "no-store",
+      }),
+    );
+  } catch {
+    // Rate limited (breaker open) or network: keep whatever we knew, marked stale.
+    staleAccounts.add(account.label);
+    return;
+  }
+  if (!res.ok) {
+    staleAccounts.add(account.label);
+    return; // keep whatever we knew; a failing usage call must not block generation
+  }
+  staleAccounts.delete(account.label);
   const body = (await res.json()) as Record<string, { usage?: number; limit?: number } | unknown>;
+  const credits = body.credits as { usage?: number; limit?: number } | undefined;
+  if (account.isMain && credits && typeof credits.usage === "number" && typeof credits.limit === "number" && credits.limit > 0) {
+    mainCredits = { used: credits.usage, limit: credits.limit, at: Date.now() };
+  }
   for (const cap of ["image_generation", "ai_vision", "object_detection"] as const) {
     const entry = body[cap] as { usage?: number; limit?: number } | undefined;
     if (!entry || typeof entry.limit !== "number") continue;
@@ -212,8 +244,25 @@ export async function poolSummary(cap: PooledCapability): Promise<{ remaining: n
   return { remaining, limit, usable, known };
 }
 
+/**
+ * Main's plan credits (used / limit), refreshed with the usage call (TTL 10 min,
+ * through the Admin breaker). null until Cloudinary has answered once on this
+ * instance. `stale` = the latest refresh of main failed and older numbers are shown.
+ */
+export async function mainCreditsSummary(): Promise<(CreditsSnapshot & { stale: boolean }) | null> {
+  await refreshUsage();
+  if (!mainCredits) return null;
+  const main = getAccounts().find((a) => a.isMain);
+  return { ...mainCredits, stale: main ? staleAccounts.has(main.label) : false };
+}
+
+/** True when the latest usage refresh failed for any account (numbers served from cache). */
+export const usageIsStale = () => staleAccounts.size > 0;
+
 /** Test hook: forget all learned quota state. */
 export function __resetPoolState(): void {
   state.clear();
   usageFetchedAt = 0;
+  mainCredits = null;
+  staleAccounts.clear();
 }

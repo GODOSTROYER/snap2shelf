@@ -2,6 +2,7 @@ import "server-only";
 import { v2 as cloudinary } from "cloudinary";
 import type { CostResponse } from "../api-contract";
 import { PRODUCT_ROOT, SCENE_ROOT, type Scene, type Sku } from "../types";
+import { adminCall } from "../cloudinary/admin";
 import { deliveryUrl, mainAuth } from "./cld";
 import { notFound } from "./http";
 import { libraryScenes } from "./scenes";
@@ -135,14 +136,16 @@ type ListedResource = { public_id: string; bytes?: number; format?: string; crea
 
 /** Every asset under snap2shelf/products/<sku>/ with context and created_at (one Admin API call). */
 export async function listProductAssets(sku: Sku): Promise<ProductAsset[]> {
-  const res = (await cloudinary.api.resources({
-    ...mainAuth(),
-    type: "upload",
-    resource_type: "image",
-    prefix: `${PRODUCT_ROOT}/${sku}/`,
-    context: true,
-    max_results: 100,
-  })) as unknown as { resources: ListedResource[] };
+  const res = (await adminCall("resources", () =>
+    cloudinary.api.resources({
+      ...mainAuth(),
+      type: "upload",
+      resource_type: "image",
+      prefix: `${PRODUCT_ROOT}/${sku}/`,
+      context: true,
+      max_results: 100,
+    }),
+  )) as unknown as { resources: ListedResource[] };
   return res.resources.map((r) => ({
     publicId: r.public_id,
     bytes: Number(r.bytes ?? 0),

@@ -3,6 +3,7 @@ import { v2 as cloudinary } from "cloudinary";
 import { z } from "zod";
 import type { AnalyzeResponse, CutoutResponse } from "../api-contract";
 import { withPooledAccount } from "../cloudinary/pool";
+import { cldSafe } from "../cloudinary/safe";
 import { captioning, parseJsonAnswer, visionGeneral } from "../cloudinary/vision";
 import {
   SCENE_THEMES,
@@ -168,7 +169,7 @@ export async function analyzeProduct(sku: Sku): Promise<AnalyzeOutcome> {
   const [caption, understanding, quality] = await Promise.allSettled([
     withPooledAccount("object_detection", (a) => captioning(a, source)),
     withPooledAccount("ai_vision", (a) => visionGeneral(a, source, [UNDERSTANDING_PROMPT])),
-    cloudinary.uploader.explicit(raw.publicId, { ...mainAuth(), type: "upload", quality_analysis: true }),
+    cldSafe("explicit-quality", () => cloudinary.uploader.explicit(raw.publicId, { ...mainAuth(), type: "upload", quality_analysis: true })),
   ]);
 
   const captionText = caption.status === "fulfilled" ? caption.value.result.caption : "";
