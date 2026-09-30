@@ -128,3 +128,15 @@ Image generation, AI Vision and captioning calls rotate across three Cloudinary 
 2. **Creative mode** defaults to `nano-banana-2-edit` (9 credits), with `flux-2-flash-edit` (1 credit) as the draft tier. The fidelity-QA sheet catches the draft tier's redesigns.
 3. **Scene library**: drafts at 1 credit (`economy_fast`), finals at 5 credits (`quality`), all normalised to a 1080×1350 canonical plate.
 4. **Recolor** targets a product part named by AI Vision, not the whole object.
+
+## Corrections and later measurements (appended 30 Sep 2026)
+
+The sections above are kept as measured on Day 0. Where the shipped code or a later measurement differs, this list wins.
+
+1. **Scene tiers are pinned, not `mode: "auto"`** (supersedes "Scope changes" 3). Drafts use `flux-2-flash` (1 credit), finals `gpt-image-2.5-flare` (4–5 credits); `lib/server/scenes.ts` `SCENE_TIERS`. Plates seeded before pinning keep the model that made them: the Rustic jute final, for example, came from `nano-banana-2` (9 credits), so reusing it saves 9 credits.
+2. **Scene reuse shipped as a lookup** (scope change 1). `POST /api/scenes/generate` hashes prompt + tier + seed into the plate's public ID and answers `reused: true, credits: 0` when that plate exists; `GET /api/scenes/match` ranks the library by theme, keywords, festival and warmth instead of Visual Search.
+3. **Exposure is measured, not analysed** (§9 found only `focus`). A `c_scale,w_16,h_16/f_bmp` thumbnail gives the photo's mean luma. On the dim trail-mix sample photo: original L 105.0 (a well-lit one measured 148), `e_improve` L 113.7 (visibly clearer, no extra transformation count), `e_enhance` L 104.8 (100 transformations, subtler). Dim photos therefore get `e_improve`; `e_enhance` is kept for blown-out photos. Source: `lib/server/retouch-plan.ts`.
+4. **Cut-out in one derivation** (§4 described two steps). The pipeline derives `e_background_removal/e_trim/f_png` once and saves it as `snap2shelf/products/<sku>/cutout` (`lib/server/products.ts` `CUTOUT_CHAIN`).
+5. **Admin API limit.** The Free plan allows 500 Admin API calls an hour, and the first pipeline used about 20 per kit; the Admin API answered HTTP 420 on 30 Sep. Product state moved to a `facts.json` raw asset read through the Upload API and the CDN, so the photo → ZIP pipeline makes 0 Admin API calls (`lib/server/facts.ts`).
+6. **Faithful Creative takes cost 8–9 credits.** The two `nano-banana-2-edit` takes in the showcase charged 8 and 9 credits (`data/showcase.json`); the app budgets 9. The showcase's `flux-2-flash-edit` take on the sample sneaker was rejected again by the fidelity sheet (`product-redesigned`: "added logo on side panel").
+7. **Photo → ZIP: 36 s**, measured on the live site (desktop, Upload Widget, a sample photo, from file selected to the ZIP link; `lib/claims.ts`).
