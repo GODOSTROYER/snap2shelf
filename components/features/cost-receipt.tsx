@@ -165,15 +165,15 @@ function Printed({ data, photoshootInr }: { data: CostResponse; photoshootInr: n
           <Rule />
           <dl className="grid gap-2.5">
             {lines.map((l, i) => (
-              <div key={l.label}>
-                <div className="flex items-baseline gap-2">
-                  <dt className="shrink-0">{l.label}</dt>
-                  <span aria-hidden className="min-w-3 flex-1 translate-y-[-3px] border-b border-dotted border-studio/35" />
-                  <dd className={cn("shrink-0 font-semibold", l.tone === "saved" && l.value > 0 && "text-[color-mix(in_srgb,var(--color-leaf)_45%,var(--color-studio))]")}>
-                    <CountUp value={l.value} format={l.unit} delay={at(i)} duration={900} />
-                  </dd>
-                </div>
-                {l.note ? <p className="text-[0.7rem] text-studio/60">{l.note}</p> : null}
+              // one dt/dd group per line (valid <dl>): the dotted leader is the label's own ::after
+              <div key={l.label} className="flex flex-wrap items-baseline gap-x-2">
+                <dt className="flex min-w-0 flex-1 items-baseline gap-2 after:min-w-3 after:flex-1 after:translate-y-[-3px] after:border-b after:border-dotted after:border-studio/35 after:content-['']">
+                  <span className="shrink-0">{l.label}</span>
+                </dt>
+                <dd className={cn("shrink-0 font-semibold", l.tone === "saved" && l.value > 0 && "text-[color-mix(in_srgb,var(--color-leaf)_45%,var(--color-studio))]")}>
+                  <CountUp value={l.value} format={l.unit} delay={at(i)} duration={900} />
+                </dd>
+                {l.note ? <dd className="basis-full text-[0.7rem] text-studio/60">{l.note}</dd> : null}
               </div>
             ))}
           </dl>
