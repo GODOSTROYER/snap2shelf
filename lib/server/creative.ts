@@ -6,13 +6,13 @@ import { getGenerationTask, startGeneration, type GenerateRequest as CldGenerate
 import { withPooledAccount } from "../cloudinary/pool";
 import { PLATE, productId, type KitAsset, type Sku } from "../types";
 import { assertLivePipeline } from "./budget";
-import { addContext, addTags, assetInfo, deliveryUrl } from "./cld";
+import { addContext, addTags, assetInfo, deliveryUrl, type Ctx } from "./cld";
 import { GENERATION_MODELS } from "./config";
 import { loadProduct, updateProduct } from "./facts";
 import { HttpError, badRequest, notFound } from "./http";
 import { encodeJob, type JobClaims } from "./job-token";
 import { fidelityQa, qaFromContext, qaToContext } from "./qa";
-import { getCutout, skuTag } from "./products";
+import { getCutout, skuTag, understandingFromContext } from "./products";
 
 /**
  * Creative mode: image_to_image on the key pool with the real cutout as
@@ -100,9 +100,37 @@ function creativeAsset(sku: Sku, publicId: string, model: string, seed: number, 
 }
 
 /**
- * One poll. While the task runs this costs one v2 task GET and no Admin API
- * call. On completion: copy into main, fidelity QA, and store the verdict in
- * the asset's context so later polls return it without re-running anything.
+ * Alt text for a creative take: the product in the scene it was generated for. The raw
+ * photo's caption describes the ORIGINAL photo's surroundings (a countertop, a plant...),
+ * not the generated scene. Built from the product name and the scene prompt the job sent,
+ * so it costs no AI Vision call.
+ */
+export function creativeAlt(productName: string | undefined, scenePrompt: string): string {
+  const name = (productName ?? "").replace(/\s+/g, " ").trim() || "Product";
+  const scene = cleanScenePrompt(scenePrompt).replace(/[\s.;:,]+$/, "");
+  const lead = /^(on|in|at|atop|beside|against|with|under|by|over|inside|near|among|amid|surrounded)\b/i.test(scene) ? " " : " on ";
+  const alt = `${name}${lead}${scene}`;
+  return alt.length <= 200 ? alt : `${alt.slice(0, 199).replace(/\s+\S*$/, "")}…`;
+}
+
+/** Creatives whose fidelity check is running in this process (a concurrent poll answers "checking"). */
+const G = globalThis as unknown as { __s2sChecking?: Set<string> };
+const checking = (G.__s2sChecking ??= new Set());
+
+/** How long one poll waits for the fidelity sheet to render before answering "checking". */
+const RENDER_BUDGET_MS = 4000;
+
+/**
+ * One poll, kept well under the route's 30 s: every slow step gets its own poll, and the
+ * progress between polls lives in Cloudinary (stateless: the product's facts + the asset in
+ * main), so any poll can pick up where the last one stopped:
+ *   pending / processing  the generation task runs (one v2 task GET, no Admin API call)
+ *   → copy                the finished take is copied into main (upload by URL, a few s) and
+ *                         recorded in the product's facts; that poll answers "checking"
+ *   → checking            fidelity QA on a later poll: the reference-vs-take sheet is derived
+ *                         (at most RENDER_BUDGET_MS per poll) and read by AI Vision (~5-8 s)
+ *   → completed           the verdict is stored in the asset's context and the facts, so later
+ *                         polls answer it without re-running anything.
  */
 export async function pollCreative(claims: JobClaims): Promise<JobResponse & { tokens?: number }> {
   const account = getAccounts().find((a) => a.label === claims.a);
@@ -119,12 +147,12 @@ export async function pollCreative(claims: JobClaims): Promise<JobResponse & { t
   }
   if (task && (task.status === "pending" || task.status === "processing")) return { status: task.status, request };
 
-  // Product facts, not the Admin API: a finished job's verdict is stored there (and on the asset's context).
+  // Product facts, not the Admin API: a finished job's progress and verdict are stored there (and on the asset's context).
   const product = await loadProduct(claims.s);
   const id = `creative-${claims.m}-${claims.seed}`;
   const known = product.facts.creatives?.[id];
+  const alt = creativeAlt(understandingFromContext(product.facts.ctx)?.name, claims.p);
   const doneQa = known?.ctx ? qaFromContext(known.ctx) : null;
-  const caption = product.facts.ctx.caption ?? "";
   if (known?.ctx && doneQa) {
     return {
       status: "completed",
@@ -132,61 +160,75 @@ export async function pollCreative(claims: JobClaims): Promise<JobResponse & { t
       credits: Number(known.ctx.credits ?? GENERATION_MODELS[claims.m]?.credits ?? 0),
       latencyMs: Number(known.ctx.latency_ms ?? 0) || undefined,
       request,
-      asset: creativeAsset(claims.s, publicId, claims.m, claims.seed, caption, request, doneQa),
+      asset: creativeAsset(claims.s, publicId, claims.m, claims.seed, alt, request, doneQa),
       tokens: 0,
     };
   }
-  const done = known ?? (await assetInfo(publicId));
-  if (!task || task.status === "failed" || !task.assets[0]) {
-    if (task) console.error(`[jobs] generation failed: ${(task.error ?? "no asset").slice(0, 200)}`);
-    return { status: "failed", error: "The AI couldn't generate this image. Try another seed or prompt.", request };
-  }
 
-  const gen = task.assets[0];
-  const latencyMs = Date.now() - claims.iat;
-  const credits = task.quota?.usedByRequest ?? GENERATION_MODELS[claims.m]?.credits ?? 0;
-  const modelId = gen.model?.id ?? claims.m;
   const tags = ["s2s", "s2s-creative", skuTag(claims.s)];
-  const ctx = { model: modelId, seed: String(claims.seed), credits: String(credits), latency_ms: String(latencyMs) };
-
-  if (!done) {
-    const copied = await copyToMain(
-      account,
-      { secure_url: gen.storage.secure_url, public_id: gen.storage.public_id, asset_id: gen.storage.asset_id },
-      { public_id: publicId, tags, context: ctx },
-    );
-    if (!copied.copied) {
-      // Generated directly on main: add what the copy upload would have set.
-      await addTags([publicId], tags);
-      await addContext([publicId], ctx);
+  let base: Ctx; // model, seed, credits, latency_ms: what the take's context records besides the verdict
+  let size: { width: number; height: number; version: number } | null;
+  if (known) {
+    // Copied on an earlier poll: straight to the check (even if the task has expired since).
+    base = known.ctx ?? { model: claims.m, seed: String(claims.seed), credits: String(GENERATION_MODELS[claims.m]?.credits ?? 0), latency_ms: "0" };
+    size = known;
+  } else {
+    if (!task || task.status === "failed" || !task.assets[0]) {
+      if (task) console.error(`[jobs] generation failed: ${(task.error ?? "no asset").slice(0, 200)}`);
+      return { status: "failed", error: "The AI couldn't generate this image. Try another seed or prompt.", request };
     }
+    const gen = task.assets[0];
+    const credits = task.quota?.usedByRequest ?? GENERATION_MODELS[claims.m]?.credits ?? 0;
+    base = { model: gen.model?.id ?? claims.m, seed: String(claims.seed), credits: String(credits), latency_ms: String(Date.now() - claims.iat) };
+    size = await assetInfo(publicId);
+    if (!size) {
+      const copied = await copyToMain(
+        account,
+        { secure_url: gen.storage.secure_url, public_id: gen.storage.public_id, asset_id: gen.storage.asset_id },
+        { public_id: publicId, tags, context: base },
+      );
+      const record = { publicId, width: copied.width ?? 0, height: copied.height ?? 0, version: 0, at: Date.now(), ctx: base };
+      await updateProduct(claims.s, { mutate: (f) => void ((f.creatives ??= {})[id] = record) }, { critical: false });
+      return { status: "checking", modelId: base.model, credits, latencyMs: Number(base.latency_ms), request };
+    }
+    // Already in main (generated there, or copied by a poll whose facts write failed): check it now.
   }
 
+  const progress = { modelId: base.model ?? claims.m, credits: Number(base.credits ?? 0), latencyMs: Number(base.latency_ms ?? 0) || undefined, request };
+  if (checking.has(publicId)) return { status: "checking", ...progress };
+  checking.add(publicId);
   let out;
   try {
-    out = await fidelityQa(claims.s, publicId);
+    out = await fidelityQa(claims.s, publicId, { renderBudgetMs: RENDER_BUDGET_MS });
   } catch (err) {
-    if (err instanceof HttpError && err.code === "pending") return { status: "processing", request };
+    if (err instanceof HttpError && err.code === "pending") return { status: "checking", ...progress };
     throw err;
+  } finally {
+    checking.delete(publicId);
   }
-  const finalCtx = { ...ctx, ...qaToContext(out.qa), qa_tokens: String(out.tokens) };
-  await addContext([publicId], finalCtx);
-  const info = done ?? (await assetInfo(publicId).catch(() => null));
+  const finalCtx = { ...base, ...qaToContext(out.qa), qa_tokens: String(out.tokens) };
+  // Tags too: a take generated directly on main never went through the copy upload that sets them.
+  await Promise.all([addContext([publicId], finalCtx), addTags([publicId], tags)]);
+  const info = size?.version ? size : await assetInfo(publicId).catch(() => null);
   await updateProduct(
     claims.s,
     {
       mutate: (f) =>
-        void ((f.creatives ??= {})[id] = { publicId, width: info?.width ?? 0, height: info?.height ?? 0, version: info?.version ?? 0, at: Date.now(), ctx: finalCtx }),
+        void ((f.creatives ??= {})[id] = {
+          publicId,
+          width: info?.width || size?.width || 0,
+          height: info?.height || size?.height || 0,
+          version: info?.version ?? 0,
+          at: Date.now(),
+          ctx: finalCtx,
+        }),
     },
     { critical: false }, // the asset's own context still holds the verdict
   );
   return {
     status: "completed",
-    modelId,
-    credits,
-    latencyMs,
-    request,
-    asset: creativeAsset(claims.s, publicId, claims.m, claims.seed, caption, request, out.qa),
+    ...progress,
+    asset: creativeAsset(claims.s, publicId, claims.m, claims.seed, alt, request, out.qa),
     tokens: out.tokens,
   };
 }

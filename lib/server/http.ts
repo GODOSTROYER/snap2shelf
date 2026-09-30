@@ -7,7 +7,8 @@ import { AdminLimitedError, adminStats, parseRateLimitReset } from "../cloudinar
 import { PoolExhaustedError, QuotaError } from "../cloudinary/pool";
 import { scrubSecrets } from "../cloudinary/safe";
 import { openOpCap } from "./config";
-import { readSession, writeSession, type Session } from "./session";
+import { applyCookieWrites, type CookieWrite } from "./proofs";
+import { readSessionState, sessionToWrite, writeSession, type Session } from "./session";
 
 /** Throw from anywhere in a route to answer with a safe ApiError. */
 export class HttpError extends Error {
@@ -133,7 +134,18 @@ export function chargeOpenOp(s: Session): Session {
   return { ...s, o: s.o + 1 };
 }
 
-type Handler = (req: NextRequest, session: Session) => Promise<{ body: unknown; status?: number; session?: Session; headers?: Record<string, string> }>;
+type Handler = (
+  req: NextRequest,
+  session: Session,
+) => Promise<{
+  body: unknown;
+  status?: number;
+  /** The session with an updated open-operation count (chargeOpenOp). Only `o` is persisted from it. */
+  session?: Session;
+  headers?: Record<string, string>;
+  /** Proof cookies to set / delete (lib/server/proofs.ts), independent of the session cookie. */
+  cookies?: CookieWrite[];
+}>;
 
 export interface RouteOptions {
   /** The client retries this route on 202 (cutout, retouch, polls): short rate-limit waits answer "pending". */
@@ -151,20 +163,25 @@ function instrument(res: NextResponse): void {
 }
 
 /**
- * Route wrapper: reads the session, maps thrown errors to ApiError JSON, and
- * writes the session cookie back when the handler returns an updated one (or
- * when the visitor had none yet).
+ * Route wrapper: reads the session (lib/server/session.ts: the s2s_access cookie plus
+ * this session's unlock / generation proofs), maps thrown errors to ApiError JSON, and
+ * writes back only what the handler changed:
+ *   - s2s_access, only when the open-operation count changed or the visitor has no valid
+ *     session yet (routes that change nothing never re-issue it, so a slow request can't
+ *     overwrite what a concurrent one wrote);
+ *   - the proof cookies the handler grants or revokes (unlock, generations, ownership).
  */
 export function route(name: string, handler: Handler, opts: RouteOptions = {}) {
   return async (req: NextRequest): Promise<NextResponse> => {
-    const session = readSession(req);
+    const state = readSessionState(req);
     try {
-      const out = await handler(req, session);
+      const out = await handler(req, state.session);
       const res = NextResponse.json(out.body, { status: out.status ?? 200 });
       for (const [k, v] of Object.entries(out.headers ?? {})) res.headers.set(k, v);
       if (!res.headers.has("Cache-Control")) res.headers.set("Cache-Control", "no-store");
-      const hadCookie = Boolean(req.cookies.get("s2s_access"));
-      if (out.session || !hadCookie) writeSession(res, out.session ?? session);
+      const stored = sessionToWrite(state, out.session);
+      if (stored) writeSession(res, stored);
+      applyCookieWrites(res, out.cookies);
       instrument(res);
       return res;
     } catch (err) {

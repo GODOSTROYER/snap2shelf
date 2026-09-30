@@ -8,7 +8,10 @@ export const maxDuration = 30;
 
 /**
  * GET /api/jobs/:job → poll a generation (await each response, then wait ~2 s).
- * When done: copied into main, fidelity-QA'd, returned as a KitAsset with the request JSON for X-ray.
+ * pending / processing while it generates; "checking" once the take is copied into main and
+ * its fidelity check is under way (one slow step per poll, lib/server/creative.ts pollCreative,
+ * so no poll comes near maxDuration); completed → a KitAsset with its QA verdict and the request
+ * JSON for X-ray.
  */
 export const GET = routeWithParams<{ job: string }>("jobs", async (_req, session, { job }) => {
   const claims = decodeJob(job);

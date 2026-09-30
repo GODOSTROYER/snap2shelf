@@ -5,7 +5,8 @@ import { checkMainImageUrl } from "@/lib/server/guard";
 import { badRequest, chargeOpenOp, readJson, route, skuSchema } from "@/lib/server/http";
 import { startPack } from "@/lib/server/pack";
 import { prebuiltPackFor } from "@/lib/server/prebuilt";
-import { canWrite, readOnly } from "@/lib/server/protect";
+import { provenSkus } from "@/lib/server/proofs";
+import { canWrite, readOnly, readOnlyMessageFor } from "@/lib/server/protect";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -33,15 +34,16 @@ const schema = z.object({
  * POST /api/pack → save the hero and start materialising the Channel Pack. Poll GET /api/pack/:sku.
  * Sample / showcase products without the access code: the prebuilt pack when the hero is the
  * composite it was built from (no Cloudinary call), anything else 403 read_only — a live pack
- * would re-point the showcase product's hero and overwrite its stored formats.
+ * would re-point the showcase product's hero and overwrite its stored formats. Another browser's
+ * product: 403 read_only (only the browser that created it may pack it).
  */
 export const POST = route("pack", async (req, session) => {
   const body = await readJson(req, schema);
   const check = checkMainImageUrl(body.heroUrl, mainCloud());
   if (!check.ok) throw badRequest("The hero image must be one made in this app.");
-  if (!canWrite(session, body.sku)) {
+  if (!canWrite(session, body.sku, provenSkus(req))) {
     const pre = prebuiltPackFor(body.sku, body.heroUrl);
-    if (!pre) throw readOnly();
+    if (!pre) throw readOnly(readOnlyMessageFor(body.sku));
     return { body: { sku: body.sku, heroPublicId: pre.heroPublicId, assets: pre.assets, pending: [], failed: pre.failed } satisfies PackResponse };
   }
   const charged = chargeOpenOp(session);

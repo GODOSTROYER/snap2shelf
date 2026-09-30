@@ -161,6 +161,30 @@ export async function uploadRawJson(publicId: string, value: unknown): Promise<{
 }
 
 /**
+ * Create a small raw JSON document only if `publicId` doesn't exist yet (Upload API,
+ * overwrite: false, which Cloudinary applies atomically: of two concurrent uploads
+ * one creates the asset, the other gets the existing one back). Returns the version
+ * that is stored, which is ours or the one that was already there; `existing` is
+ * Cloudinary's flag for the latter. Callers that must know WHO holds the document
+ * read it back at that version (lib/server/locks.ts), so they don't depend on the flag.
+ */
+export async function uploadRawJsonOnce(publicId: string, value: unknown, tags: string[] = []): Promise<{ version: number; existing: boolean }> {
+  const data = `data:application/json;base64,${Buffer.from(JSON.stringify(value)).toString("base64")}`;
+  const r = (await cldSafe("upload-raw-once", () =>
+    cloudinary.uploader.upload(data, {
+      resource_type: "raw",
+      type: "upload",
+      public_id: publicId,
+      overwrite: false,
+      unique_filename: false,
+      ...(tags.length ? { tags } : {}),
+      ...mainAuth(),
+    }),
+  )) as unknown as { version?: number; existing?: boolean };
+  return { version: Number(r.version ?? 0), existing: r.existing === true };
+}
+
+/**
  * The SDK's typings only accept a context string and no auth options here, but
  * the implementation takes an object (escaping `=` and `|`) plus per-call auth.
  */

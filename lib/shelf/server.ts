@@ -260,7 +260,13 @@ export interface PublishOptions {
    * Called with the shelf's current members once they are read and before anything
    * is written; throw to refuse (POST /api/shelf: reserved / taken shelves, lib/server/protect.ts).
    */
-  authorize?: (members: ShelfMember[]) => void;
+  authorize?: (members: ShelfMember[]) => void | Promise<void>;
+  /**
+   * Called once the publish has something to write (at least one hero), right before the
+   * first write; throw to refuse. POST /api/shelf claims a new shelf name here (atomic lock,
+   * lib/server/locks.ts), so a publish that would write nothing never reserves a name.
+   */
+  beforeWrite?: () => Promise<void>;
 }
 
 export async function publishShelf(req: ShelfRequest, opts: PublishOptions = {}): Promise<ShelfResponse> {
@@ -280,12 +286,12 @@ export async function publishShelf(req: ShelfRequest, opts: PublishOptions = {})
       .then((l) => l ?? [])
       .catch(() => heroesByTag(shopTag(shop))),
   ]);
-  opts.authorize?.(members.map((m) => ({ publicId: m.publicId, sku: memberSku(m) })));
+  await opts.authorize?.(members.map((m) => ({ publicId: m.publicId, sku: memberSku(m) })));
 
   const keys = shopContextKeys(shop);
   const items: ShelfResponse["items"] = [];
   const skipped: ShelfResponse["skipped"] = [];
-  const writes: Promise<unknown>[] = [];
+  const writes: (() => Promise<unknown>)[] = [];
   let order = 0;
   for (const p of products) {
     if (!p.raw) {
@@ -302,25 +308,25 @@ export async function publishShelf(req: ShelfRequest, opts: PublishOptions = {})
     }
     const u = understandingFromContext(p.raw.context);
     const geo = hero.context.geo || (p.raw.context.hero === hero.publicId ? p.raw.context.pack_box?.split(",").slice(0, 4).join(",") : "");
-    writes.push(
-      addContext([hero.publicId], {
-        sku: p.sku,
-        name: u?.name ?? hero.context.name ?? "Product",
-        caption: p.raw.context.caption ?? "",
-        facts: u ? productFacts(u.primary_color, u.material) : "",
-        ...(geo ? { geo } : {}),
-        [keys.title]: title,
-        [keys.order]: String(order++),
-        [keys.tagline]: tagline,
-      }),
-    );
+    const ctx = {
+      sku: p.sku,
+      name: u?.name ?? hero.context.name ?? "Product",
+      caption: p.raw.context.caption ?? "",
+      facts: u ? productFacts(u.primary_color, u.material) : "",
+      ...(geo ? { geo } : {}),
+      [keys.title]: title,
+      [keys.order]: String(order++),
+      [keys.tagline]: tagline,
+    };
+    writes.push(() => addContext([hero.publicId], ctx));
     items.push({ sku: p.sku, heroPublicId: hero.publicId });
   }
   if (!items.length) throw badRequest("None of these products has a saved hero yet.");
+  await opts.beforeWrite?.();
 
   const keep = new Set(items.map((i) => i.heroPublicId));
   const removed = members.map((m) => m.publicId).filter((id) => !keep.has(id));
-  await Promise.all([...writes, addTags([...keep], [shopTag(shop)]), removeTag(removed, shopTag(shop))]);
+  await Promise.all([...writes.map((w) => w()), addTags([...keep], [shopTag(shop)]), removeTag(removed, shopTag(shop))]);
 
   const heroes = items.slice(0, 4).map((i) => {
     const h = products.find((p) => p.sku === i.sku)?.heroes.find((x) => x.publicId === i.heroPublicId);

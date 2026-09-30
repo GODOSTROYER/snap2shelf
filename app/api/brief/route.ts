@@ -3,7 +3,8 @@ import type { BriefResponse } from "@/lib/api-contract";
 import { FESTIVAL_SLUGS } from "@/lib/festivals";
 import { runBrief } from "@/lib/server/brief";
 import { chargeOpenOp, readJson, route, skuSchema } from "@/lib/server/http";
-import { canWrite } from "@/lib/server/protect";
+import { provenSkus } from "@/lib/server/proofs";
+import { canWrite, relabelReadOnly } from "@/lib/server/protect";
 import type { Session } from "@/lib/server/session";
 
 export const runtime = "nodejs";
@@ -19,14 +20,15 @@ const schema = z.object({
  * POST /api/brief { sku, brief, festival? } → kit settings for the studio's brief bar
  * (theme, offer lines, channels, swatches, tone). One AI Vision call on the product
  * photo (one open paid operation); the same brief again is answered from cache.
- * Sample / showcase products without the access code: cached briefs only (else 403 read_only).
+ * Sample / showcase products without the access code, and other browsers' products: cached briefs
+ * only (else 403 read_only).
  */
 export const POST = route("brief", async (req, session) => {
   const body = await readJson(req, schema, 4096);
   let charged: Session | undefined;
   const { response } = await runBrief(body.sku, body.brief, body.festival, {
     beforeSpend: () => void (charged = chargeOpenOp(session)),
-    readOnly: !canWrite(session, body.sku),
-  });
+    readOnly: !canWrite(session, body.sku, provenSkus(req)),
+  }).catch(relabelReadOnly(body.sku));
   return { body: response satisfies BriefResponse, session: charged };
 });
