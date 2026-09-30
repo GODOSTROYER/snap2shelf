@@ -1639,6 +1639,29 @@ def camera_box(keys: list, t: float) -> tuple[float, float, float, float]:
     return (x, y, x + w, y + h)
 
 
+def nvenc_available() -> bool:
+    """True when ffmpeg can open NVIDIA's H.264 encoder on this machine (a GPU with NVENC and a working driver)."""
+    try:
+        r = subprocess.run(
+            ["ffmpeg", "-hide_banner", "-loglevel", "error", "-f", "lavfi", "-i", "testsrc=duration=0.2:size=1920x1080:rate=30",
+             "-c:v", "h264_nvenc", "-f", "null", "-"],
+            capture_output=True, timeout=30,
+        )
+        return r.returncode == 0
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+
+
+def video_encoder(encode_preset: str, crf: int) -> list[str]:
+    """H.264 High, yuv420p: NVENC when the GPU can do it (S2S_ENCODER=x264 forces the CPU), else libx264."""
+    if os.environ.get("S2S_ENCODER", "auto") != "x264" and nvenc_available():
+        log(f"encoder: h264_nvenc (p7, hq, constant quality {crf})")
+        return ["-c:v", "h264_nvenc", "-preset", "p7", "-tune", "hq", "-rc", "vbr", "-cq", str(crf), "-b:v", "0",
+                "-profile:v", "high", "-pix_fmt", "yuv420p"]
+    log(f"encoder: libx264 ({encode_preset}, crf {crf})")
+    return ["-c:v", "libx264", "-preset", encode_preset, "-crf", str(crf), "-profile:v", "high", "-pix_fmt", "yuv420p"]
+
+
 def render(parts: list[Part], total: float, out_dir: Path, work: Path, encode_preset: str, crf: int) -> dict:
     painter = Painter(Fonts(work))
     placed = place(parts)
@@ -1650,8 +1673,7 @@ def render(parts: list[Part], total: float, out_dir: Path, work: Path, encode_pr
     (review / "thumbs").mkdir(parents=True)
     mids = {p.name: p.start + (p.duration / 2 if p.name != "live" else p.duration * 0.62) for p in parts}
     heads = {p.name: p.start + XFADE + 1.2 for p in parts}
-    x264 = [
-        "-c:v", "libx264", "-preset", encode_preset, "-crf", str(crf), "-profile:v", "high", "-pix_fmt", "yuv420p",
+    x264 = [*video_encoder(encode_preset, crf),
         "-g", str(FPS * 2), "-bf", "2", "-color_primaries", "bt709", "-color_trc", "bt709", "-colorspace", "bt709",
         "-movflags", "+faststart", "-an",
     ]
