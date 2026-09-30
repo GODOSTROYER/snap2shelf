@@ -5,7 +5,8 @@ import { recordTokens, TOKEN_KEYS } from "@/lib/server/facts";
 import { checkMainImageUrl } from "@/lib/server/guard";
 import { badRequest, chargeOpenOp, readJson, route, skuSchema } from "@/lib/server/http";
 import { prebuiltCreativeQa, prebuiltQa } from "@/lib/server/prebuilt";
-import { canWrite, readOnly } from "@/lib/server/protect";
+import { provenSkus } from "@/lib/server/proofs";
+import { canWrite, readOnly, readOnlyMessageFor } from "@/lib/server/protect";
 import { exactQa, fidelityQa, imageOfProduct } from "@/lib/server/qa";
 
 export const runtime = "nodejs";
@@ -17,7 +18,8 @@ const schema = z.object({ sku: skuSchema, url: z.string().min(1).max(2048), kind
  * POST /api/qa → AI Vision QA gate: exact = "does the composite look pasted?", creative = fidelity sheet.
  * The tokens a check spends are added to the product's cost ledger (facts t_qa → GET /api/cost/:sku).
  * Sample / showcase products without the access code: only the verdicts recorded when the showcase
- * was built (no AI Vision call), else 403 read_only.
+ * was built (no AI Vision call), else 403 read_only. Another browser's product: 403 read_only
+ * (a check spends AI Vision and writes to that product's cost ledger).
  */
 export const POST = route("qa", async (req, session) => {
   const body = await readJson(req, schema);
@@ -27,9 +29,9 @@ export const POST = route("qa", async (req, session) => {
     body.kind === "creative" ? new RegExp(`/(snap2shelf/products/${body.sku}/creative-[a-z0-9-]+)(?:\\.[a-z]{3,4})?$`).exec(check.url.pathname)?.[1] : undefined;
   if (body.kind === "creative" && !creative) throw badRequest("Creative QA needs a creative image of this product.");
 
-  if (!canWrite(session, body.sku)) {
+  if (!canWrite(session, body.sku, provenSkus(req))) {
     const recorded = creative ? prebuiltCreativeQa(creative) : prebuiltQa(body.url);
-    if (!recorded) throw readOnly();
+    if (!recorded) throw readOnly(readOnlyMessageFor(body.sku));
     return { body: { qa: recorded, tokens: 0 } satisfies QaResponse };
   }
 

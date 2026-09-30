@@ -48,7 +48,15 @@ const check = (ok: boolean, what: string) => {
 };
 
 class Jar {
-  cookie = "";
+  /** Every cookie the server set (session + proof cookies: s2s_p_<sku>, s2s_unlock, s2s_g_<id>, ...). */
+  private jar = new Map<string, string>();
+  get cookie() {
+    return [...this.jar].map(([k, v]) => `${k}=${v}`).join("; ");
+  }
+  /** Replace the jar with the cookies of a Cookie header (e.g. a tampered copy of another jar's). */
+  load(header: string) {
+    this.jar = new Map(header.split("; ").filter(Boolean).map((c): [string, string] => [c.slice(0, c.indexOf("=")), c.slice(c.indexOf("=") + 1)]));
+  }
   async call(method: string, path: string, body?: unknown) {
     const t0 = Date.now();
     const res = await fetch(BASE + path, {
@@ -64,8 +72,14 @@ class Jar {
     }
     const rem = Number(res.headers.get("x-s2s-admin-remaining"));
     if (res.headers.has("x-s2s-admin-remaining") && Number.isFinite(rem)) admin.remaining = rem;
-    const set = res.headers.get("set-cookie");
-    if (set) this.cookie = set.split(";")[0];
+    for (const set of res.headers.getSetCookie()) {
+      const [pair, ...attrs] = set.split(";");
+      const at = pair.indexOf("=");
+      const name = pair.slice(0, at).trim();
+      const value = pair.slice(at + 1).trim();
+      if (!value || attrs.some((a) => /^\s*max-age=0\s*$/i.test(a))) this.jar.delete(name);
+      else this.jar.set(name, value);
+    }
     const text = await res.text();
     bodies.push(text);
     let json: Record<string, unknown> = {};
@@ -92,7 +106,7 @@ step("usage + access");
   }
   check(u.status === 200 && typeof (u.json.generation as { usable: number }).usable === "number", `GET /api/usage 200 (${u.ms} ms) liveGeneration=${u.json.liveGeneration}`);
   check(typeof u.json.livePipeline === "boolean" && typeof u.json.transformations === "object", `usage exposes the credit floor: livePipeline=${u.json.livePipeline}`);
-  check(Boolean(jar.cookie.startsWith("s2s_access=")), "anonymous session cookie issued");
+  check(/(^|; )s2s_access=/.test(jar.cookie), "anonymous session cookie issued");
   const bad = await jar.call("POST", "/api/access", { code: "definitely-wrong" });
   check(bad.status === 403 && bad.json.code === "locked", `wrong access code → ${bad.status} ${bad.json.code}`);
   const junk = await jar.call("POST", "/api/access", "{not json");
@@ -288,7 +302,8 @@ step("generate + jobs");
   const locked = await anon.call("POST", "/api/generate", { sku, kind: "creative", model: "flux-2-flash-edit", seed: 11 });
   check(locked.status === 403 && locked.json.code === "locked", `generate without access → ${locked.status} ${locked.json.code}`);
   const tampered = new Jar();
-  tampered.cookie = jar.cookie.replace(/.$/, (c) => (c === "A" ? "B" : "A"));
+  // the session cookie tampered, every proof cookie (incl. the unlock) kept: the unlock is bound to the session
+  tampered.load(jar.cookie.replace(/(s2s_access=[^;]*?)(.)(?=;|$)/, (_m, head: string, c: string) => head + (c === "A" ? "B" : "A")));
   const t = await tampered.call("POST", "/api/generate", { sku, kind: "creative", model: "flux-2-flash-edit", seed: 11 });
   check(t.status === 403, `generate with a tampered cookie → ${t.status} (treated as a new, locked session)`);
   const badModel = await jar.call("POST", "/api/generate", { sku, kind: "creative", model: "gpt-image-2", seed: 11 });

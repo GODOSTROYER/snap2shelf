@@ -88,8 +88,8 @@ export function imageOfProduct(sku: Sku, pathname: string): boolean {
 }
 
 /** Make sure Cloudinary can render the URL before AI Vision fetches it (and fail fast on a bad one). */
-async function ensureRenderable(url: string): Promise<void> {
-  const p = await probe(url, 8000);
+async function ensureRenderable(url: string, budgetMs = 8000): Promise<void> {
+  const p = await probe(url, budgetMs);
   if (p.status === 200) return;
   if (p.status === 423 || p.status === 420 || p.status === 429 || p.status === 0) throw new HttpError(202, "pending", "The image is still rendering, try again shortly.", 2000);
   throw new HttpError(400, "bad_request", "That image could not be rendered.");
@@ -152,9 +152,13 @@ export function fidelitySheetUrl(sku: Sku, candidatePublicId: string): string {
   );
 }
 
-export async function fidelityQa(sku: Sku, candidatePublicId: string): Promise<QaOutcome> {
+/**
+ * `renderBudgetMs`: how long to wait for the sheet's derivation before answering 202 pending
+ * (the creative job poll passes a short budget and simply asks again on its next poll).
+ */
+export async function fidelityQa(sku: Sku, candidatePublicId: string, opts: { renderBudgetMs?: number } = {}): Promise<QaOutcome> {
   const sheetUrl = fidelitySheetUrl(sku, candidatePublicId);
-  await ensureRenderable(sheetUrl);
+  await ensureRenderable(sheetUrl, opts.renderBudgetMs);
   const [tags, verdict] = await Promise.all([
     withPooledAccount("ai_vision", (a) => visionTagging(a, { uri: sheetUrl }, FIDELITY_TAGS)),
     withPooledAccount("ai_vision", (a) => visionGeneral(a, { uri: sheetUrl }, [VERDICT_PROMPT])),

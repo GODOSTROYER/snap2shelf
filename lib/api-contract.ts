@@ -72,8 +72,10 @@ export interface GenerateRequest {
 export interface GenerateResponse { job: string } // opaque signed token
 
 // GET /api/jobs/:job  → poll every 2 s
+// "checking" (additive): the take is generated and copied into main; its fidelity check runs on the
+// next poll(s) (each poll stays well under the 30 s limit). Show "Checking it is still your product…".
 export interface JobResponse {
-  status: "pending" | "processing" | "completed" | "failed";
+  status: "pending" | "processing" | "checking" | "completed" | "failed";
   asset?: KitAsset; // set when completed: copied into main + fidelity QA done
   modelId?: string;
   credits?: number;
