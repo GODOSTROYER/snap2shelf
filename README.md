@@ -23,7 +23,7 @@ Entry for **Pixels to Products — Cloudinary AI Hackathon 2026** (HackIndia) ·
 > **Try it in 60 seconds, no signup, nothing to install**
 > 1. Open **[snap2shelf.vercel.app](https://snap2shelf.vercel.app)** and press **Try a sample product (no signup)**.
 > 2. Watch the pipeline light up: **Fix → Cut out → Stage → Light-match → QA → Pack**.
-> 3. Open the kit and press **X-ray** on any image: you will see the one Cloudinary URL that made it, colour-coded.
+> 3. Scroll to **Your shelf** and press the code button (**`</>`**) under any image. This X-ray shows the one Cloudinary URL that made it, colour-coded and explained.
 > 4. Optional: press **Snap with your phone**, scan the QR code and photograph anything on your desk. It lands on the laptop a few seconds later.
 > 5. Live AI generation (Creative mode) is behind an access code, which is in our submission form. Everything else works without it.
 
@@ -379,7 +379,7 @@ What never leaves the server: every API key and secret, and the names of the poo
 | See the whole flow | **Try a sample product (no signup)** on the home page | nothing |
 | Use your own photo | **Upload a photo** in the studio, or **Snap with your phone** and scan the QR code | nothing (Exact mode, QA and Pack are open, with a per-session cap) |
 | Generate live with an image model | open **Creative**, enter the access code, pick **Faithful** or **Fast draft** | the **access code from our submission form** |
-| Read how an image was made | press **X-ray** on any kit image | nothing |
+| Read how an image was made | press the code button (`</>`) under any kit image to open its X-ray | nothing |
 
 Guard rails you may notice: each unlocked session gets **4 live generations**; open AI operations (analyze, cut-out, QA, pack) are capped at **60 per session**; and if the pool's usable generation credits fall below **12**, live generation pauses and the app shows saved examples instead of failing. All three are environment variables (`LIVE_GEN_CAP`, `OPEN_OP_CAP`, `LIVE_GEN_MIN`).
 
