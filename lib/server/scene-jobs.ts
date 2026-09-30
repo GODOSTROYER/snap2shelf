@@ -3,9 +3,9 @@ import type { SceneGenerateResponse, SceneJobResponse } from "../api-contract";
 import { getAccounts } from "../cloudinary/accounts";
 import { getGenerationTask } from "../cloudinary/generate";
 import type { Scene, SceneTier, SceneView, Sku } from "../types";
-import { addContext } from "./cld";
+import { assertLivePipeline } from "./budget";
+import { updateProduct } from "./facts";
 import { HttpError, badRequest } from "./http";
-import { rawId } from "./products";
 import { encodeSceneJob, type SceneJobClaims } from "./scene-job-token";
 import {
   SCENE_TIERS,
@@ -42,11 +42,11 @@ export interface SceneRequestInput {
 
 const REJECTED_MSG = "An earlier try at this exact backdrop failed the scene check (it showed a product, text or a person). Reword the description.";
 
-/** Credits bookkeeping on the product's raw asset, for GET /api/cost/:sku. Never fails the request. */
+/** Credits bookkeeping in the product's facts (and raw context), for GET /api/cost/:sku. Never fails the request. */
 async function recordForSku(sku: Sku | undefined, ctx: Record<string, string>): Promise<void> {
   if (!sku) return;
   try {
-    await addContext([rawId(sku)], ctx);
+    await updateProduct(sku, { ctx }, { critical: false });
   } catch (err) {
     console.error(`[scenes] cost bookkeeping skipped: ${String((err as Error)?.message ?? err).slice(0, 120)}`);
   }
@@ -95,6 +95,8 @@ export async function requestScene(input: SceneRequestInput, session: Session): 
   if (generationsLeft(session) <= 0) throw new HttpError(429, "cap_reached", "You've used this session's live generations. Pick a library scene instead.");
   const live = await liveGenerationEnabled();
   if (!live.enabled) throw new HttpError(503, "quota_low", "Live generation is paused to save quota. Pick a library scene instead.");
+  // A new plate is uploaded with an incoming transformation and analysed through a derivative.
+  await assertLivePipeline();
 
   const { outcome, account } = await startScene(spec);
   if (!outcome.taskId) throw new HttpError(502, "upstream", "The generation service answered unexpectedly. Please try again.");

@@ -5,12 +5,14 @@ import { copyToMain } from "../cloudinary/copy";
 import { getGenerationTask, startGeneration, type GenerateRequest as CldGenerateRequest } from "../cloudinary/generate";
 import { withPooledAccount } from "../cloudinary/pool";
 import { PLATE, productId, type KitAsset, type Sku } from "../types";
-import { addContext, addTags, deliveryUrl, getResource } from "./cld";
+import { assertLivePipeline } from "./budget";
+import { addContext, addTags, assetInfo, deliveryUrl } from "./cld";
 import { GENERATION_MODELS } from "./config";
+import { loadProduct, updateProduct } from "./facts";
 import { HttpError, badRequest, notFound } from "./http";
 import { encodeJob, type JobClaims } from "./job-token";
 import { fidelityQa, qaFromContext, qaToContext } from "./qa";
-import { getCutout, rawId, skuTag } from "./products";
+import { getCutout, skuTag } from "./products";
 
 /**
  * Creative mode: image_to_image on the key pool with the real cutout as
@@ -57,6 +59,8 @@ export async function startCreative(input: { sku: Sku; model: string; seed: numb
   if (!spec) throw badRequest("Unsupported model.");
   const cutout = await getCutout(input.sku);
   if (!cutout) throw notFound("Cut out the product first.");
+  // The result is copied into main and QA'd through a derived fidelity sheet: respect the credit floor.
+  await assertLivePipeline();
   const version = cutout.version ?? 0;
   // Versioned URL: the reference can't change under a running job.
   const prompt = cleanScenePrompt(input.prompt);
@@ -115,20 +119,24 @@ export async function pollCreative(claims: JobClaims): Promise<JobResponse & { t
   }
   if (task && (task.status === "pending" || task.status === "processing")) return { status: task.status, request };
 
-  const done = await getResource(publicId);
-  const doneQa = done ? qaFromContext(done.context) : null;
-  if (done && doneQa) {
-    const raw = await getResource(rawId(claims.s));
+  // Product facts, not the Admin API: a finished job's verdict is stored there (and on the asset's context).
+  const product = await loadProduct(claims.s);
+  const id = `creative-${claims.m}-${claims.seed}`;
+  const known = product.facts.creatives?.[id];
+  const doneQa = known?.ctx ? qaFromContext(known.ctx) : null;
+  const caption = product.facts.ctx.caption ?? "";
+  if (known?.ctx && doneQa) {
     return {
       status: "completed",
-      modelId: done.context.model ?? claims.m,
-      credits: Number(done.context.credits ?? GENERATION_MODELS[claims.m]?.credits ?? 0),
-      latencyMs: Number(done.context.latency_ms ?? 0) || undefined,
+      modelId: known.ctx.model ?? claims.m,
+      credits: Number(known.ctx.credits ?? GENERATION_MODELS[claims.m]?.credits ?? 0),
+      latencyMs: Number(known.ctx.latency_ms ?? 0) || undefined,
       request,
-      asset: creativeAsset(claims.s, publicId, claims.m, claims.seed, raw?.context.caption ?? "", request, doneQa),
+      asset: creativeAsset(claims.s, publicId, claims.m, claims.seed, caption, request, doneQa),
       tokens: 0,
     };
   }
+  const done = known ?? (await assetInfo(publicId));
   if (!task || task.status === "failed" || !task.assets[0]) {
     if (task) console.error(`[jobs] generation failed: ${(task.error ?? "no asset").slice(0, 200)}`);
     return { status: "failed", error: "The AI couldn't generate this image. Try another seed or prompt.", request };
@@ -161,15 +169,24 @@ export async function pollCreative(claims: JobClaims): Promise<JobResponse & { t
     if (err instanceof HttpError && err.code === "pending") return { status: "processing", request };
     throw err;
   }
-  await addContext([publicId], { ...ctx, ...qaToContext(out.qa), qa_tokens: String(out.tokens) });
-  const raw = await getResource(rawId(claims.s));
+  const finalCtx = { ...ctx, ...qaToContext(out.qa), qa_tokens: String(out.tokens) };
+  await addContext([publicId], finalCtx);
+  const info = done ?? (await assetInfo(publicId).catch(() => null));
+  await updateProduct(
+    claims.s,
+    {
+      mutate: (f) =>
+        void ((f.creatives ??= {})[id] = { publicId, width: info?.width ?? 0, height: info?.height ?? 0, version: info?.version ?? 0, at: Date.now(), ctx: finalCtx }),
+    },
+    { critical: false }, // the asset's own context still holds the verdict
+  );
   return {
     status: "completed",
     modelId,
     credits,
     latencyMs,
     request,
-    asset: creativeAsset(claims.s, publicId, claims.m, claims.seed, raw?.context.caption ?? "", request, out.qa),
+    asset: creativeAsset(claims.s, publicId, claims.m, claims.seed, caption, request, out.qa),
     tokens: out.tokens,
   };
 }

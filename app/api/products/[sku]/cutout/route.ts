@@ -13,4 +13,4 @@ export const POST = routeWithParams<{ sku: string }>("cutout", async (_req, sess
   const charged = chargeOpenOp(session);
   const { response, created } = await ensureCutout(sku);
   return { body: response, session: created ? charged : undefined };
-});
+}, { retriable: true });

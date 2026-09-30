@@ -15,14 +15,19 @@ import {
   type ProductUnderstanding,
   type Sku,
 } from "../types";
-import { addContext, deliveryUrl, getResource, mainAuth, probe, uploadToMain, type AssetInfo, type Ctx } from "./cld";
+import { assetInfo, deliveryUrl, mainAuth, probe, uploadToMain, type AssetInfo, type Ctx } from "./cld";
+import { assertLivePipeline } from "./budget";
+import { loadProduct, updateProduct, type LoadedProduct } from "./facts";
 import { HttpError, notFound, pending } from "./http";
 import { fixesFromContext } from "./retouch-plan";
 
 /**
  * Product steps on the raw upload: analyze (caption + focus + AI Vision product
- * JSON, cached in the raw asset's context) and cutout (background removal +
- * trim, saved once as its own asset).
+ * JSON, cached in the product's facts + the raw asset's context) and cutout
+ * (background removal + trim, saved once as its own asset).
+ *
+ * No Admin API call on these paths: product state comes from facts.ts
+ * (Upload API explicit + versioned CDN JSON).
  */
 
 export const rawId = (sku: Sku) => productId(sku, "raw");
@@ -31,10 +36,9 @@ export const cutoutId = (sku: Sku) => productId(sku, "cutout");
 export const retouchedId = (sku: Sku) => productId(sku, "retouched");
 export const skuTag = (sku: Sku) => `s2s-sku-${sku}`;
 
+/** The raw upload with its context (= product facts); 404 ApiError when it hasn't been uploaded. */
 export async function requireRaw(sku: Sku): Promise<AssetInfo> {
-  const raw = await getResource(rawId(sku));
-  if (!raw) throw notFound("No upload found for this product yet.");
-  return raw;
+  return (await loadProduct(sku)).raw;
 }
 
 export function productRecord(sku: Sku, raw: AssetInfo, cutout?: CutoutRecord | null): ProductRecord {
@@ -144,7 +148,7 @@ export interface AnalyzeOutcome {
 }
 
 export async function analyzeProduct(sku: Sku): Promise<AnalyzeOutcome> {
-  const raw = await requireRaw(sku);
+  const { raw } = await loadProduct(sku);
   const cachedU = raw.context.analyzed === "1" ? understandingFromContext(raw.context) : null;
   if (cachedU) {
     const focus = Number(raw.context.focus);
@@ -161,6 +165,8 @@ export async function analyzeProduct(sku: Sku): Promise<AnalyzeOutcome> {
     };
   }
 
+  // A fresh analysis derives the analysis JPEG and starts a kit: respect the credit floor.
+  await assertLivePipeline();
   const t0 = Date.now();
   const source = { uri: analysisSourceUrl(sku) };
   // Warm the derived JPEG once so the three analysers don't race to create it.
@@ -188,15 +194,21 @@ export async function analyzeProduct(sku: Sku): Promise<AnalyzeOutcome> {
 
   const { understanding: u, fromAi } = parseUnderstanding(answer, captionText);
   const alt = captionText || `${u.name} (${u.primary_color})`;
-  await addContext([raw.publicId], {
-    caption: alt,
-    ...(focus !== null ? { focus: focus.toFixed(3) } : {}),
-    ...understandingToContext(u),
-    analyzed: fromAi || captionText ? "1" : "0",
-    // cost ledger (GET /api/cost/:sku): AI Vision tokens and server time of this step
-    t_an: String(tokens),
-    ms_an: String(Date.now() - t0),
-  });
+  await updateProduct(
+    sku,
+    {
+      ctx: {
+        caption: alt,
+        ...(focus !== null ? { focus: focus.toFixed(3) } : {}),
+        ...understandingToContext(u),
+        analyzed: fromAi || captionText ? "1" : "0",
+        // cost ledger (GET /api/cost/:sku): AI Vision tokens and server time of this step
+        t_an: String(tokens),
+        ms_an: String(Date.now() - t0),
+      },
+    },
+    { critical: false }, // the answer is already paid for: return it even if the bookkeeping write fails
+  );
 
   return {
     cached: false,
@@ -214,9 +226,19 @@ export const CUTOUT_CHAIN = "e_background_removal/e_trim/f_png";
 
 export const cutoutRecord = (a: AssetInfo): CutoutRecord => ({ publicId: a.publicId, width: a.width, height: a.height, version: a.version });
 
-export async function getCutout(sku: Sku): Promise<CutoutRecord | null> {
-  const a = await getResource(cutoutId(sku));
-  return a ? cutoutRecord(a) : null;
+/**
+ * The saved cutout, from the product's facts; when facts don't list one (older
+ * product, or a facts write that failed) one Upload-API explicit checks, and a
+ * hit is recorded. No Admin API call either way.
+ */
+export async function getCutout(sku: Sku, loaded?: LoadedProduct): Promise<CutoutRecord | null> {
+  const p = loaded ?? (await loadProduct(sku));
+  const c = p.facts.cutout;
+  if (c) return { publicId: c.publicId, width: c.width, height: c.height, version: c.version };
+  const a = await assetInfo(cutoutId(sku));
+  if (!a) return null;
+  await updateProduct(sku, { mutate: (f) => void (f.cutout ??= { publicId: a.publicId, width: a.width, height: a.height, version: a.version, bytes: a.bytes, at: Date.parse(a.createdAt) || Date.now() }) }, { critical: false });
+  return cutoutRecord({ ...a, context: {} });
 }
 
 export interface CutoutOutcome {
@@ -229,18 +251,24 @@ export interface CutoutOutcome {
  * one (recorded as fix_id on the raw, which only the server writes), else the raw.
  * Only consulted while no cutout exists yet; an existing cutout is never redone.
  */
+export function cutoutSourceFrom(sku: Sku, c: Ctx): string {
+  return c.fix_id === retouchedId(sku) && c.fix_err !== "1" ? retouchedId(sku) : rawId(sku);
+}
+
 export async function cutoutSource(sku: Sku): Promise<string> {
-  const raw = await requireRaw(sku);
-  return raw.context.fix_id === retouchedId(sku) && raw.context.fix_err !== "1" ? retouchedId(sku) : rawId(sku);
+  return cutoutSourceFrom(sku, (await requireRaw(sku)).context);
 }
 
 /** Probe budget per call; the save afterwards takes ~1.2 s, keeping one call under ~8 s. */
 export async function ensureCutout(sku: Sku, budgetMs = 6000): Promise<CutoutOutcome> {
   const t0 = Date.now();
-  const existing = await getCutout(sku);
+  const p = await loadProduct(sku);
+  const existing = await getCutout(sku, p);
   if (existing) return { created: false, response: { sku, cutout: existing, ms: Date.now() - t0 } };
 
-  const source = await cutoutSource(sku);
+  // Background removal is 75 transformations: respect the credit floor.
+  await assertLivePipeline();
+  const source = cutoutSourceFrom(sku, p.raw.context);
   const derived = deliveryUrl(source, CUTOUT_CHAIN);
   // HEAD waits while Cloudinary derives (≈4 s); 423 means "still processing" on a later request.
   let status = 0;
@@ -260,12 +288,18 @@ export async function ensureCutout(sku: Sku, budgetMs = 6000): Promise<CutoutOut
   console.info(`[cutout] ${sku}: derived HTTP ${status} after ${probeMs} ms`);
   if (status !== 200) throw pending(2000, "Cutting out the product, try again shortly.");
 
+  const ctx = { source, chain: CUTOUT_CHAIN, ms: String(Date.now() - t0) };
   const up = await uploadToMain(derived, {
     public_id: cutoutId(sku),
     overwrite: false,
     tags: ["s2s", "s2s-cutout", skuTag(sku)],
-    context: { source, chain: CUTOUT_CHAIN, ms: String(Date.now() - t0) },
+    context: ctx,
   });
+  await updateProduct(
+    sku,
+    { mutate: (f) => void (f.cutout = { publicId: up.publicId, width: up.width, height: up.height, version: up.version, bytes: up.bytes, at: Date.now(), ctx }) },
+    { critical: false }, // getCutout() falls back to an explicit lookup
+  );
   console.info(`[cutout] ${sku}: saved in ${Date.now() - t0 - probeMs} ms`);
   return { created: true, response: { sku, cutout: cutoutRecord(up), ms: Date.now() - t0 } };
 }
