@@ -19,10 +19,10 @@ import type {
   UsageResponse,
 } from "../api-contract";
 import { sceneFromListResource, sceneListUrl, SCENE_TAG } from "../scenes";
-import { CREATIVE_APPROVED, CREATIVE_MODELS, CREATIVE_REJECTED, getSample, SAMPLES, SHOWCASE_CLOUD } from "../showcase";
+import { CREATIVE_APPROVED, CREATIVE_MODELS, CREATIVE_REJECTED, getSample, MOCK_PACK_KIT, SAMPLES, SHOWCASE_CLOUD } from "../showcase";
 
-/** The mock pack's fallback: the hand-built sneaker kit (MOCK_PACK_KIT on master's lib/showcase.ts). */
-const MOCK_PACK = SAMPLES[0].kit;
+/** The mock pack's fallback: the hand-built sneaker kit. */
+const MOCK_PACK = MOCK_PACK_KIT;
 import { SCENE_ROOT, type KitAsset, type Scene, type SceneView, type Sku } from "../types";
 import { ApiFailure } from "./errors";
 

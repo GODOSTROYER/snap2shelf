@@ -5,28 +5,14 @@
  * real numbers without calling /api. Client-safe.
  */
 import type { CostResponse } from "../api-contract";
-import * as claims from "../claims";
+import { MEASURED_HERO_WEIGHT, sampleTimeNote } from "../claims";
 import type { ReadinessReport } from "../readiness";
 import type { SampleProduct } from "../showcase";
 import type { Kit } from "../types";
 
-/**
- * lib/claims.ts owns the sample time note and the measured hero weights. They are
- * read by name at run time, so this file works with or without them (they land on
- * master with the kit/shelf work); without them, the older wording and a HEAD
- * measurement stand in.
- */
-type SharedClaims = {
-  sampleTimeNote?: (run: { seconds: number; qaChecks: number }) => string;
-  MEASURED_HERO_WEIGHT?: Record<string, { original: number; delivered: number; format: string }>;
-};
-const CLAIM_KEYS = { note: "sampleTimeNote", weight: "MEASURED_HERO_WEIGHT" } as const;
-const shared = claims as unknown as Record<string, unknown>;
-const claimed = <K extends keyof SharedClaims>(k: K) => shared[CLAIM_KEYS[k === "sampleTimeNote" ? "note" : "weight"]] as SharedClaims[K] | undefined;
-
 /** A sample hero's weight as a browser receives it (measured, lib/claims.ts), when it's known. */
 export function sampleHeroWeight(sku: string) {
-  return claimed("MEASURED_HERO_WEIGHT")?.[sku] ?? null;
+  return MEASURED_HERO_WEIGHT[sku] ?? null;
 }
 
 /** Documented transformation counts (same table as the cost route). */
@@ -83,18 +69,10 @@ export function sampleCost(sample: SampleProduct, kit: Kit = sample.kit, format 
 
 /**
  * What a sample's processing time covers, for its receipt: lib/claims.ts's
- * sampleTimeNote (the live end-to-end figure, and why this run took longer), or
- * the older wording where that isn't available.
+ * sampleTimeNote (the live end-to-end figure, and why this run took longer).
  */
 export function sampleTimeLine(sample: SampleProduct, kit: Kit = sample.kit): string {
-  const note = claimed("sampleTimeNote");
-  return note ? note({ seconds: sampleCost(sample, kit).cost.seconds, qaChecks: sample.qaStory?.attempts ?? 1 }) : sampleProcessingNote(sample);
-}
-
-/** What a sample's processing time covers, for its receipt ("… this run needed 3 QA checks"). */
-export function sampleProcessingNote(sample: SampleProduct): string {
-  const checks = sample.qaStory?.attempts;
-  return `Every step after the upload, on this sample's live run${checks && checks > 1 ? `, which needed ${checks} QA checks` : ""}`;
+  return sampleTimeNote({ seconds: sampleCost(sample, kit).cost.seconds, qaChecks: sample.qaStory?.attempts ?? 1 });
 }
 
 /**

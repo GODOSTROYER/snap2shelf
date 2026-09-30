@@ -27,8 +27,8 @@ const CHECK_S = 15;
 /** What an empty scene prompt gets (the server's default scene, lib/server/creative.ts). */
 const EMPTY_PROMPT_HINT = "Leave empty for a warm, softly lit tabletop in a festive Indian home";
 
-/** The job's status, including "checking" (the fidelity QA on the finished image) before it lands in the contract. */
-type JobStatus = JobResponse["status"] | "checking";
+/** The job's status, including "checking" (the fidelity QA on the finished image). */
+type JobStatus = JobResponse["status"];
 
 interface Take {
   key: string;

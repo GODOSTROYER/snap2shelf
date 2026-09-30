@@ -1,7 +1,6 @@
 "use client";
 
 import { ArrowUpRight, RotateCcw } from "lucide-react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import * as React from "react";
 import { cn } from "@/lib/client/util";
 import { XRAY_KINDS } from "@/lib/transform/xray";
@@ -13,7 +12,6 @@ const tok = (k: Kind) => `var(${XRAY_KINDS[k].token})`;
 const kindStyle = (k: Kind) => ({ "--k": tok(k) }) as React.CSSProperties;
 
 const NONE: ReadonlySet<Kind> = new Set();
-const EASE = [0.25, 1, 0.5, 1] as const;
 /** Quick double taps settle before anything is requested: no derived image for a state nobody looked at. */
 const SETTLE_MS = 180;
 
@@ -64,6 +62,14 @@ function listOf(names: string[]) {
 
 type Said = { kind: Kind; on: boolean } | { reset: true } | { error: true };
 
+const REDUCE_QUERY = "(prefers-reduced-motion: reduce)";
+function subscribeReduce(cb: () => void) {
+  const mq = window.matchMedia(REDUCE_QUERY);
+  mq.addEventListener("change", cb);
+  return () => mq.removeEventListener("change", cb);
+}
+const readReduce = () => window.matchMedia(REDUCE_QUERY).matches;
+
 /**
  * The landing's URL section: the hero's one delivery URL, colour-coded, with
  * the picture it renders beside it. Each colour is a toggle that peels its
@@ -73,7 +79,8 @@ type Said = { kind: Kind; on: boolean } | { reset: true } | { error: true };
 export function PeelUrl({ built, note, alt }: { built: BuiltUrl; note?: React.ReactNode; alt?: string }) {
   const model = React.useMemo(() => peelModel(built), [built]);
   const fullUrl = React.useMemo(() => peelUrl(model), [model]);
-  const reduce = useReducedMotion();
+  // CSS transitions only: this section is on the landing, so it must not pull the motion library onto the critical path.
+  const reduce = React.useSyncExternalStore(subscribeReduce, readReduce, () => false);
   const uid = React.useId();
 
   const [off, setOff] = React.useState<ReadonlySet<Kind>>(NONE); // what the code shows
@@ -123,7 +130,8 @@ export function PeelUrl({ built, note, alt }: { built: BuiltUrl; note?: React.Re
       decoded(src).then(
         () => {
           if (id !== req.current) return; // a newer toggle owns the picture
-          setFrames((f) => (f[f.length - 1].src === src ? f : [...f.slice(-1), { id, src }]));
+          // Reduced motion: no cross-fade, so nothing will fire animationend to retire the old frame.
+          setFrames((f) => (f[f.length - 1].src === src ? f : reduce ? [{ id, src }] : [...f.slice(-1), { id, src }]));
           shownRef.current = next;
           setShown(next);
           setSaid(say);
@@ -172,7 +180,7 @@ export function PeelUrl({ built, note, alt }: { built: BuiltUrl; note?: React.Re
           {frames.map((f) => {
             const front = f.id === top.id;
             return (
-              <motion.img
+              <img
                 key={f.id}
                 src={f.src}
                 alt={front ? altText : ""}
@@ -182,31 +190,24 @@ export function PeelUrl({ built, note, alt }: { built: BuiltUrl; note?: React.Re
                 loading={f.id === 0 ? "lazy" : "eager"}
                 decoding={f.id === 0 ? "async" : "sync"}
                 crossOrigin="anonymous"
-                initial={f.id === 0 ? false : { opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: reduce ? 0 : 0.5, ease: EASE }}
-                onAnimationComplete={() => {
+                onAnimationEnd={() => {
                   if (front) setFrames((fs) => (fs.length > 1 && fs[fs.length - 1].id === f.id ? fs.slice(-1) : fs));
                 }}
+                style={f.id === 0 || reduce ? undefined : { animation: "fade-in 0.5s cubic-bezier(0.25, 1, 0.5, 1) both" }}
                 className="absolute inset-0 size-full object-cover"
               />
             );
           })}
-          <AnimatePresence>
-            {pending ? (
-              <motion.span
-                key="rendering"
-                aria-hidden
-                initial={{ opacity: 0, y: -4 }}
-                animate={{ opacity: 1, y: 0, transition: { delay: reduce ? 0 : 0.15, duration: 0.2 } }}
-                exit={{ opacity: 0, transition: { duration: 0.15 } }}
-                className="absolute top-3 left-3 inline-flex items-center gap-2 rounded-full bg-studio/80 px-3 py-1.5 text-[0.75rem] leading-none font-semibold text-paper ring-1 ring-line-strong backdrop-blur-sm"
-              >
-                <span className="size-3 animate-spin rounded-full border-[1.5px] border-marigold border-t-transparent" />
-                Rendering on Cloudinary
-              </motion.span>
-            ) : null}
-          </AnimatePresence>
+          {pending ? (
+            <span
+              aria-hidden
+              style={reduce ? undefined : { animation: "fade-in 0.2s ease-out 0.15s both" }}
+              className="absolute top-3 left-3 inline-flex items-center gap-2 rounded-full bg-studio/80 px-3 py-1.5 text-[0.75rem] leading-none font-semibold text-paper ring-1 ring-line-strong backdrop-blur-sm"
+            >
+              <span className="size-3 animate-spin rounded-full border-[1.5px] border-marigold border-t-transparent" />
+              Rendering on Cloudinary
+            </span>
+          ) : null}
         </div>
         <figcaption className="flex items-start justify-between gap-4 text-[0.8rem] leading-snug">
           <span role="status" aria-live="polite" className={cn("min-h-[2lh] text-dim", said && "error" in said && "text-sindoor")}>
