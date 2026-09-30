@@ -16,6 +16,7 @@ import {
 } from "../types";
 import { addContext, deliveryUrl, getResource, mainAuth, probe, uploadToMain, type AssetInfo, type Ctx } from "./cld";
 import { HttpError, notFound, pending } from "./http";
+import { fixesFromContext } from "./retouch-plan";
 
 /**
  * Product steps on the raw upload: analyze (caption + focus + AI Vision product
@@ -25,6 +26,8 @@ import { HttpError, notFound, pending } from "./http";
 
 export const rawId = (sku: Sku) => productId(sku, "raw");
 export const cutoutId = (sku: Sku) => productId(sku, "cutout");
+/** Q4 auto-retouch output (see retouch.ts); the cutout prefers it when present. */
+export const retouchedId = (sku: Sku) => productId(sku, "retouched");
 export const skuTag = (sku: Sku) => `s2s-sku-${sku}`;
 
 export async function requireRaw(sku: Sku): Promise<AssetInfo> {
@@ -151,12 +154,13 @@ export async function analyzeProduct(sku: Sku): Promise<AnalyzeOutcome> {
         caption: raw.context.caption ?? "",
         focus: raw.context.focus && Number.isFinite(focus) ? focus : null,
         understanding: cachedU,
-        fixes: { applied: [] },
+        fixes: fixesFromContext(raw.context, retouchedId(sku)),
         tokens: 0,
       },
     };
   }
 
+  const t0 = Date.now();
   const source = { uri: analysisSourceUrl(sku) };
   // Warm the derived JPEG once so the three analysers don't race to create it.
   await probe(source.uri, 6000);
@@ -188,11 +192,14 @@ export async function analyzeProduct(sku: Sku): Promise<AnalyzeOutcome> {
     ...(focus !== null ? { focus: focus.toFixed(3) } : {}),
     ...understandingToContext(u),
     analyzed: fromAi || captionText ? "1" : "0",
+    // cost ledger (GET /api/cost/:sku): AI Vision tokens and server time of this step
+    t_an: String(tokens),
+    ms_an: String(Date.now() - t0),
   });
 
   return {
     cached: false,
-    response: { sku, caption: alt, focus, understanding: u, fixes: { applied: [] }, tokens },
+    response: { sku, caption: alt, focus, understanding: u, fixes: fixesFromContext(raw.context, retouchedId(sku)), tokens },
   };
 }
 
@@ -216,13 +223,24 @@ export interface CutoutOutcome {
   created: boolean;
 }
 
+/**
+ * What the cutout is cut from: the Q4 retouched photo when POST /retouch saved
+ * one (recorded as fix_id on the raw, which only the server writes), else the raw.
+ * Only consulted while no cutout exists yet; an existing cutout is never redone.
+ */
+export async function cutoutSource(sku: Sku): Promise<string> {
+  const raw = await requireRaw(sku);
+  return raw.context.fix_id === retouchedId(sku) && raw.context.fix_err !== "1" ? retouchedId(sku) : rawId(sku);
+}
+
 /** Probe budget per call; the save afterwards takes ~1.2 s, keeping one call under ~8 s. */
 export async function ensureCutout(sku: Sku, budgetMs = 6000): Promise<CutoutOutcome> {
   const t0 = Date.now();
   const existing = await getCutout(sku);
   if (existing) return { created: false, response: { sku, cutout: existing, ms: Date.now() - t0 } };
 
-  const derived = deliveryUrl(rawId(sku), CUTOUT_CHAIN);
+  const source = await cutoutSource(sku);
+  const derived = deliveryUrl(source, CUTOUT_CHAIN);
   // HEAD waits while Cloudinary derives (≈4 s); 423 means "still processing" on a later request.
   let status = 0;
   while (Date.now() - t0 < budgetMs) {
@@ -245,7 +263,7 @@ export async function ensureCutout(sku: Sku, budgetMs = 6000): Promise<CutoutOut
     public_id: cutoutId(sku),
     overwrite: false,
     tags: ["s2s", "s2s-cutout", skuTag(sku)],
-    context: { source: rawId(sku), chain: CUTOUT_CHAIN },
+    context: { source, chain: CUTOUT_CHAIN, ms: String(Date.now() - t0) },
   });
   console.info(`[cutout] ${sku}: saved in ${Date.now() - t0 - probeMs} ms`);
   return { created: true, response: { sku, cutout: cutoutRecord(up), ms: Date.now() - t0 } };

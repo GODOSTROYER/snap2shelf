@@ -203,3 +203,34 @@ export const PIPELINE_STEPS = [
   { id: "pack", label: "Pack" },
 ] as const;
 export type PipelineStepId = (typeof PIPELINE_STEPS)[number]["id"];
+
+// ---------------------------------------------------------------- pipeline v2 (additive)
+
+/**
+ * Q4 auto-retouch: fixes applied to the raw photo before the cutout, as one
+ * derived asset snapshotted to snap2shelf/products/<sku>/retouched.
+ *   cleanup    e_gen_remove:prompt_(hand;price tag)   50 tx
+ *   restore    e_gen_restore (JPEG damage / blur)     100 tx
+ *   brightness e_improve (dim photo), e_enhance (blown-out photo)  1 / 100 tx
+ *   color      e_improve (colour cast)                1 tx (shares the brightness step)
+ *   resolution e_upscale (long side < 1000 px)        10 / 100 tx
+ */
+export type RetouchFix = "cleanup" | "restore" | "brightness" | "color" | "resolution";
+
+/** Scene generation tier: draft = flux-2-flash (1 credit), final = gpt-image-2.5-flare (4-5 credits). */
+export type SceneTier = "draft" | "final";
+
+export const BRIEF_TONES = ["festive", "premium", "playful", "minimal", "warm", "bold"] as const;
+export type BriefTone = (typeof BRIEF_TONES)[number];
+
+/** Channel formats a brief can ask for (recolor/offer/hero are driven by swatches/offer instead). */
+export const BRIEF_CHANNELS = ["feed", "story", "whatsapp", "marketplace", "banner"] as const satisfies readonly ChannelFormat[];
+
+/** Kit settings the brief bar produces (POST /api/brief). Feeds staging (theme) and the pack (offer, swatches). */
+export interface BriefKit {
+  theme: string; // slug from SCENE_THEMES, fitted to the product's placement
+  offer: { hindi?: string; english?: string }; // ≤ 40 chars each (PackRequest.offer)
+  channels: ChannelFormat[]; // subset of BRIEF_CHANNELS, in the order the seller named them
+  swatches: string[]; // ≤ 4 hex colours without '#' (PackRequest.recolor candidates / UI accents)
+  tone: BriefTone;
+}
