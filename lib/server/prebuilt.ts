@@ -27,8 +27,12 @@ export interface PrebuiltPack {
   failed: string[];
 }
 
-/** Sample product with no raw upload (live pipeline impossible). */
-export const isRawlessSample = (sku: Sku) => SAMPLES.some((s) => s.sku === sku);
+/**
+ * Sample product with no raw upload (live pipeline impossible). SAMPLES also lists the seeded
+ * showcase kits, which DO have raw uploads — those only short-circuit for their own composite.
+ */
+export const isRawlessSample = (sku: Sku) =>
+  SAMPLES.some((s) => s.sku === sku) && !SHOWCASE.kits.some((k) => k.sku === sku);
 
 function samplePack(sku: Sku): PrebuiltPack | null {
   const kit = isRawlessSample(sku) ? sampleKitFor(sku) : undefined;
