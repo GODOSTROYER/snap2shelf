@@ -5,17 +5,17 @@ Placeholders to fill before posting:
 | Placeholder | Value |
 |---|---|
 | `<VIDEO_URL>` | <!-- TODO(final): YouTube/Loom link of the demo video --> |
-| `<GIF>` | <!-- TODO(final): 6–8 s GIF or MP4: QR capture → pipeline lights up → kit deals out. Export from the demo recording; LinkedIn and X both autoplay MP4, which is lighter than GIF. --> |
+| `<GIF>` | The demo clip, already in the repo (an attachment, not text). Attach **`docs/media/demo-social.mp4`** (about 20 s, 1280×720 H.264, silent, about 2 MB) natively on both LinkedIn and X; both autoplay MP4 and it is far lighter than the GIF. Use **`docs/media/poster.png`** as the cover/thumbnail if LinkedIn asks for one. **`docs/media/demo.gif`** (800 px, about 5 MB) is the fallback where MP4 isn't accepted. It shows the studio's sample replay (the QA gate catching and fixing a floating bottle), the kit dealing onto the shelf, the X-ray of the hero's URL and the demo shop. Re-render all three with `npm run media:gif` after the final deploy. |
 | `<HACKINDIA_OFFICIAL_HANDLE>` | `<HACKINDIA_OFFICIAL_HANDLE — confirm on hackindia.org or the WhatsApp group; do not guess>` (separately for LinkedIn and X) |
 
 Fixed values: live demo **https://snap2shelf.vercel.app** · demo storefront **https://snap2shelf.vercel.app/shelf/demo-studio** · repo **https://github.com/GODOSTROYER/snap2shelf** · Cloudinary: **@cloudinary** (X), **Cloudinary** company page (LinkedIn) · Jen Looper: **@jenlooper** (X), **linkedin.com/in/jenlooper** (LinkedIn).
 
 Posting notes:
 - On LinkedIn, type `@Jen Looper`, `@Cloudinary` and `@<HackIndia page>` and pick them from the dropdown so they become real mentions; pasted text does not tag anyone.
-- Attach the `<GIF>` (or the MP4) natively rather than relying on a link preview.
+- Attach the MP4 (`docs/media/demo-social.mp4`) natively rather than relying on a link preview; in the drafts below, `<GIF>` marks where it goes.
 - Never include the access code in a post. It lives only in the submission form.
 - Every number below comes from `lib/claims.ts` or `SPIKES.md`. If you edit a post, don't add a number that isn't there (the 36 s is a measurement on the live site; ₹2,500 is our estimate and must be called one if you use it).
-- If the GIF shows one of the sample products rather than your own capture, keep the post's line that the samples start from AI-generated test photos.
+- The attached clip shows a sample product, not your own capture. Its first caption says the input is an AI-generated test image; keep that caption, and keep the LinkedIn post's line that the samples start from AI-generated test photos. On X, where there's no room for that line, the caption burned into the clip carries the disclosure.
 - After posting, copy both post URLs into `docs/SUBMISSION_CHECKLIST.md`.
 
 ---

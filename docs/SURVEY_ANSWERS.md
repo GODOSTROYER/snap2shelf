@@ -89,8 +89,8 @@ Fill the placeholders, paste, submit, and screenshot the confirmation for `docs/
 The form has no dedicated feedback field. These are concrete, reproducible notes from building Snap2Shelf, each measured on the Free plan in September 2026.
 
 **create-cloudinary-next**
-1. On Windows, the CLI calls `spawnSync("npx", …)` without a shell and fails with `spawnSync npx ENOENT`. It needs `shell: true` on `win32` (or `npx.cmd`). <!-- TODO(final): link the GitHub issue -->
-2. The Skills Pack install step looks for skills directly under `skills/<name>`, but `cloudinary-devs/skills` keeps them in `skills/frameworks/…` and `skills/platform/…`, so nothing was installed. Workaround: `npx skills add cloudinary-devs/skills`. <!-- TODO(final): link the GitHub issue -->
+1. On Windows, the CLI calls `spawnSync("npx", …)` without a shell and fails with `spawnSync npx ENOENT`. It needs `shell: true` on `win32`. <!-- TODO(final): link the GitHub issue once filed; the report is drafted in docs/UPSTREAM_ISSUES.md -->
+2. The Skills Pack install step looks for skills directly under `skills/<name>`, but `cloudinary-devs/skills` keeps them in `skills/frameworks/…` and `skills/platform/…`, so nothing was installed. Workaround: `npx skills add cloudinary-devs/skills`. <!-- TODO(final): link the GitHub issue once filed; the report is drafted in docs/UPSTREAM_ISSUES.md -->
 
 **AI Vision and Analyze**
 3. `ai_vision_tagging` tag names must be lower-case letters, digits and hyphens: `product_visible` returns HTTP 400 `MA_00003`. We didn't find the rule in the docs, and the error message could name it.

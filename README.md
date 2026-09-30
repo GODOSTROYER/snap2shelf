@@ -1,12 +1,14 @@
 <div align="center">
 
-<a href="https://snap2shelf.vercel.app/kit/shbottle"><img src="https://res.cloudinary.com/nyxyma1i/image/upload/c_limit,w_880/f_auto,q_auto/snap2shelf/products/shbottle/hero-cafe-04757f01-0c2c16ca" width="440" alt="A stainless steel water bottle standing on a marble café table, with warm string lights and greenery behind it and a soft reflection under the bottle. The bottle's pixels come unchanged from the input photo (an AI-generated test image); only the café scene is AI-generated."></a>
-
 # Snap2Shelf
 
 **One photo. A whole shelf. AI builds the stage — your product stays real.**
 
-[**Live demo**](https://snap2shelf.vercel.app) · [**Demo storefront**](https://snap2shelf.vercel.app/shelf/demo-studio) · [**Director's cut**](https://snap2shelf.vercel.app/present) · [Demo video](#demo-video) · [How it uses Cloudinary](#cloudinary-feature-map) · [Architecture](#architecture)
+<a href="https://snap2shelf.vercel.app/studio?sample=shmessy1"><img src="docs/media/demo.gif" width="800" alt="Screen recording of the live site, looping. In the studio, a sample photo of a steel water bottle on a cluttered kitchen counter (an AI-generated test image, not a real seller's photo) goes through the pipeline rail: the bottle is cut out and placed on a marble scene, Scene DNA marks the surface and the light, and the AI Vision QA gate flags the bottle as floating; the studio sets it lower, checks again and approves it. The kit's formats deal onto a shelf, the X-ray panel shows the single colour-coded Cloudinary URL that renders the hero, and the Demo Studio shop page shows four sample products on one Diwali scene."></a>
+
+<sub>Recorded from the live site with <code>npm run media:gif</code>: the studio's sample replay (no API calls), the X-ray, and the demo shop. The input photo is an AI-generated test image. Also as an <a href="docs/media/demo-social.mp4">MP4</a>.</sub>
+
+[**Live demo**](https://snap2shelf.vercel.app) · [**Demo storefront**](https://snap2shelf.vercel.app/shelf/demo-studio) · [**Director's cut**](https://snap2shelf.vercel.app/present) · [Video](#demo-video) · [How it's built](#how-its-built)
 
 [![Live](https://img.shields.io/badge/live-snap2shelf.vercel.app-f5a524?style=flat-square)](https://snap2shelf.vercel.app) ![Track 2](https://img.shields.io/badge/Track%202-Generative%20Content%20Workflows-2b2118?style=flat-square) [![Built on Cloudinary](https://img.shields.io/badge/built%20on-Cloudinary-3448c5?style=flat-square)](https://cloudinary.com/documentation) [![Next.js 16](https://img.shields.io/badge/Next.js-16-111111?style=flat-square)](https://nextjs.org) [![MIT](https://img.shields.io/badge/license-MIT-4b5563?style=flat-square)](LICENSE)
 
@@ -17,13 +19,13 @@ Entry for **Pixels to Products — Cloudinary AI Hackathon 2026** (HackIndia) ·
 > [!TIP]
 > **Try it in a minute: no signup, nothing to install**
 > 1. **Watch a real run:** open **[a sample kit in the studio](https://snap2shelf.vercel.app/studio?sample=shmessy1)**. The pipeline lights up (**Fix → Cut out → Stage → Light-match → QA → Pack**), the QA gate catches a floating placement and fixes it, and the kit deals out. It is a replay of a recorded live run, so it makes no API calls.
-> 2. **X-ray any image:** under **Your shelf**, press the code button (**`</>`**) on any asset to see the one Cloudinary URL that made it, colour-coded and explained.
+> 2. **X-ray any image:** press **See the URL** on the stage, or the code button (**`</>`**) under any asset on the shelf, to see the one Cloudinary URL that made it, colour-coded and explained.
 > 3. **Open the storefront:** **[/shelf/demo-studio](https://snap2shelf.vercel.app/shelf/demo-studio)** is a shop page built by Collection mode. Press **Share on WhatsApp**; the link preview is a 1200×630 collage made by one transformation URL.
 > 4. **Watch the director's cut:** **[/present](https://snap2shelf.vercel.app/present)** tells the whole story chapter by chapter (→ or Space for the next one, P for autoplay).
 > 5. **Use your own product:** **Upload a photo** in the studio, or press **Snap with your phone** and scan the QR code. On the live site we measured **36 s photo → ZIP** (30 Sep 2026). Live AI generation (Creative mode and new scenes) needs the access code in our submission form; everything else is open.
 
 <a id="demo-video"></a>
-**Demo video:** <!-- TODO(final): video link --> the three-minute walkthrough follows the [director's cut](https://snap2shelf.vercel.app/present) chapter by chapter.
+**Video: coming Sat 3 Oct.** <!-- TODO(video): add YouTube link --> The three-minute walkthrough follows the [director's cut](https://snap2shelf.vercel.app/present), which you can already play chapter by chapter.
 
 > [!NOTE]
 > **About the sample photos.** Every sample product in this README, in the studio's samples and on `/shelf/demo-studio` starts from an **AI-generated test photo**, not a real seller's photo. The samples show what the pipeline does: in every Exact-mode kit, the product pixels are the input photo's own pixels, cut out and layered, never redrawn. Only the stage is AI-generated. Upload your own photo to see your product.
@@ -32,7 +34,7 @@ Entry for **Pixels to Products — Cloudinary AI Hackathon 2026** (HackIndia) ·
 
 ## Contents
 
-[The problem](#the-problem) · [What it does](#what-it-does) · [Cloudinary feature map](#cloudinary-feature-map) · [Architecture](#architecture) · [Exact and Creative](#exact-and-creative) · [Brief bar](#brief-bar-and-festival-presets) · [Scene DNA](#scene-dna) · [The QA gate](#the-qa-gate) · [Readiness Score](#readiness-score) · [Cost engineering](#cost-engineering) · [Built for a free plan](#built-for-a-free-plan) · [How judges can test](#how-judges-can-test) · [Run it locally](#run-it-locally) · [How we built it with AI](#how-we-built-it-with-ai) · [Security](#security) · [Limitations and roadmap](#limitations-and-roadmap)
+[The problem](#the-problem) · [What it does](#what-it-does) · [How it's built](#how-its-built) ([feature map](#cloudinary-feature-map), [architecture](#architecture)) · [Exact and Creative](#exact-and-creative) · [Brief bar](#brief-bar-and-festival-presets) · [Scene DNA](#scene-dna) · [The QA gate](#the-qa-gate) · [Readiness Score](#readiness-score) · [Cost engineering](#cost-engineering) · [Built for a free plan](#built-for-a-free-plan) · [How judges can test](#how-judges-can-test) · [Run it locally](#run-it-locally) · [How we built it with AI](#how-we-built-it-with-ai) · [Security](#security) · [Limitations and roadmap](#limitations-and-roadmap)
 
 ## The problem
 
@@ -98,9 +100,26 @@ Finished sample kits you can open: [steel bottle, cluttered-counter photo](https
 
 ---
 
-## Cloudinary feature map
+## How it's built
 
-Cloudinary is the entire backend: storage, image processing, AI, video, search-by-tag, state and delivery. There is no database and no image server of our own. Every row below does real work in the product, except row 18, which is set up but deliberately not used in delivered URLs (see the row).
+<p align="center"><img src="https://res.cloudinary.com/nyxyma1i/image/upload/f_png,w_1600/v1790759006/snap2shelf/docs/architecture" width="880" alt="Architecture diagram. Seller phone and laptop upload photos directly to Cloudinary's Upload API with signatures from Next.js route handlers on Vercel. The route handlers call Cloudinary's Upload, Analyze and Image Generation APIs; AI calls go through a key pool that can also use two organiser-approved pool environments, whose results are copied into the main environment. Every image, video and zip is delivered back to browsers as a Cloudinary URL."></p>
+
+<sub>The diagram is an SVG ([`docs/architecture.svg`](docs/architecture.svg)) stored in Cloudinary and rasterised on delivery with `f_png,w_1600`. `node --import tsx scripts/docs/upload-diagram.mts` re-uploads it.</sub>
+
+Cloudinary is the entire backend: storage, image processing, AI, video, search-by-tag, state and delivery. There is no database and no image server of our own; Next.js on Vercel signs uploads, calls Cloudinary's APIs, keeps a signed session cookie and serves the UI.
+
+**The Cloudinary techniques the product stands on:**
+
+1. **The product is a layer, never a redraw.** Background removal runs once (`e_background_removal/e_trim/f_png`) and the cut-out is saved as its own asset. An Exact-mode hero is then one transformation URL: a pre-generated scene plate, the cut-out as an `l_` layer at integer pixel coordinates, a cast shadow projected from the product's own silhouette with `e_distort`, contact shadows from its footprint, and a light-match with `e_tint`, `e_screen` and `e_multiply`. It spends 0 generation credits. [See the URL, layer by layer.](#cloudinary-feature-map)
+2. **Scene DNA.** AI Vision General reads each scene plate once and returns where the surface is, where the light comes from, how warm it is, whether it is glossy and where text fits. It is stored in the plate's context, and it drives the placement, the shadow direction and the offer card. [More](#scene-dna)
+3. **AI Vision as a QA gate.** Tagging with hyphenated tags (`product-floating`, `compositing-artifact`, `product-redesigned`) decides whether an image may enter the kit. Exact composites that look pasted get one automatic fix; Creative takes are compared with the cut-out on a side-by-side sheet made by one URL. [More](#the-qa-gate)
+4. **Generative transformations for every channel.** `b_gen_fill` extends the hero to 9:16 and 16:9, `e_gen_recolor` recolours one named part, `l_text` with Google's Noto fonts writes the Hindi and English offer, `e_zoompan` + `fl_splice` turn stills into a reel, `f_bmp` pixel sampling scores marketplace readiness, and `download_zip_url` packs the lot.
+5. **Cloudinary as the database.** Tags, context and one small raw `facts.json` per product hold every fact, read by version from the CDN, so the photo → ZIP pipeline makes 0 Admin API calls. The scene library is a client-side list (`image/list/s2s-scene.json`). [More](#built-for-a-free-plan)
+6. **Cost control.** Pinned model ids, prompt-hash public IDs so an identical scene request is a lookup, derivatives rendered once and saved, `f_auto,q_auto` on delivery, a transformation-credit floor, and a disclosed, organiser-approved key pool for AI calls. [More](#cost-engineering)
+
+### Cloudinary feature map
+
+Every row below does real work in the product, except row 18, which is set up but deliberately not used in delivered URLs (see the row).
 
 | # | Capability | Exactly what we send | Code |
 |---|---|---|---|
@@ -201,15 +220,9 @@ Lessons we paid for:
 
 </details>
 
----
+### Architecture
 
-## Architecture
-
-<p align="center"><img src="https://res.cloudinary.com/nyxyma1i/image/upload/f_png,w_1600/v1790759006/snap2shelf/docs/architecture" width="880" alt="Architecture diagram. Seller phone and laptop upload photos directly to Cloudinary's Upload API with signatures from Next.js route handlers on Vercel. The route handlers call Cloudinary's Upload, Analyze and Image Generation APIs; AI calls go through a key pool that can also use two organiser-approved pool environments, whose results are copied into the main environment. Every image, video and zip is delivered back to browsers as a Cloudinary URL."></p>
-
-<sub>The diagram is an SVG ([`docs/architecture.svg`](docs/architecture.svg)) stored in Cloudinary and rasterised on delivery with `f_png,w_1600`. `node --import tsx scripts/docs/upload-diagram.mts` re-uploads it.</sub>
-
-**Where things live.** Every asset sits in one Cloudinary product environment, under predictable public IDs. Facts live in tags, context and one small JSON file per product, so the client-side list JSON and delivery URLs are most of the "API". Every asset also carries the tag `s2s`.
+**Where things live.** Every asset sits in one Cloudinary product environment, under predictable public IDs. Facts live in tags, context and one small JSON file per product, so the client-side list JSON and delivery URLs are most of the "API". Every image asset also carries the tag `s2s`; the raw JSON state files (facts, usage, locks) don't.
 
 ```text
 snap2shelf/products/<sku>/raw                  original upload          s2s-raw, s2s-sku-<sku>
@@ -221,6 +234,7 @@ snap2shelf/products/<sku>/creative-<m>-<seed>  Creative take            s2s-crea
 snap2shelf/products/<sku>/pack/<format>        channel asset            s2s-pack, s2s-pack-<sku>
 snap2shelf/scenes/<theme>/<tier>-<hash>        1080×1350 scene plate    s2s-scene, s2s-theme-<theme>
 snap2shelf/state/usage-main.json               shared usage reading     one per deployment
+snap2shelf/locks/<shelf|capture>-<id>.json     first-writer-wins lock   s2s-lock, never overwritten
 ```
 
 **A request's life, for one product:**
@@ -256,6 +270,8 @@ Every step reads and writes the product's `facts.json` through the Upload API an
 | `POST /api/collection` | stage 2–6 products on one scene with the same light and visual weight | session cap |
 | `POST /api/shelf` · `GET /api/shelf/:shop` | publish up to 12 heroes as a storefront; read it back | session cap / no |
 | `POST /api/access` · `GET /api/usage` | unlock live generation; pool totals, this session's allowance and the credit floor | no |
+
+On top of the gates above, every route that writes to a product or spends AI on it needs proof that this browser created that product; the samples and showcase kits need the access code instead, and without either a route answers from stored results only ([Security](#security)).
 
 </details>
 
@@ -346,7 +362,7 @@ How each field drives the URL ([`lib/transform/composite.ts`](lib/transform/comp
 
 The prompt that produces it is in [`lib/scene-prompts.ts`](lib/scene-prompts.ts) (`sceneDnaPrompt`). It asks for "ONLY a JSON object" with exactly these keys and describes each one ("0=top, 90=right, 180=bottom, 270=left"); the answer is parsed out of any prose or code fences and validated with zod. In our spike, AI Vision returned valid Scene DNA JSON 2 out of 2 times at about 690 tokens per call. The studio's **Scene DNA** toggle draws the anchor, light direction and text zone over the plate.
 
-The scene library itself is 8 themes (Diwali glow, Marble studio, Pastel minimal, Rustic jute, Kitchen counter, Outdoor café, Festive flat-lay, Linen flat-lay) in two fixed camera recipes: eye level for standing products, top-down for garments. Each theme has a draft and a final plate, generated once, normalised to 1080×1350 with an incoming `c_fill`, and checked by AI Vision (`contains-product`, `contains-text`, `contains-person` → the plate is re-tagged `s2s-scene-rejected`).
+The scene library itself is 8 themes (Diwali glow, Marble studio, Pastel minimal, Rustic jute, Kitchen counter, Outdoor café, Festive flat-lay, Linen flat-lay) in two fixed camera recipes ([`lib/scene-prompts.ts`](lib/scene-prompts.ts)): eye level for standing products (6 themes), top-down for garments (2). The seeder generated a draft and a final plate per theme once (16 plates; see [the `mode: "auto"` lesson](#cost-engineering)), normalised each to 1080×1350 with an incoming `c_fill`, and checked it with AI Vision (`contains-product`, `contains-text`, `contains-person` → the plate is re-tagged `s2s-scene-rejected`). The samples and the director's cut stage on the **8 approved final plates**, one per theme, snapshotted in [`lib/showcase.ts`](lib/showcase.ts) (`SCENE_LIBRARY`); **Generate a new scene** adds plates on demand.
 
 ---
 
@@ -570,12 +586,13 @@ In your Cloudinary security settings, make sure **Resource list** is not a restr
 |---|---|
 | `npm run dev` / `build` / `start` | Next.js |
 | `npm run lint`, `npm run typecheck` | ESLint, `tsc --noEmit` |
-| `npm test` | 110 unit tests (Node's test runner): key pool, session and signing, SSRF guard, QA rules, URL builders, retouch plans, briefs, cost ledger, facts and the credit floor against a fake Cloudinary, shelf slugs, OG URLs, BMP decoding, readiness scoring, showcase data |
+| `npm test` | over 130 unit tests (Node's test runner): key pool, session and signing, sample and showcase write protection, ownership proofs, SSRF guard, QA rules, URL builders, retouch plans, briefs, cost ledger, facts, the Admin API circuit breaker and the credit floor against a fake Cloudinary, SDK error scrubbing, shelf slugs, OG URLs, BMP decoding, readiness scoring, showcase data |
 | `npm run secret-scan` | fails if any private value from `.env.local` appears in a tracked file, the staged diff or git history; prints variable **names** only |
 | `npm run setup:cloudinary` | idempotent: upload preset `s2s_ingest`, named transformations from `lib/transform/named.ts` |
 | `npm run seed:scenes` | the scene library (idempotent: prompt-hash ids are never regenerated) |
 | `npm run seed:showcase` | builds the five sample kits from the sample photos with the same library functions the routes use, and writes `data/showcase.json` (pack, reel, signed ZIP, timings and every QA attempt) |
 | `node --conditions=react-server --import tsx scripts/seed-shelf.mts` | Collection mode on one scene, then publishes `/shelf/demo-studio` |
+| `npm run media:gif` | records the README's demo loop from the live site: `docs/media/demo.gif`, `demo-social.mp4` and `poster.png` ([`scripts/media/capture.py`](scripts/media/capture.py); Python Playwright + Pillow + ffmpeg; `--base http://localhost:3000` records a local build). It loads pre-rendered pages only, so it makes no generation, AI Vision or Admin API calls |
 | `npm run spikes` | re-runs the Day-0 spikes (spends a little quota) |
 | `node scripts/spikes/00-usage.mjs` | reads Admin API usage for every configured environment (free, read-only) |
 | `node --conditions=react-server --import tsx scripts/e2e-pipeline.mts` | live end-to-end run of the pipeline library (upload → analyze → cut-out → composite → QA → pack → zip → one Creative job) |
@@ -589,10 +606,10 @@ In your Cloudinary security settings, make sure **Resource list** is not a restr
 
 ## How we built it with AI
 
-**Starting point: the Cloudinary Next.js AI Starter Kit.** We scaffolded with `npx create-cloudinary-next --headless`, which gave us a Next.js 16 template with Cloudinary wiring, Claude Code configuration and the Cloudinary MCP servers. We hit two bugs on Windows: <!-- TODO(final): link the two GitHub issues -->
+**Starting point: the Cloudinary Next.js AI Starter Kit.** We scaffolded with `npx create-cloudinary-next --headless`, which gave us a Next.js 16 template with Cloudinary wiring, Claude Code configuration and the Cloudinary MCP servers. We hit two bugs on Windows; both reports are drafted, with steps to reproduce and a suggested fix, in [`docs/UPSTREAM_ISSUES.md`](docs/UPSTREAM_ISSUES.md) and have not been filed yet:
 
-1. The CLI launches `npx` with `spawnSync` and no shell, which fails on Windows with `spawnSync npx ENOENT` (it needs `shell: true` on `win32`).
-2. Its Skills Pack installer looked for skills directly under `skills/<name>`, but the pack keeps them in `skills/frameworks/…` and `skills/platform/…` (see the `skillPath` values in [`skills-lock.json`](skills-lock.json)). We installed the pack with `npx skills add cloudinary-devs/skills` instead.
+1. **`spawnSync npx ENOENT` on Windows.** The CLI launches `npx` with `spawnSync` and no shell, and Windows can't resolve `npx` without one (it needs `shell: true` on `win32`).
+2. **The skills-path lookup skips subfolders.** Its Skills Pack installer looks for skills directly under `skills/<name>`, but the pack keeps them in `skills/frameworks/…` and `skills/platform/…` (see the `skillPath` values in [`skills-lock.json`](skills-lock.json)), so nothing was installed. We installed the pack with `npx skills add cloudinary-devs/skills` instead.
 
 **The Cloudinary Skills Pack** ([cloudinary-devs/skills](https://github.com/cloudinary-devs/skills)) is installed in [`.claude/skills/`](.claude/skills/): `cloudinary-next`, `cloudinary-react`, `cloudinary-transformations` and `cloudinary-docs`. They gave the coding agents Cloudinary's own guidance on signed uploads, `CldUploadWidget` and `CldImage`, transformation syntax and debugging, named transformations and transformation costs (the 75- and 50-transformation figures above come from its cost reference), and a way to look anything else up in the current docs through `llms.txt`.
 
@@ -610,7 +627,8 @@ In your Cloudinary security settings, make sure **Resource list** is not a restr
 - **Server-only secrets, sanitised errors.** Credentials are read only in `server-only` modules and passed per call; no SDK is configured globally in the app. Every Cloudinary SDK rejection is rebuilt from a scrubbed message and the HTTP code, so the API secret can't reach a log, and error responses never include upstream details. ([`lib/cloudinary/safe.ts`](lib/cloudinary/safe.ts))
 - **SSRF and cost-abuse guard.** Any image URL a client sends (QA, pack) must be an `https://res.cloudinary.com/<our cloud>/image/upload/…` URL for one of our own public ID prefixes, with no query, no userinfo and no `..`, and it may not contain remote-fetch layers (`l_fetch:`), generative effects (`e_gen_*`, `b_gen_fill`), background removal or `fl_attachment`. ([`lib/server/guard.ts`](lib/server/guard.ts))
 - **Sealed, session-bound job tokens.** Creative and scene job handles are AES-256-GCM encrypted and authenticated with separate derived keys, expire after 2 hours, and only work for the session that started them (anyone else gets the same 404 as an unknown token). ([`lib/server/job-token.ts`](lib/server/job-token.ts), [`lib/server/scene-job-token.ts`](lib/server/scene-job-token.ts))
-- **Access code, caps and floors.** Live generation needs the access code (constant-time comparison, with a delay on wrong guesses), an HMAC-signed httpOnly session cookie counts generations and open operations, and the pool floor and the transformation-credit floor switch the app to the samples before quota runs out. ([`lib/server/session.ts`](lib/server/session.ts), [`app/api/access/route.ts`](app/api/access/route.ts), [`lib/server/budget.ts`](lib/server/budget.ts))
+- **Ownership and write locks, still without a database.** Ownership, the demo unlock and each generation are separate HMAC-signed httpOnly cookies, so concurrent requests can't overwrite each other. Only the browser that uploaded a photo can change its kit: the access code unlocks the samples and live generation, not other visitors' products. Shelf names and phone-capture claims are first-writer-wins locks stored in Cloudinary (an Upload API upload with `overwrite: false`), and capture tickets are single-use and expire after 10 minutes. ([`lib/server/proofs.ts`](lib/server/proofs.ts), [`lib/server/protect.ts`](lib/server/protect.ts), [`lib/server/locks.ts`](lib/server/locks.ts))
+- **Access code, caps and floors.** Live generation needs the access code (constant-time comparison, with a delay on wrong guesses); the per-session caps count generations and open operations; and the pool floor and the transformation-credit floor switch the app to the samples before quota runs out. ([`lib/server/session.ts`](lib/server/session.ts), [`app/api/access/route.ts`](app/api/access/route.ts), [`lib/server/budget.ts`](lib/server/budget.ts))
 - **Secret scan before every commit.** [`scripts/secret-scan.mjs`](scripts/secret-scan.mjs) checks every private value from `.env.local` against tracked files, the staged diff and the full git history, plus generic credential patterns.
 
 ---

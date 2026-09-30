@@ -13,6 +13,7 @@
     "setup:cloudinary": "node scripts/setup-cloudinary.mjs",
     "seed:showcase": "node --conditions=react-server --import tsx scripts/seed-showcase.mts",
     "seed:scenes": "node --conditions=react-server --import tsx scripts/seed-scenes.mts",
+    "media:gif": "python scripts/media/capture.py",
     "test": "node --conditions=react-server --import tsx --test tests/*.mts"
   },
   "dependencies": {

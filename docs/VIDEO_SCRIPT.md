@@ -5,7 +5,26 @@
 
 Routes used: `/` (landing), `/studio` (with the QR dialog), `/capture` (phone), `/studio?sample=shmessy1` (the recorded QA catch), `/shelf/demo-studio` (storefront), `/present` (director's cut), `/video/title` and `/video/outro` (cards).
 
-`/present` chapters on the build this script was written against (30 Sep; re-check the titles on the final build): **One photo · The pipeline · Cut out once · Scene DNA · Every stage · QA gate · Channel pack · Kit reel · It's a URL · What it cost · The shelf · Snap2Shelf**. Keys: → or Space next, ← back, P autoplay, R restart; `?c=<n>` starts at chapter n, `?clean=1` hides the controls.
+`/present` chapters and their autoplay lengths, checked against `lib/present/chapters.ts` on 30 Sep (last changed in commit `c9448a7`). Other work on `/present` may still change them before recording: re-check the `seconds` values in that file, or press `N` for the presenter notes, which show each chapter's length, on the final build.
+
+| `?c=` | Chapter | Autoplay |
+|---|---|---|
+| 1 | One photo | 6 s |
+| 2 | The pipeline | 8 s |
+| 3 | Cut out once | 9 s |
+| 4 | Scene DNA | 12 s |
+| 5 | Every stage | 9 s |
+| 6 | QA gate | 11 s |
+| 7 | Channel pack | 10 s |
+| 8 | Kit reel | the reel's length + 1 s, kept between 8 and 13 s: 10 s for the featured sample's 9-second reel |
+| 9 | It's a URL | 12 s |
+| 10 | What it cost | 9 s |
+| 11 | The shelf | 9 s |
+| 12 | Snap2Shelf | 8 s |
+
+A full `?auto=1&clean=1` run is about **1:53**. A chapter whose data is missing is skipped (QA gate, Every stage, Channel pack, Kit reel), which renumbers the ones after it. Keys: → or Space next, ← back, P autoplay, R restart; `?c=<n>` starts at chapter n (counted from 1), `?clean=1` hides the controls.
+
+A silent loop of about 20 seconds (the studio replay, the X-ray and the shop) is already rendered for B-roll or the social posts: `docs/media/demo-social.mp4` (1280×720) and `docs/media/demo.gif`, regenerated with `npm run media:gif`.
 
 Every number spoken or captioned below comes from `lib/claims.ts`, `SPIKES.md` or `data/showcase.json` (see "Facts the voice-over relies on"). Don't add a number that isn't in that table.
 
@@ -36,7 +55,7 @@ Every number spoken or captioned below comes from `lib/claims.ts`, `SPIKES.md` o
 | **1:08–1:14** | `/video/title` card. | Cut to the card. | "I'm `<YOUR_NAME>`. This is Snap2Shelf, for Track 2: Generative Content Workflows." | **Snap2Shelf** · One photo. A whole shelf. |
 | **1:14–1:30** | **The QA catch, part 1 (real replay).** `/studio?sample=shmessy1`: the rail's QA step reads "QA caught it: The product looks like it is floating or pasted on. Fixing it automatically…", then "Auto-fixed: set it 20 px lower, onto the surface. Approved". | Start the sample; frame the rail and the stage. | "Every image goes through a QA gate. Here Cloudinary AI Vision caught a bottle that looked like it was floating, and the studio set it down and checked again." | AI Vision: `product-floating` → auto-fixed → approved |
 | **1:30–1:44** | **The QA catch, part 2 (the flux rejection).** `/present` → **QA gate**: the Fast draft take next to the reference with the red REJECTED badge and its marks; the Faithful take with a green APPROVED. | `/present?c=6`. Let the marks animate. | "In Creative mode an image model reshoots the product, so the gate compares every take with the original. The fast model invented a logo badge and added a ghost second shoe: rejected. The faithful model kept the product, so it passes." | `flux-2-flash-edit`: `product-redesigned` · `extra-product` → REJECTED |
-| **1:44–2:02** | **The X-ray reveal.** `/present` → **It's a URL** (or the studio's `</>` button on the hero): the full URL, colour-coded, each segment highlighting with its plain-language label. | `/present?c=9`, or hero card → `</>`. | "Everything you've seen is a Cloudinary URL. No image files, no GPU server. The scene, then my product as a layer, then a shadow projected from the product's own silhouette, then a warm light-match. Move a slider and it's just a new URL." | No image files. Just URLs. |
+| **1:44–2:02** | **The X-ray reveal.** `/present` → **It's a URL** (or the studio's **See the URL** button on the stage): the full URL, colour-coded, each segment highlighting with its plain-language label. | `/present?c=9`, or the stage's **See the URL**. | "Everything you've seen is a Cloudinary URL. No image files, no GPU server. The scene, then my product as a layer, then a shadow projected from the product's own silhouette, then a warm light-match. Move a slider and it's just a new URL." | No image files. Just URLs. |
 | **2:02–2:20** | **Scene DNA.** `/present` → **Scene DNA**: the plate with the anchor, the light arrow and the text zone drawn on; the product drops onto the anchor and its shadow swings to match. Then **Every stage**: the same cut-out on other scenes. | `/present?c=4`, then → to **Every stage**. | "How does it know where the table is and where the light comes from? When a scene joins the library, AI Vision reads it once. We call that Scene DNA. The same real cut-out then goes onto any scene." | Scene DNA: surface, light, text zone |
 | **2:20–2:36** | **The cost beat.** `/present` → **What it cost**, or the kit's cost receipt: new generation credits 0, credits saved by reuse, AI Vision tokens, original versus delivered size. | `/present?c=10`. | "And it's cheap. Zero new generation credits: the scene is reused from the library. A basic studio shoot for one product would be around two and a half thousand rupees, by our estimate. Early on, 'auto' model selection cost us 72 credits where we'd planned 48, so every model is now pinned." | 0 new generation credits · the scene is reused from the library |
 | **2:36–2:52** | Architecture diagram (from the README), then a quick pan over the repo: `SPIKES.md`, `lib/claims.ts`, `.claude/skills`. | Browser tab with the README's architecture image; then GitHub. | "Cloudinary is the whole backend: uploads, AI Vision, image generation, transformations, video, tags as the database, and delivery. AI calls are balanced across three Cloudinary environments, which the organisers approved, and it's disclosed in the README. I built it with Claude Code running parallel agents, using Cloudinary's Starter Kit and Skills Pack." | Cloudinary is the whole backend. |
@@ -95,4 +114,4 @@ If you show a sample kit on screen for more than a moment, the studio already la
 - [ ] 1080p, H.264, under the platform's size limit; captions burned in and also uploaded as an `.srt`.
 - [ ] Watch it once with the sound off: does every beat still make sense from the captions?
 - [ ] No keys, no `.env.local`, no access code, no pool environment names anywhere in frame.
-- [ ] Upload (YouTube unlisted or Loom), then paste the link into `README.md` (the `TODO(final): video link` slot), `docs/SUBMISSION_CHECKLIST.md` and both social posts.
+- [ ] Upload (YouTube unlisted or Loom), then paste the link into `README.md` (replace the "Video: coming Sat 3 Oct" line and its `TODO(video)` comment), `docs/SUBMISSION_CHECKLIST.md`, `docs/SURVEY_ANSWERS.md` and both social posts.
