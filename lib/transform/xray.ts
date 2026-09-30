@@ -14,18 +14,29 @@ type Kind = XraySegment["kind"];
  * light and dark backgrounds; `legend` is the short key shown under the URL.
  */
 export const XRAY_KINDS: Record<Kind, { token: string; swatch: string; legend: string }> = {
-  crop: { token: "--xray-crop", swatch: "#3b82f6", legend: "Size & crop" },
-  layer: { token: "--xray-layer", swatch: "#10b981", legend: "Your product (layer)" },
-  placement: { token: "--xray-placement", swatch: "#14b8a6", legend: "Placement" },
-  shadow: { token: "--xray-shadow", swatch: "#8b5cf6", legend: "Shadows" },
-  reflection: { token: "--xray-reflection", swatch: "#06b6d4", legend: "Reflection" },
-  effect: { token: "--xray-effect", swatch: "#f59e0b", legend: "Light-match & effects" },
-  "gen-ai": { token: "--xray-gen-ai", swatch: "#ec4899", legend: "Generative AI" },
-  text: { token: "--xray-text", swatch: "#f97316", legend: "Text overlay" },
-  format: { token: "--xray-format", swatch: "#64748b", legend: "Format & quality" },
-  asset: { token: "--xray-asset", swatch: "#94a3b8", legend: "Source asset" },
-  video: { token: "--xray-video", swatch: "#ef4444", legend: "Video" },
+  crop: { token: "--xray-crop", swatch: "#86bdff", legend: "Size & crop" },
+  layer: { token: "--xray-layer", swatch: "#f5a524", legend: "The product (layer)" },
+  placement: { token: "--xray-placement", swatch: "#c9b0ff", legend: "Placement" },
+  shadow: { token: "--xray-shadow", swatch: "#b8a3ff", legend: "Shadows" },
+  reflection: { token: "--xray-reflection", swatch: "#82ded2", legend: "Reflection" },
+  effect: { token: "--xray-effect", swatch: "#f59bc2", legend: "Light-match & effects" },
+  "gen-ai": { token: "--xray-gen-ai", swatch: "#ff8a6b", legend: "Generative AI" },
+  text: { token: "--xray-text", swatch: "#ffd875", legend: "Text overlay" },
+  format: { token: "--xray-format", swatch: "#97d48d", legend: "Format & quality" },
+  asset: { token: "--xray-asset", swatch: "#eadfce", legend: "Source asset" },
+  video: { token: "--xray-video", swatch: "#c1e86a", legend: "Video" },
 };
+
+/**
+ * The product layer's label starts with this. Kits saved before the rename
+ * (data/showcase.json, stored pack X-rays) still say "Your real product";
+ * segmentLabel() shows them in today's words.
+ */
+export const PRODUCT_LAYER_LABEL = "The product from the photo";
+const LEGACY_PRODUCT_LAYER = /^Your real product\b/;
+
+/** A segment's label as the X-ray shows it (older saved kits get today's wording). */
+export const segmentLabel = (s: Pick<XraySegment, "label">) => s.label.replace(LEGACY_PRODUCT_LAYER, PRODUCT_LAYER_LABEL);
 
 /** Legend entries in display order, only for kinds present in `segments`. */
 export function xrayLegend(segments: XraySegment[]) {

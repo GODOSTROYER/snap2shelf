@@ -62,12 +62,12 @@
   }
 }
 
-/* X-ray segment colours, under the names lib/transform/xray.ts XRAY_KINDS expects */
+/* X-ray segment colours, under the names lib/transform/xray.ts XRAY_KINDS expects (same values as its swatches) */
 :root {
   --xray-crop: #86bdff;
   --xray-layer: #f5a524;
   --xray-placement: #c9b0ff;
-  --xray-shadow: #b7bfcb;
+  --xray-shadow: #b8a3ff;
   --xray-reflection: #82ded2;
   --xray-effect: #f59bc2;
   --xray-gen-ai: #ff8a6b;

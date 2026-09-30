@@ -18,6 +18,7 @@
  *  - effects on a layer are clipped to that layer's box, so anything blurred is
  *    padded with transparency first (c_mpad never upscales).
  */
+import { PRODUCT_LAYER_LABEL } from "./xray";
 import { PLATE, type BuiltUrl, type CompositeControls, type CutoutRecord, type Placement, type SceneDNA, type XraySegment } from "../types";
 
 export const cloudName = () => process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ?? "";
@@ -189,6 +190,9 @@ function footprintDepth(g: Geometry) {
   return depthRatio * g.pw * FORESHORTEN;
 }
 
+/** The tight contact line under a standing product: share of the product width, blur strength, opacity. */
+export const CONTACT = { width: 0.82, blur: 300, opacity: 40 } as const;
+
 function contactShadows(push: Push, L: string, g: Geometry, cutout: Pick<CutoutRecord, "width" | "height">, dna: SceneDNA, glossy: boolean) {
   const col = SHADOW_RGB[dna.temperature];
   const fd = footprintDepth(g);
@@ -210,15 +214,18 @@ function contactShadows(push: Push, L: string, g: Geometry, cutout: Pick<CutoutR
   }
   // tight contact line, darkest right under the base
   {
-    const w = r(g.pw * 0.96);
+    // narrower than the product box: a rounded or tapered base touches the surface over less than
+    // its widest part, and a full-width line (o_60, e_blur:200) read as a hard dark pill wider
+    // than the base. Softer and lighter now; the ambient pool above still spans the full width.
+    const w = r(g.pw * CONTACT.width);
     const h = Math.max(5, r(fd * 0.45));
-    const m = Math.max(16, h * 2);
+    const m = Math.max(24, r(h * 2.5)); // room for the wider blur, so its edge is never clipped
     const x = g.px + r((g.pw - w) / 2) - m;
     // tucked up under the base so only the blur's soft edge shows in front (a line centred on the
     // base read as the product "parked on a dark disc" and QA flagged it as a compositing artifact)
     const y = g.baseY - r(h * 0.95) - m;
     push(
-      `${foot}/c_scale,w_${w},h_${h}/co_rgb:${col},e_colorize:100/c_mpad,w_${w + 2 * m},h_${h + 2 * m},b_transparent/e_blur:200/o_60/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_${x},y_${y}`,
+      `${foot}/c_scale,w_${w},h_${h}/co_rgb:${col},e_colorize:100/c_mpad,w_${w + 2 * m},h_${h + 2 * m},b_transparent/e_blur:${CONTACT.blur}/o_${CONTACT.opacity}/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_${x},y_${y}`,
       "shadow",
       "Contact shadow: the product's own footprint, squashed, darkened and blurred so it sits on the surface",
     );
@@ -323,8 +330,8 @@ export function compositeUrl(input: CompositeInput): BuiltUrl {
     `l_${L}/c_scale,w_${g.pw},h_${g.ph}${tone}/fl_layer_apply,g_north_west,x_${g.px},y_${g.py}`,
     "layer",
     c.harmonise
-      ? `Your real product, placed where Scene DNA says the surface is, with a subtle ${dna.temperature} light-match`
-      : "Your real product, untouched, placed where Scene DNA says the surface is",
+      ? `${PRODUCT_LAYER_LABEL}, placed where Scene DNA says the surface is, with a subtle ${dna.temperature} light-match`
+      : `${PRODUCT_LAYER_LABEL}, untouched, placed where Scene DNA says the surface is`,
   );
   if (c.harmonise) relight(push, L, g, dna);
 
