@@ -4,10 +4,9 @@ import { CircleCheck, CircleX, Film } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import type { QaCard } from "@/lib/present/data";
-import { REEL_MOVES } from "@/lib/transform/reel";
 import { preloadVideo } from "@/lib/present/preload";
 import type { KitAsset } from "@/lib/types";
-import { CatalogTileFrame, FeedPostFrame, LinkPreviewFrame, ListingCardFrame, PhoneFrame, StoryFrame, WebBannerFrame, type ShopFacts } from "../frames";
+import { CatalogTileFrame, FeedPostFrame, ListingCardFrame, PhoneFrame, StoryFrame, WebBannerFrame, type ShopFacts } from "../frames";
 import { EASE, Img, Mark, useBeat } from "../stage";
 import { abs, Rise, type ChapterProps } from "./common";
 
@@ -35,7 +34,7 @@ function Verdict({ card, x, at, markAt, stampAt }: { card: QaCard; x: number; at
         <Img src={card.sheet.url} alt={card.sheet.alt} className="pz-fill" fade={false} />
         <div style={{ position: "absolute", left: 14, right: 14, top: 14, display: "flex", justifyContent: "space-between" }}>
           <span className="pz-chip" style={{ height: 36, fontSize: 16 }}>
-            Your photo
+            Original photo
           </span>
           <span className="pz-chip" style={{ height: 36, fontSize: 16 }}>
             AI take
@@ -134,14 +133,11 @@ export function QaGate({ d }: ChapterProps) {
           Nothing ships unless it&rsquo;s still your product.
         </Rise>
         <Rise delay={0.2} as="p" className="pz-lede" style={{ margin: "18px 0 0", maxWidth: "none", fontSize: 26 }}>
-          Creative mode restages the product with an image model. AI Vision checks every take against the original, side by side.
+          Creative mode restages the product with an image model. AI Vision compares every take with the original, side by side, and rejects any take that changed the product, whatever its score.
         </Rise>
       </div>
       <Verdict card={qa.approved} x={120} at={0.5} markAt={99} stampAt={2.5} />
       <Verdict card={qa.rejected} x={1020} at={0.75} markAt={markAt} stampAt={rejectStamp} />
-      <Rise delay={rejectStamp + 1.1} style={abs(120, 1000)} className="pz-small">
-        The gate decides on the matched tags and same_product, not the score: the rejected take still scored {qa.rejected.result.fidelity ?? "high"}.
-      </Rise>
     </>
   );
 }
@@ -155,24 +151,26 @@ interface Slot {
   r: number; // tilt, degrees
 }
 
-// a fan of portrait formats along an arc, wide formats laid across the top
+/*
+ * Composed for the 1920×1080 stage with nothing overlapping: every card, its
+ * caption and its tilt stay inside x 120..1840 and above y 990, clear of the
+ * rail and chapter label. Top: title, web banner, the colour trio. Bottom: an
+ * arc of the portrait formats with the story at the crown.
+ */
 const SLOTS: Record<string, Slot> = {
-  story: { x: 960, y: 628, w: 290, r: 0 },
-  feed: { x: 670, y: 665, w: 260, r: -4.5 },
-  offer: { x: 1250, y: 665, w: 260, r: 4.5 },
-  marketplace: { x: 1540, y: 725, w: 250, r: 9 },
-  banner: { x: 1460, y: 178, w: 520, r: 2.5 },
-  og: { x: 880, y: 172, w: 380, r: -2 },
-  whatsapp: { x: 1788, y: 675, w: 220, r: 12 },
+  banner: { x: 1000, y: 205, w: 520, r: -1.5 },
+  marketplace: { x: 300, y: 742, w: 250, r: -6 },
+  feed: { x: 640, y: 700, w: 250, r: -3 },
+  story: { x: 960, y: 676, w: 280, r: 0 },
+  offer: { x: 1280, y: 700, w: 250, r: 3 },
+  whatsapp: { x: 1612, y: 742, w: 230, r: 6 },
 };
-const RECOLOR_SLOTS: Slot[] = [
-  { x: 380, y: 725, w: 260, r: -9 },
-  { x: 130, y: 800, w: 220, r: -12 },
-];
+/** The colour variants land as a trio of plain tiles, top right, with one shared caption. */
+const TRIO = { left: 1330, top: 70, w: 158, gap: 18 };
 
-const DEAL_ORDER = ["story", "feed", "offer", "recolor", "marketplace", "banner", "og", "whatsapp"];
+const DEAL_ORDER = ["story", "feed", "offer", "marketplace", "whatsapp", "banner", "recolor"];
 
-function PackFrame({ a, shop, d, style }: { a: KitAsset; shop: ShopFacts; d: ChapterProps["d"]; style?: CSSProperties }) {
+function PackFrame({ a, shop, style }: { a: KitAsset; shop: ShopFacts; style?: CSSProperties }) {
   switch (a.frame) {
     case "story":
       return <StoryFrame asset={a} shop={shop} style={style} />;
@@ -185,36 +183,42 @@ function PackFrame({ a, shop, d, style }: { a: KitAsset; shop: ShopFacts; d: Cha
     case "web-banner":
       return <WebBannerFrame asset={a} shop={shop} style={style} />;
     default:
-      return <LinkPreviewFrame asset={a} title={d.shop.name} description={d.shelf.share.description} host={d.shop.host} style={style} />;
+      return <FeedPostFrame asset={a} shop={shop} style={style} />;
   }
 }
 
 export function shopFacts(d: ChapterProps["d"]): ShopFacts {
-  const featured = d.shelf.products[0];
   return {
     name: d.shop.name,
     handle: d.shop.name.toLowerCase().replace(/['’]/g, "").replace(/[^a-z0-9]+/g, ".").replace(/^\.|\.$/g, ""),
     initial: d.shop.name.trim()[0]?.toUpperCase() ?? "S",
-    price: featured?.price || "₹2,499",
-    wasPrice: "₹3,199",
-    title: featured?.title ?? d.product.name,
+    title: d.product.listingTitle,
     host: d.shop.host.split("/")[0],
   };
 }
 
+const RECOLOR_TILT = [-4, 1.5, 5];
+
 export function ChannelPack({ d }: ChapterProps) {
   const reduced = useReducedMotion();
   const shop = shopFacts(d);
-  let recolor = 0;
-  const placed = d.pack
-    .map((a) => {
-      const key = a.format === "recolor" ? "recolor" : a.id;
-      const slot = a.format === "recolor" ? RECOLOR_SLOTS[recolor++] : SLOTS[a.id];
-      return slot ? { a, key, slot } : null;
-    })
-    .filter((p): p is NonNullable<typeof p> => !!p)
-    .sort((p, q) => DEAL_ORDER.indexOf(p.key) - DEAL_ORDER.indexOf(q.key));
+  const recolors = d.pack.filter((a) => a.format === "recolor").slice(0, 3);
+  const TH = Math.round((TRIO.w * 1350) / 1080);
+  const placed = [
+    ...d.pack
+      .filter((a) => a.format !== "recolor" && SLOTS[a.id])
+      .map((a) => ({ a, key: a.id, slot: SLOTS[a.id], tile: false })),
+    ...recolors.map((a, i) => ({
+      a,
+      key: "recolor",
+      slot: { x: TRIO.left + TRIO.w / 2 + i * (TRIO.w + TRIO.gap), y: TRIO.top + TH / 2, w: TRIO.w, r: RECOLOR_TILT[i % RECOLOR_TILT.length] },
+      tile: true,
+    })),
+  ].sort((p, q) => DEAL_ORDER.indexOf(p.key) - DEAL_ORDER.indexOf(q.key));
   const DECK = { x: 960, y: 1300 };
+  const at = (i: number) => (reduced ? 0.3 + i * 0.1 : 0.45 + i * 0.16);
+  const trioLanded = at(placed.length - 1) + 0.6;
+  const colourNames = recolors.map((a) => a.label.replace(/^Colour variant, /, ""));
 
   return (
     <>
@@ -224,33 +228,49 @@ export function ChannelPack({ d }: ChapterProps) {
           <br />
           Every channel.
         </Rise>
-        <Rise delay={0.2} as="p" className="pz-lede" style={{ margin: "20px 0 0", fontSize: 24, maxWidth: 440 }}>
-          {d.pack.length} formats, all transformations of one approved image. No new generations.
+        <Rise delay={0.2} as="p" className="pz-lede" style={{ margin: "20px 0 0", fontSize: 24, maxWidth: 460 }}>
+          {d.pack.length} formats, all transformations of one approved hero. 0 new generation credits.
         </Rise>
       </div>
 
       <div style={{ position: "absolute", inset: 0, perspective: 2400, perspectiveOrigin: "50% 30%" }}>
-        {placed.map(({ a, slot }, i) => {
-          return (
-            <motion.div
-              key={a.id}
-              className="pz-card3d"
-              style={{ left: slot.x, top: slot.y, width: slot.w, translate: "-50% -50%", zIndex: i + 1 }}
-              initial={reduced ? { opacity: 0, rotate: slot.r } : { x: DECK.x - slot.x, y: DECK.y - slot.y, rotate: 0, rotateY: 180, scale: 0.55, opacity: 1 }}
-              animate={{ x: 0, y: 0, rotate: slot.r, rotateY: 0, scale: 1, opacity: 1 }}
-              transition={reduced ? { delay: 0.3 + i * 0.1, duration: 0.4 } : { delay: 0.45 + i * 0.16, type: "spring", stiffness: 95, damping: 17, mass: 0.9 }}
-            >
-              <div className="pz-face">
-                <PackFrame a={a} shop={shop} d={d} />
-                <span className="pz-caption-tag">{a.label}</span>
-              </div>
-              <div className="pz-back" aria-hidden>
-                <Mark size={Math.round(slot.w * 0.28)} />
-              </div>
-            </motion.div>
-          );
-        })}
+        {placed.map(({ a, slot, tile }, i) => (
+          <motion.div
+            key={a.id}
+            className="pz-card3d"
+            style={{ left: slot.x, top: slot.y, width: slot.w, translate: "-50% -50%", zIndex: i + 1 }}
+            initial={reduced ? { opacity: 0, rotate: slot.r } : { x: DECK.x - slot.x, y: DECK.y - slot.y, rotate: 0, rotateY: 180, scale: 0.55, opacity: 1 }}
+            animate={{ x: 0, y: 0, rotate: slot.r, rotateY: 0, scale: 1, opacity: 1 }}
+            transition={reduced ? { delay: at(i), duration: 0.4 } : { delay: at(i), type: "spring", stiffness: 95, damping: 17, mass: 0.9 }}
+          >
+            <div className="pz-face">
+              {tile ? (
+                <div className="pz-frame" style={{ aspectRatio: `${a.width} / ${a.height}`, borderRadius: 14 }}>
+                  <Img src={a.url} alt={a.alt} className="pz-fill" />
+                </div>
+              ) : (
+                <>
+                  <PackFrame a={a} shop={shop} />
+                  <span className="pz-caption-tag">{a.label}</span>
+                </>
+              )}
+            </div>
+            <div className="pz-back" aria-hidden>
+              <Mark size={Math.round(slot.w * 0.28)} />
+            </div>
+          </motion.div>
+        ))}
       </div>
+
+      {recolors.length > 0 && (
+        <Rise
+          delay={trioLanded}
+          y={8}
+          style={abs(TRIO.left, TRIO.top + TH + 26, { width: recolors.length * TRIO.w + (recolors.length - 1) * TRIO.gap, textAlign: "center", fontSize: 17, color: "var(--pz-dim)", whiteSpace: "nowrap" })}
+        >
+          {recolors.length === 1 ? "Colour variant" : `${recolors.length} colour variants`}: {colourNames.join(", ")}
+        </Rise>
+      )}
     </>
   );
 }
@@ -275,14 +295,21 @@ export function Reel({ d }: ChapterProps) {
     v.currentTime = 0;
     v.play().catch(() => {});
   }, [src]);
-  const clips = reel.clips.length || 1;
-  const per = reel.seconds / clips;
-  const activeClip = Math.min(clips - 1, Math.floor(t / per));
+  // clips are read back from the reel URL (lib/present/data.ts reelClipsFromUrl), so this count is the video's
+  const clips = reel.clips.length;
+  const per = reel.clips[0]?.seconds || reel.seconds / Math.max(1, clips);
+  const sameLength = reel.clips.every((c) => c.seconds === per);
+  let activeClip = 0;
+  for (let i = 0, acc = 0; i < clips; i++) {
+    acc += reel.clips[i].seconds || per;
+    activeClip = i;
+    if (t < acc) break;
+  }
 
   const PW = 470;
   const CX = 1250;
   const PH = Math.round((PW - 28) * (16 / 9)) + 28;
-  const moves = REEL_MOVES.map((m) => m.label[0].toUpperCase() + m.label.slice(1));
+  const cap = (m: string) => m[0].toUpperCase() + m.slice(1);
 
   return (
     <>
@@ -291,13 +318,13 @@ export function Reel({ d }: ChapterProps) {
           Even the reel is one URL.
         </Rise>
         <Rise delay={0.2} as="p" className="pz-lede" style={{ margin: "26px 0 0" }}>
-          {clips} stored images become Ken Burns clips, spliced into a {Math.round(reel.seconds)}-second video with the offer held on top. No generation credits.
+          {clips} stored {clips === 1 ? "image becomes a" : "images become"} {sameLength ? `${per}-second ` : ""}Ken Burns {clips === 1 ? "clip" : "clips"}, spliced into a {Math.round(reel.seconds)}-second video with the offer held on top. No generation credits.
         </Rise>
       </div>
 
-      <div style={abs(120, 610, { display: "flex", gap: 18 })}>
+      <div style={abs(120, 610, { display: "flex", gap: 26 })}>
         {reel.clips.map((c, i) => (
-          <Rise key={c.url} delay={0.5 + i * 0.1} y={14} style={{ display: "grid", gap: 10, justifyItems: "center" }}>
+          <Rise key={`${c.publicId}-${i}`} delay={0.5 + i * 0.1} y={14} style={{ display: "grid", gap: 10, justifyItems: "center" }}>
             <div
               style={{
                 position: "relative",
@@ -313,8 +340,8 @@ export function Reel({ d }: ChapterProps) {
             >
               <Img src={c.url} alt="" className="pz-fill" />
             </div>
-            <span className="pz-small" style={{ width: 134, textAlign: "center", lineHeight: 1.3, color: i === activeClip ? "var(--pz-marigold-hi)" : undefined }}>
-              {moves[i % moves.length]}
+            <span className="pz-small" style={{ width: 150, textAlign: "center", lineHeight: 1.3, whiteSpace: "nowrap", color: i === activeClip ? "var(--pz-marigold-hi)" : undefined }}>
+              {cap(c.move)}
             </span>
           </Rise>
         ))}

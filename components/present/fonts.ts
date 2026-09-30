@@ -1,4 +1,4 @@
-import { Bricolage_Grotesque, Hanken_Grotesk, JetBrains_Mono, Noto_Sans_Devanagari } from "next/font/google";
+import { Bricolage_Grotesque, Fraunces, Hanken_Grotesk, JetBrains_Mono, Noto_Sans_Devanagari } from "next/font/google";
 
 /**
  * Type for the director's cut and the video cards. Same families as the
@@ -34,4 +34,12 @@ const devanagari = Noto_Sans_Devanagari({
   preload: false,
 });
 
-export const presentFontVars = [display.variable, text.variable, mono.variable, devanagari.variable].join(" ");
+// the live shelf's display serif, so the shelf chapter shows /shelf/demo-studio as it really looks
+const shelf = Fraunces({
+  subsets: ["latin"],
+  variable: "--pz-font-shelf",
+  axes: ["opsz", "SOFT"],
+  display: "swap",
+});
+
+export const presentFontVars = [display.variable, text.variable, mono.variable, devanagari.variable, shelf.variable].join(" ");

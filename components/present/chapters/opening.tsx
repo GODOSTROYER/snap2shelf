@@ -70,13 +70,18 @@ export function ColdOpen({ d }: ChapterProps) {
         </Rise>
       </div>
 
-      <div style={abs(120, 800, { display: "flex", gap: 12 })}>
+      <div style={abs(120, 790, { display: "flex", gap: 12 })}>
         {[raw.source, `${raw.width} × ${raw.height}`, `${raw.format} · ${fmtBytes(raw.bytes)}`].map((t, i) => (
-          <Rise key={t} delay={1.7 + i * 0.12} y={10} className="pz-chip">
+          <Rise key={t} delay={1.7 + i * 0.12} y={10} className="pz-chip" style={i === 0 && raw.disclosure ? { borderColor: "rgb(245 165 36 / 0.55)", color: "var(--pz-marigold-hi)" } : undefined}>
             {t}
           </Rise>
         ))}
       </div>
+      {raw.disclosure && (
+        <Rise delay={2.1} y={8} as="p" className="pz-small" style={abs(120, 852, { margin: 0, width: 800, fontSize: 19, color: "var(--pz-dim)" })}>
+          {raw.disclosure}
+        </Rise>
+      )}
     </>
   );
 }
@@ -98,9 +103,9 @@ export function Pipeline({ d }: ChapterProps) {
   const T0 = 1.0;
   const SPAN = 5.2;
   const minSeg = 0.35;
-  const timed = steps.filter((s) => s.seconds !== null).reduce((n, s) => n + (s.seconds ?? 0), 0) || 1;
-  const k = (SPAN - minSeg * steps.filter((s) => s.seconds === null).length) / timed;
-  const dur = steps.map((s) => (s.seconds === null ? minSeg : Math.max(minSeg, (s.seconds ?? 0) * k)));
+  // weights only pace the rail; the single time on screen is the measured total
+  const k = SPAN / (steps.reduce((n, s) => n + s.weight, 0) || 1);
+  const dur = steps.map((s) => Math.max(minSeg, s.weight * k));
   const start = dur.map((_, i) => T0 + dur.slice(0, i).reduce((a, b) => a + b, 0));
   const end = start.map((s, i) => s + dur[i]);
   const started = useBeat(start);
@@ -123,10 +128,10 @@ export function Pipeline({ d }: ChapterProps) {
     <>
       <div style={abs(120, 110, { width: 1500 })}>
         <Rise as="h1" className="pz-display pz-h1" style={{ margin: 0 }}>
-          Six steps. About {Math.round(total)} seconds.
+          Six steps. {total} seconds.
         </Rise>
         <Rise delay={0.25} as="p" className="pz-lede" style={{ margin: "22px 0 0", maxWidth: "none" }}>
-          From one photo to a finished, approved kit.
+          From one photo to a finished, approved kit, zipped and ready to download.
         </Rise>
       </div>
 
@@ -168,25 +173,21 @@ export function Pipeline({ d }: ChapterProps) {
             <div className="pz-display" style={{ fontSize: 38, marginTop: 26, color: lit ? "var(--pz-paper)" : "var(--pz-faint)", transition: "color 300ms" }}>
               {s.label}
             </div>
-            <div className="pz-num" style={{ fontSize: 34, fontWeight: 650, marginTop: 8, height: 44, color: done(i) ? "var(--pz-marigold-hi)" : lit ? "var(--pz-paper)" : "var(--pz-umber-3)" }}>
-              {s.seconds === null ? (
-                <span style={{ opacity: lit ? 1 : 0, transition: "opacity 300ms" }}>{s.display ?? "0 s"}</span>
-              ) : (
-                <CountUp to={s.seconds} delay={start[i]} duration={dur[i]} format={(v) => `${v.toFixed(1)} s`} />
-              )}
-            </div>
-            <div className="pz-body" style={{ fontSize: 19, marginTop: 10, maxWidth: 230, lineHeight: 1.35, opacity: lit ? 1 : 0.35, transition: "opacity 400ms" }}>
+            <div className="pz-body" style={{ fontSize: 20, marginTop: 14, maxWidth: 236, lineHeight: 1.35, opacity: lit ? 1 : 0.35, transition: "opacity 400ms" }}>
               {s.detail}
             </div>
           </div>
         );
       })}
 
-      <Rise delay={end[n - 1] + 0.3} style={abs(120, 930, { display: "flex", alignItems: "center", gap: 16 })}>
-        <span className="pz-chip" data-tone="lit">
-          <CountUp to={total} delay={end[n - 1] + 0.3} duration={0.8} format={(v) => `${v.toFixed(1)} s photo to kit`} />
+      {/* one clock for the whole run: it reaches the measured total as the last step lands */}
+      <Rise delay={0.6} style={abs(120, 880, { display: "flex", alignItems: "center", gap: 18 })}>
+        <span className="pz-chip" data-tone="lit" style={{ height: 52, fontSize: 24, padding: "0 22px" }}>
+          <CountUp to={total} delay={T0} duration={end[n - 1] - T0} linear format={(v) => `${Math.floor(v)} s photo → ZIP`} />
         </span>
-        <span className="pz-small">{d.pipeline.note}</span>
+        <motion.span className="pz-small" style={{ fontSize: 19 }} initial={{ opacity: 0 }} animate={{ opacity: finished >= n ? 1 : 0 }} transition={{ duration: 0.5 }}>
+          {d.pipeline.note}
+        </motion.span>
       </Rise>
     </>
   );
@@ -283,7 +284,7 @@ export function Cutout({ d }: ChapterProps) {
           transition={{ duration: 0.35 }}
         >
           <span className="pz-chip">Cutout</span>
-          <span className="pz-chip">Your photo</span>
+          <span className="pz-chip">{raw.source}</span>
         </motion.div>
       </div>
     </>

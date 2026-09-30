@@ -588,6 +588,22 @@
   background: #ece7e0;
   border-bottom: 1px solid #ddd6cc;
 }
+/* the live shelf is dark: same browser, dark chrome */
+.pz-browser[data-dark] {
+  background: #15110d;
+  color: #f4efe7;
+  box-shadow:
+    0 0 0 1px rgb(244 239 231 / 0.1),
+    0 50px 90px -34px rgb(0 0 0 / 0.95),
+    0 14px 28px -14px rgb(0 0 0 / 0.6);
+}
+.pz-browser[data-dark] .pz-browser-bar { background: #221b15; border-bottom-color: rgb(244 239 231 / 0.08); }
+.pz-browser[data-dark] .pz-dots i { background: #4a3f35; }
+.pz-browser[data-dark] .pz-url-pill { background: #15110d; color: #c9bba6; }
+.pz-shelf-serif {
+  font-family: var(--pz-font-shelf), Georgia, serif;
+  font-variation-settings: "SOFT" 50, "opsz" 144;
+}
 .pz-dots { display: flex; gap: 8px; }
 .pz-dots i {
   width: 12px;
