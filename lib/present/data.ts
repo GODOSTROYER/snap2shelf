@@ -40,7 +40,7 @@ import {
   type SceneDNA,
   type XraySegment,
 } from "@/lib/types";
-// import showcase from "@/data/showcase.json"; // ← seeded kits (see the header)
+import showcase from "@/data/showcase.json"; // seeded kits (scripts/seed-showcase.mts)
 
 // ─── Public shape ─────────────────────────────────────────────────────────────
 
@@ -368,11 +368,12 @@ export const EXTRAS: PresentExtras = {
     repo: "https://github.com/GODOSTROYER/snap2shelf",
     repoLabel: "github.com/GODOSTROYER/snap2shelf",
   },
-  // Same shop name as the verified OG card (scripts/dev/og-check.mts). TODO(lead): match the /shelf/<slug> the shelf workstream seeds.
-  shop: { name: "Meera's Home Store", slug: "meera" },
+  // The storefront seeded by scripts/seed-shelf.mts (/shelf/demo-studio).
+  shop: { name: "Demo Studio", slug: "demo-studio" },
   // measured pixel-exact by matching opaque cutout pixels against the raw photo
   cutoutBoxInRaw: {
     "snap2shelf/dev/sneaker_decent/cutout": { x: 79, y: 473 },
+    "snap2shelf/products/shmessy1/cutout": { x: 464, y: 106 }, // template match, mean abs diff 6.4/255
     "snap2shelf/spikes/cutouts/samples_shoe_trim": { x: 164, y: 295 },
   },
   stageScenes: [LIBRARY.diwali, LIBRARY.marble, LIBRARY.kitchen, LIBRARY.cafe],
@@ -628,4 +629,4 @@ export function fromShowcase(json: unknown, featuredSku?: string): PresentData {
 
 // ══ THE LINE TO CHANGE ══════════════════════════════════════════════════════
 // Seeded showcase: export const PRESENT: PresentData = fromShowcase(showcase);
-export const PRESENT: PresentData = fromKits(SAMPLE_KITS, EXTRAS);
+export const PRESENT: PresentData = fromShowcase(showcase, "shmessy1");
