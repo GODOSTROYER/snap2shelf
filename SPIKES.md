@@ -80,7 +80,7 @@ About 1,000 tokens per verdict. Decide on the tags plus `same_product`; the nume
 | Banner 16:9 | `ar_16:9,b_gen_fill,c_pad,w_1920` (50 tx) | 7.2 s |
 | Recolor | `e_gen_recolor:prompt_sneaker;to-color_2563eb` (50 tx) | 5.9 s. A whole-object prompt floods the product flat; **prompt a part** (from AI Vision) |
 | Hindi offer | `l_text:Noto%20Sans%20Devanagari@google_88_700:<utf8>` (Google font, no upload); literal `%` double-encoded | 0.8 s, conjuncts shaped correctly |
-| Marketplace white | `c_fit,w_1700,h_1700/c_pad,w_2000,h_2000,b_white/f_jpg,q_auto:best` | 1.7 s |
+| Marketplace white | ~~`c_pad`~~ **`c_mpad`** (corrected 30 Sep: `c_pad` scaled the 1700 px fit back up to 100% fill) → product long side 1697–1699 px of 2000 (85%), pure-white corners | 1.7 s |
 
 `b_gen_fill` and `e_gen_recolor` need a non-transparent source, so they run on the composited hero asset.
 
@@ -88,7 +88,7 @@ About 1,000 tokens per verdict. Decide on the tags plus `same_product`; the nume
 
 - 3 images → **9.0 s H.264, 640×1138**, rendered in about 7 s:
   `c_fill,w_720,h_1280/e_zoompan:du_3;maxzoom_1.2;fps_25/fl_splice,l_<img2>/c_fill,w_720,h_1280/e_zoompan:…/fl_layer_apply/…/<hero>.mp4`
-- `fl_splice:transition_(name_fade;du_0.6)` plus a Devanagari `l_text` overlay held across clips → 6.0 s, correct.
+- ~~`fl_splice:transition_(name_fade;du_0.6)`~~ **Correction (30 Sep):** on the image/upload zoompan path the fade transition is accepted but silently ignored (hard cuts). The reel now fades each clip up from black instead. Clips must be stored assets (layers can't reference derived URLs), and all clips must share one size.
 - No generation credits. Video transformations bill per second of output.
 
 ## 7. Client-side tag list ✅
@@ -108,6 +108,15 @@ About 1,000 tokens per verdict. Decide on the tags plus `same_product`; the nume
 ## Archive ✅
 
 A signed `download_zip_url` returned a real ZIP (HTTP 200, `application/zip`, `PK` header). There is no per-asset transformation mapping, so channel formats are saved as tagged assets first.
+
+## Exact composite v1 (30 Sep, lib/transform/composite.ts)
+
+- **Cast shadow:** the product's own silhouette, projected onto the ground with `e_distort`. Its direction comes from the Scene DNA azimuth and its length from the elevation; it is blurred, faded with `e_gradient_fade` and tinted by scene temperature.
+- **Contact shadow:** made from the bottom 12% of the cutout (the footprint), as a soft pool plus a tight dark line.
+- **No clipping:** every layer that could overflow has `fl_no_overflow`, and every blurred layer gets `c_mpad,b_transparent` padding first, so nothing is clipped and the canvas stays 1080×1350.
+- **Light-match:** `e_tint` plus `e_screen` and `e_multiply` washes from the key-light colour.
+- **Reflection:** only when DNA says the surface is glossy.
+- **Flat-lays:** lift shadows only.
 
 ## Key pool (disclosed)
 
