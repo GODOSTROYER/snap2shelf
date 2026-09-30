@@ -278,7 +278,7 @@ export async function ensureCutout(sku: Sku, budgetMs = 6000): Promise<CutoutOut
     status = p.status;
     if (status === 200) break;
     if (status === 404) throw notFound("No upload found for this product yet.");
-    if (status !== 423 && status !== 420 && status !== 0) {
+    if (status !== 423 && status !== 420 && status !== 429 && status !== 0) {
       throw new HttpError(502, "upstream", "Background removal failed for this photo. Try another photo.");
     }
     if (Date.now() - t0 + 1500 > budgetMs) break;

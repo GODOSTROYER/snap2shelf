@@ -25,7 +25,7 @@ export interface ApiError {
   code:
     | "bad_request"
     | "not_found"
-    | "pending" // try again shortly (e.g. Cloudinary 423 still processing)
+    | "pending" // try again shortly (Cloudinary 423 still processing, or a rate-limit wait ≤ 15 s on a polled route); 202 + retryAfterMs
     | "locked" // access code required
     | "cap_reached" // per-session generation cap hit
     | "quota_low" // pool below threshold, main's transformation credits at the floor, or Cloudinary's hourly Admin API limit hit (retryAfterMs says when) → UI switches to showcase

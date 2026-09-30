@@ -77,7 +77,7 @@ export interface QaOutcome {
 async function ensureRenderable(url: string): Promise<void> {
   const p = await probe(url, 8000);
   if (p.status === 200) return;
-  if (p.status === 423 || p.status === 0) throw new HttpError(202, "pending", "The image is still rendering, try again shortly.", 2000);
+  if (p.status === 423 || p.status === 420 || p.status === 429 || p.status === 0) throw new HttpError(202, "pending", "The image is still rendering, try again shortly.", 2000);
   throw new HttpError(400, "bad_request", "That image could not be rendered.");
 }
 

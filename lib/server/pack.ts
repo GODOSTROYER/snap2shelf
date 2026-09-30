@@ -155,7 +155,8 @@ async function materialise(
       const left = deadline - Date.now();
       if (left < 1500) return [asset, "pending"];
       const p = await probe(src, left - 1000);
-      if (p.status === 423 || p.status === 420 || p.status === 0) return [asset, "pending"];
+      // 423 still generating; 420 / 429 delivery rate limit: all "try again", never a failure
+      if (p.status === 423 || p.status === 420 || p.status === 429 || p.status === 0) return [asset, "pending"];
       if (p.status !== 200) {
         console.error(`[pack] ${asset.id}: HTTP ${p.status} ${p.error ?? ""}`.slice(0, 200));
         return [asset, "failed"];

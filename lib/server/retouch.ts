@@ -165,7 +165,7 @@ export async function retouchProduct(sku: Sku, opts: { budgetMs?: number; before
   // Planning may have used most of this call's budget: just kick the derivation off.
   const left = budgetMs - (Date.now() - t0);
   const p = await probe(derived, Math.max(1200, Math.min(left, budgetMs)));
-  if (p.status === 423 || p.status === 420 || p.status === 0) return pendingOutcome();
+  if (p.status === 423 || p.status === 420 || p.status === 429 || p.status === 0) return pendingOutcome();
   if (p.status !== 200) {
     console.error(`[retouch] ${sku}: derived HTTP ${p.status} ${String(p.error ?? "").slice(0, 160)}`);
     await updateProduct(sku, { ctx: { fix_err: "1" } }, { critical: false });
