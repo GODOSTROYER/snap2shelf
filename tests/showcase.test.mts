@@ -10,7 +10,7 @@ const { sizedUrl, snapWidth, WIDTHS } = await import("../lib/client/img.ts");
 const { beforeAt, heroAt } = await import("../lib/showcase.ts");
 
 test("samples: the picker leads with the QA-catch sample; every listed kit has a ZIP; bottle01 retired", () => {
-  assert.equal(FEATURED.sku, "sneaker1"); // the landing hero's before/after
+  assert.equal(FEATURED.sku, PRIMARY_SAMPLE_SKU); // the landing's one product, end to end (hero, how it works, shelves, "Try a sample")
   assert.equal(PRIMARY_SAMPLE.sku, PRIMARY_SAMPLE_SKU);
   assert.equal(SHOWCASE_SAMPLE.sku, SHOWCASE_KIT_SKU);
   assert.equal(getSample("bottle01"), undefined);
@@ -22,6 +22,32 @@ test("samples: the picker leads with the QA-catch sample; every listed kit has a
   // the hand-built landing sneaker has no zip: reachable by link, never offered in the picker
   assert.ok(getSample("sneaker1") && !getSample("sneaker1")!.listed && !getSample("sneaker1")!.kit.zipUrl);
   assert.ok(PRIMARY_SAMPLE.qaStory && PRIMARY_SAMPLE.kit.zipUrl);
+});
+
+test("the landing's before lines the raw photo up with the hero's product, with no generated pixels", async () => {
+  const { alignedBeforeTransformation, landingBeforeAt, landingBeforeLqip, CUTOUT_IN_RAW, MOCK_PACK_KIT } = await import("../lib/showcase.ts");
+  assert.equal(MOCK_PACK_KIT.sku, "sneaker1"); // the mock API's fallback pack is unchanged
+  const t = alignedBeforeTransformation(FEATURED);
+  assert.ok(t, "the featured sample can be aligned");
+  assert.doesNotMatch(t!, /gen_|generate|background_removal/);
+  // the hero's product layer: where the cut-out sits on the 1080x1350 plate
+  const xray = FEATURED.kit.hero.xray as { segments: { kind: string; text: string }[] };
+  const layer = xray.segments.find((s) => s.kind === "layer")!.text;
+  const [pw, ph, px, py] = /c_scale,w_(\d+),h_(\d+).*,x_(\d+),y_(\d+)$/.exec(layer)!.slice(1).map(Number);
+  // the raw photo layer: scaled and placed so the product inside it lands on that box
+  const [w, h] = /l_[^/]+\/c_scale,w_(\d+),h_(\d+)/.exec(t!)!.slice(1).map(Number);
+  const [x, y] = /fl_layer_apply,g_north_west,x_(-?\d+),y_(-?\d+)$/.exec(t!)!.slice(1).map(Number);
+  const p = FEATURED.product;
+  const at = CUTOUT_IN_RAW[p.cutout!.publicId];
+  const left = x + (at.x * w) / p.rawWidth;
+  const top = y + (at.y * h) / p.rawHeight;
+  const right = left + (p.cutout!.width * w) / p.rawWidth;
+  const bottom = top + (p.cutout!.height * h) / p.rawHeight;
+  for (const [got, want] of [[left, px], [top, py], [right, px + pw], [bottom, py + ph]]) assert.ok(Math.abs(got - want) <= 1, `${got} vs ${want}`);
+  // fixed widths, from the raw photo alone
+  assert.match(landingBeforeAt(FEATURED, 1300), new RegExp(`/c_scale,w_1080/f_auto,q_auto/${p.rawPublicId}$`));
+  assert.match(landingBeforeAt(FEATURED, 400), /\/c_scale,w_480\//);
+  assert.match(landingBeforeLqip(FEATURED)!, /\/c_limit,w_32\/e_blur:600,q_30\/f_auto\//);
 });
 
 test("samples go by their canonical names, and never call the AI-generated input a phone photo", () => {
