@@ -105,21 +105,36 @@ export function titleSize(title: string): number {
   return 44;
 }
 
+/** Approximate advance widths of Fraunces 600, in em (checked against live renders of the card). */
+function glyphEm(ch: string): number {
+  if (ch === " ") return 0.26;
+  if (/[MW]/.test(ch)) return 0.95;
+  if (/[mw]/.test(ch)) return 0.85;
+  if (/[ijl'’.,:;!|]/.test(ch)) return 0.3;
+  if (/[frt]/.test(ch)) return 0.4;
+  if (/[A-Z&]/.test(ch)) return 0.74;
+  return 0.56;
+}
+
 /**
- * Estimated rendered height of the wrapped title (Fraunces 600 capitals run ~0.64 em per
- * character; over-estimating only adds a little air above the tagline).
+ * Estimated rendered height of the title wrapped to the 500 px column (greedy word
+ * wrap on per-glyph widths: "Demo Studio" at 80 px ≈ 473 px, one line;
+ * "Meera's Handmade" at 54 px ≈ 523 px, wraps — both as rendered).
  */
 export function titleHeight(title: string, size = titleSize(title)): number {
-  const perLine = Math.max(1, Math.floor(500 / (size * 0.64)));
-  const words = title.trim().split(/\s+/);
+  const max = 490;
+  const width = (w: string) => [...w].reduce((sum, ch) => sum + glyphEm(ch), 0) * size;
+  const space = glyphEm(" ") * size;
   let lines = 1;
   let used = 0;
-  for (const w of words) {
-    const len = [...w].length;
-    if (used && used + 1 + len > perLine) {
+  for (const word of title.trim().split(/\s+/)) {
+    const w = width(word);
+    if (used && used + space + w > max) {
       lines++;
-      used = len;
-    } else used += (used ? 1 : 0) + len;
+      used = 0;
+    }
+    if (!used && w > max) lines += Math.ceil(w / max) - 1; // a single word longer than the column
+    used = used ? used + space + w : Math.min(w, max);
   }
   return Math.round(lines * size * 1.12);
 }
