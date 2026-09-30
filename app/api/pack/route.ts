@@ -24,6 +24,7 @@ const schema = z.object({
     .max(4)
     .optional(),
   textZone: z.enum(["top", "bottom", "left", "right", "top_left", "top_right", "none"]).optional(),
+  productBox: z.object({ pw: z.number().int().min(1).max(4000), ph: z.number().int().min(1).max(4000), px: z.number().int().min(-2000).max(4000), py: z.number().int().min(-2000).max(4000), baseY: z.number().int().min(-2000).max(4000) }).optional(),
 });
 
 /** POST /api/pack → save the hero and start materialising the Channel Pack. Poll GET /api/pack/:sku. */

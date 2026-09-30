@@ -91,6 +91,7 @@ export interface PackRequest {
   offer?: { hindi?: string; english?: string };
   recolor?: string[]; // hex swatches without '#', max 4
   textZone?: SceneDNA["text_zone"]; // (additive) where the offer text goes; from the scene's DNA
+  productBox?: { pw: number; ph: number; px: number; py: number; baseY: number }; // (additive) product box on the 1080x1350 plate, from geometry(); keeps offer text off the product and centres the WhatsApp crop
 }
 // heroPublicId is snap2shelf/products/<sku>/hero-<sceneSlug>-<hash8 of heroUrl>.
 // failed (additive): formats Cloudinary refused to render; they are not retried.

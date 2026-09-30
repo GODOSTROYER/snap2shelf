@@ -2,7 +2,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { v2 as cloudinary } from "cloudinary";
 import type { PackRequest, PackResponse, PackStatusResponse } from "../api-contract";
-import { channelAssets, packTags } from "../transform/channels";
+import { channelAssets, packTags, type ProductBox } from "../transform/channels";
 import { productId, type KitAsset, type SceneDNA, type Sku } from "../types";
 import { addContext, listByPrefix, mainAuth, mainCloud, probe, removeTag, uploadToMain, type AssetInfo } from "./cld";
 import { notFound } from "./http";
@@ -35,6 +35,14 @@ interface PackSpec {
   offer?: { hindi?: string; english?: string };
   recolor?: string[];
   textZone?: SceneDNA["text_zone"];
+  productBox?: ProductBox;
+}
+
+function parseBox(s: string | undefined): ProductBox | undefined {
+  const n = (s ?? "").split(",").map(Number);
+  if (n.length !== 5 || n.some((v) => !Number.isInteger(v) || v < -2000 || v > 4000)) return undefined;
+  const [px, py, pw, ph, baseY] = n;
+  return { px, py, pw, ph, baseY };
 }
 
 function specFromContext(c: Record<string, string>): PackSpec | null {
@@ -45,6 +53,7 @@ function specFromContext(c: Record<string, string>): PackSpec | null {
     offer,
     recolor: c.pack_rc ? c.pack_rc.split(",").filter((h) => /^[0-9a-f]{6}$/.test(h)) : undefined,
     textZone: (c.pack_tz as SceneDNA["text_zone"]) || undefined,
+    productBox: parseBox(c.pack_box),
   };
 }
 
@@ -57,6 +66,7 @@ function buildAssets(sku: Sku, raw: AssetInfo, spec: PackSpec): KitAsset[] {
     swatches: spec.recolor,
     offer: spec.offer,
     textZone: spec.textZone,
+    productBox: spec.productBox,
     cloud: mainCloud(),
   });
 }
@@ -133,13 +143,14 @@ export async function startPack(req: PackRequest & { textZone?: SceneDNA["text_z
     context: { scene: req.sceneSlug },
   });
 
-  const spec: PackSpec = { hero, offer: req.offer, recolor: req.recolor?.map((h) => h.toLowerCase()), textZone: req.textZone };
+  const spec: PackSpec = { hero, offer: req.offer, recolor: req.recolor?.map((h) => h.toLowerCase()), textZone: req.textZone, productBox: req.productBox };
   await addContext([raw.publicId], {
     hero,
     pack_hi: spec.offer?.hindi ?? "",
     pack_en: spec.offer?.english ?? "",
     pack_rc: (spec.recolor ?? []).join(","),
     pack_tz: spec.textZone ?? "",
+    pack_box: spec.productBox ? [spec.productBox.px, spec.productBox.py, spec.productBox.pw, spec.productBox.ph, spec.productBox.baseY].join(",") : "",
   });
 
   const m = await materialise(req.sku, hero, buildAssets(req.sku, raw, spec), Math.max(1500, budgetMs - (Date.now() - t0)));
