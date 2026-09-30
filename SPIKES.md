@@ -25,6 +25,7 @@ All eight planned spikes passed, plus captioning and a fidelity-QA spike that wa
 | `model: {mode:"auto", preference:"quality"}`, `aspect_ratio 3:4, 1K` | `gpt-image-2.5-flare` | **5** | 18.8 s | 1024×1536 (model ignored 3:4) |
 
 - Both produced usable empty-tabletop Diwali plates; the `quality` one is clearly more photographic (real depth of field, better light).
+- **`mode: "auto"` is not cost-stable.** While the scene library was being seeded (30 Sep), `economy_fast` picked `nano-banana-2` at **9–11 credits** for 4 of 8 "drafts", and `quality` once picked `nano-banana-2` (9 credits) instead of `gpt-image-2.5-flare` (4–5 credits). The 16 plates cost 72 credits against 48 planned. Every cost-sensitive call now **pins a model id**: `flux-2-flash` (1 credit) for drafts, `gpt-image-2.5-flare` (4–5 credits) for finals.
 - `aspect_ratio` only accepts `1:1, 16:9, 9:16, 4:3, 3:4` (4:5 is rejected), and some models override it. **Every scene is normalised to a canonical 1080×1350 plate** by an incoming `c_fill` transformation when it is copied into the main environment.
 
 ## 2. `image_to_image` with the cutout as reference ✅ (fidelity differs sharply by model)
@@ -107,6 +108,10 @@ About 1,000 tokens per verdict. Decide on the tags plus `same_product`; the nume
 ## Archive ✅
 
 A signed `download_zip_url` returned a real ZIP (HTTP 200, `application/zip`, `PK` header). There is no per-asset transformation mapping, so channel formats are saved as tagged assets first.
+
+## Key pool (disclosed)
+
+Image generation, AI Vision and captioning calls rotate across three Cloudinary product environments (the main one plus two extra free environments), with the hackathon organisers' approval. `lib/cloudinary/pool.ts` sends each call to the environment with the most quota left, skips any environment below a small floor, and benches one for an hour when it answers with a quota or rate-limit error. Every generated image is then copied into the main environment, where all storage, layering, search and delivery happens. Pool keys never reach the browser, and API responses never name an environment.
 
 ## Scope changes from the plan
 
