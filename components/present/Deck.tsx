@@ -10,11 +10,15 @@
  *   H  hide chrome (clean feed)       ?  shortcuts
  *   1–9, 0 = 10, two digits quickly = 11, 12
  *
+ * Touch: tap the right two thirds for next, the left third for back, or
+ * swipe. Phones get a touch bar under the stage (label, rail, hint); the
+ * 1920×1080 artboard itself is unchanged.
+ *
  * URL: /present?c=4 (start at chapter 4) &auto=1 (autoplay) &clean=1 (no chrome).
  */
 import { ChevronLeft, ChevronRight, Keyboard, Maximize, Minimize, NotebookPen, Pause, Play } from "lucide-react";
 import { AnimatePresence, motion, MotionConfig } from "motion/react";
-import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent, type PointerEvent } from "react";
 import { CHAPTERS, chapterAssets, chapterAvailable } from "@/lib/present/chapters";
 import type { PresentData } from "@/lib/present/data";
 import { preloadImages, preloadVideo, preloadWhenIdle } from "@/lib/present/preload";
@@ -194,11 +198,65 @@ export function Deck({ data, initial }: DeckProps) {
     e.currentTarget.blur(); // so Space keeps meaning "next", not "press this button again"
   };
 
+  // touch: tap thirds or swipe (mouse clicks never navigate, so recording stays keyboard-driven)
+  const touch = useRef<{ x: number; y: number; t: number; id: number } | null>(null);
+  const onPointerDown = (e: PointerEvent<HTMLElement>) => {
+    touch.current = e.pointerType === "mouse" ? null : { x: e.clientX, y: e.clientY, t: performance.now(), id: e.pointerId };
+  };
+  const onPointerUp = (e: PointerEvent<HTMLElement>) => {
+    const s = touch.current;
+    touch.current = null;
+    if (!s || s.id !== e.pointerId) return;
+    if ((e.target as HTMLElement | null)?.closest?.("button, a, video, [role='dialog'], .pz-notes")) return;
+    const dx = e.clientX - s.x;
+    const dy = e.clientY - s.y;
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+      if (dx < 0) next();
+      else prev();
+    } else if (Math.abs(dx) < 14 && Math.abs(dy) < 14 && performance.now() - s.t < 700) {
+      if (e.clientX < window.innerWidth / 3) prev();
+      else next();
+    } else return;
+    setHint(false);
+  };
+
+  const rail = (tips: boolean) =>
+    chapters.map((c, i) => (
+      <button
+        key={c.id}
+        type="button"
+        className="pz-rail-seg"
+        data-state={i < index ? "done" : i === index ? "current" : "todo"}
+        aria-label={`Chapter ${i + 1}: ${c.title}`}
+        aria-current={i === index ? "step" : undefined}
+        onClick={click(() => go(i))}
+      >
+        {i === index && auto && (
+          <motion.span key={`${run}-${auto}`} className="pz-rail-fill" initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ duration: seconds, ease: "linear" }} />
+        )}
+        {tips && (
+          <span className="pz-rail-tip">
+            {i + 1}. {c.title}
+          </span>
+        )}
+      </button>
+    ));
+
   const nextTitle = chapters[index + 1]?.title;
 
   return (
     <MotionConfig reducedMotion="user">
-      <main className="pz-root" data-idle={idle && !help && !notes} aria-roledescription="presentation" aria-label="Snap2Shelf, director's cut">
+      <main
+        className="pz-root"
+        data-idle={idle && !help && !notes}
+        aria-roledescription="presentation"
+        aria-label="Snap2Shelf, director's cut"
+        onPointerDown={onPointerDown}
+        onPointerUp={onPointerUp}
+        onPointerCancel={() => {
+          touch.current = null;
+        }}
+      >
         <Backdrop light={ch.light} />
 
         <Artboard label={`Chapter ${index + 1} of ${count}: ${ch.title}`}>
@@ -226,47 +284,43 @@ export function Deck({ data, initial }: DeckProps) {
                 <span style={{ marginLeft: 14 }}>{ch.title}</span>
               </div>
               <nav className="pz-rail" aria-label="Chapters">
-                {chapters.map((c, i) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    className="pz-rail-seg"
-                    data-state={i < index ? "done" : i === index ? "current" : "todo"}
-                    aria-label={`Chapter ${i + 1}: ${c.title}`}
-                    aria-current={i === index ? "step" : undefined}
-                    onClick={click(() => go(i))}
-                  >
-                    {i === index && auto && (
-                      <motion.span
-                        key={`${run}-${auto}`}
-                        className="pz-rail-fill"
-                        initial={{ scaleX: 0 }}
-                        animate={{ scaleX: 1 }}
-                        transition={{ duration: seconds, ease: "linear" }}
-                      />
-                    )}
-                    <span className="pz-rail-tip">
-                      {i + 1}. {c.title}
-                    </span>
-                  </button>
-                ))}
+                {rail(true)}
               </nav>
             </>
           )}
         </Artboard>
 
+        {/* phones: the stage is ~20% size, so chrome moves under it at real size (hidden on laptops by CSS) */}
+        {!clean && (
+          <div className="pz-touchbar">
+            <div className="pz-touchbar-label">
+              <span style={{ color: "var(--pz-faint)" }}>
+                {index + 1}/{count}
+              </span>
+              <span>{ch.title}</span>
+            </div>
+            <nav className="pz-touchbar-rail" aria-label="Chapters">
+              {rail(false)}
+            </nav>
+            <p className="pz-touchbar-hint">Best viewed on a laptop — tap to advance</p>
+          </div>
+        )}
+
         <AnimatePresence>
           {hint && (
             <motion.div className="pz-hint" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ delay: 1.2, duration: 0.5 }}>
-              <span className="pz-kbd">→</span> next
-              <span className="pz-kbd" style={{ marginLeft: 10 }}>
-                P
+              <span className="pz-hint-keys">
+                <span className="pz-kbd">→</span> next
+                <span className="pz-kbd" style={{ marginLeft: 10 }}>
+                  P
+                </span>
+                autoplay
+                <span className="pz-kbd" style={{ marginLeft: 10 }}>
+                  ?
+                </span>
+                all shortcuts
               </span>
-              autoplay
-              <span className="pz-kbd" style={{ marginLeft: 10 }}>
-                ?
-              </span>
-              all shortcuts
+              <span className="pz-hint-touch">Best viewed on a laptop — tap to advance</span>
             </motion.div>
           )}
         </AnimatePresence>

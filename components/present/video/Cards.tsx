@@ -50,20 +50,58 @@ function Breath({ cx, cy, r }: { cx: number; cy: number; r: number }) {
   );
 }
 
+/** True once every image is decoded (or after `maxMs`), so a build never starts on missing pixels. */
+function useImagesReady(urls: readonly string[], maxMs = 2500) {
+  const [ready, setReady] = useState(false);
+  const key = urls.join("|");
+  useEffect(() => {
+    let live = true;
+    const done = () => live && setReady(true);
+    const timer = window.setTimeout(done, maxMs);
+    Promise.all(
+      key.split("|").map((u) => {
+        const img = new Image();
+        img.src = u;
+        return img.decode().catch(() => {});
+      }),
+    ).then(done);
+    return () => {
+      live = false;
+      window.clearTimeout(timer);
+    };
+  }, [key, maxMs]);
+  return ready;
+}
+
+/**
+ * Standing height on the title shelf (px), so the products keep believable
+ * relative sizes. Every cutout is drawn at or below its native resolution
+ * (crisp at 1920×1080): the tallest, the bottle, is 400 px from 1223 px.
+ */
+const TITLE_HEIGHT: Record<string, number> = { s2candle: 170, s2trlmix: 300, "9uo8w8pc": 400, zi86lf6a: 180 };
+const TITLE_GAP = 64;
+
 export function TitleCard({ hold = false }: { hold?: boolean }) {
   const run = useReplay();
   const d = PRESENT;
-  const cut = d.product.cutout;
   const reduced = useReducedMotion();
-  const PW = 470;
-  const PH = Math.round((PW * cut.height) / cut.width);
   const SHELF_Y = 470;
+  // the real Demo Studio shelf, standing on the ledge: native-resolution cutouts, only ever scaled down
+  const items = d.shelf.products.map((p) => {
+    const h = Math.min(TITLE_HEIGHT[p.sku] ?? 300, p.cutout.height);
+    return { ...p.cutout, sku: p.sku, h, w: Math.round((h * p.cutout.width) / p.cutout.height) };
+  });
+  const rowW = items.reduce((n, it) => n + it.w, 0) + TITLE_GAP * Math.max(0, items.length - 1);
+  const xs = items.map((_, i) => 960 - rowW / 2 + items.slice(0, i).reduce((n, it) => n + it.w + TITLE_GAP, 0));
+  const ready = useImagesReady(items.map((it) => it.url));
   const skip = hold && run === 0;
   const t = (s: number) => (skip ? 0 : s);
   const dur = (s: number) => (skip ? 0 : s);
 
   return (
     <Shell light={{ x: 0.5, y: 0.4 }} label="Snap2Shelf title card">
+      {/* the build mounts only once every cutout is decoded, so its timeline starts on real pixels */}
+      {(ready || skip) && (
       <div key={run} style={{ position: "absolute", inset: 0 }}>
         <Breath cx={960} cy={SHELF_Y - 60} r={620} />
 
@@ -96,22 +134,28 @@ export function TitleCard({ hold = false }: { hold?: boolean }) {
           />
         )}
 
-        {/* the product lands, its shadow blooms */}
-        <motion.div
-          aria-hidden
-          style={{ position: "absolute", left: 960 - PW * 0.46, top: SHELF_Y - 18, width: PW * 0.92, height: 30, borderRadius: "50%", background: "radial-gradient(closest-side, rgb(0 0 0 / 0.85), transparent)", filter: "blur(4px)" }}
-          initial={{ opacity: skip ? 1 : 0, scaleX: skip ? 1 : 0.4 }}
-          animate={{ opacity: 1, scaleX: 1 }}
-          transition={{ delay: t(0.95), duration: dur(0.6), ease: EASE }}
-        />
-        <motion.div
-          style={{ position: "absolute", left: 960 - PW / 2, top: SHELF_Y - PH + 6, width: PW, height: PH }}
-          initial={skip ? false : { y: reduced ? 0 : -380, opacity: reduced ? 0 : 1 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={reduced ? { delay: t(0.6), duration: 0.5 } : { delay: t(0.6), type: "spring", stiffness: 240, damping: 17 }}
-        >
-          <Img src={cut.url} alt={cut.alt} className="pz-fill" fetchPriority="high" />
-        </motion.div>
+        {/* the products land one by one, each shadow blooms as it touches down */}
+        {items.map((it, i) => (
+          <motion.div
+            key={`shadow-${it.sku}`}
+            aria-hidden
+            style={{ position: "absolute", left: xs[i] - it.w * 0.04, top: SHELF_Y - 16, width: it.w * 1.08, height: 26, borderRadius: "50%", background: "radial-gradient(closest-side, rgb(0 0 0 / 0.85), transparent)", filter: "blur(4px)" }}
+            initial={{ opacity: skip ? 1 : 0, scaleX: skip ? 1 : 0.4 }}
+            animate={{ opacity: 1, scaleX: 1 }}
+            transition={{ delay: t(0.95 + i * 0.16), duration: dur(0.6), ease: EASE }}
+          />
+        ))}
+        {items.map((it, i) => (
+          <motion.div
+            key={it.sku}
+            style={{ position: "absolute", left: xs[i], top: SHELF_Y - it.h + 4, width: it.w, height: it.h }}
+            initial={skip ? false : { y: reduced ? 0 : -380, opacity: reduced ? 0 : 1 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={reduced ? { delay: t(0.6 + i * 0.16), duration: 0.5 } : { delay: t(0.6 + i * 0.16), type: "spring", stiffness: 240, damping: 17 }}
+          >
+            <Img src={it.url} alt={it.alt} className="pz-fill" fade={false} fetchPriority="high" style={{ objectFit: "contain" }} />
+          </motion.div>
+        ))}
 
         <div style={{ position: "absolute", left: 0, top: 540, width: 1920, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
           <motion.h1
@@ -143,6 +187,7 @@ export function TitleCard({ hold = false }: { hold?: boolean }) {
           </motion.p>
         </div>
       </div>
+      )}
     </Shell>
   );
 }

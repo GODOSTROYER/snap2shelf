@@ -4,9 +4,10 @@
  * Generic device and placement frames for the Channel Pack, reel and shelf
  * chapters. Deliberately brand-free: no real app's chrome, colours or logos,
  * just enough of a feed post, story, listing card, chat or browser for a
- * viewer to recognise where each format lives.
+ * viewer to recognise where each format lives. No invented prices, ratings
+ * or reviews: a price shows only when the shop really has one.
  */
-import { BadgeCheck, Bookmark, CheckCheck, ChevronLeft, Heart, Lock, MessageCircle, MoreHorizontal, Send, Share2, ShoppingBag, Star } from "lucide-react";
+import { BadgeCheck, Bookmark, CheckCheck, ChevronLeft, Heart, Lock, MessageCircle, MoreHorizontal, Send, Share2, ShoppingBag } from "lucide-react";
 import type { CSSProperties, ReactNode } from "react";
 import type { KitAsset } from "@/lib/types";
 import { Img } from "./stage";
@@ -15,8 +16,8 @@ export interface ShopFacts {
   name: string;
   handle: string;
   initial: string;
-  price: string;
-  wasPrice?: string;
+  /** Only when the shop sets one; the demo shelf has none. */
+  price?: string;
   title: string;
   host: string;
 }
@@ -42,7 +43,8 @@ export function FeedPostFrame({ asset, shop, style }: { asset: Pick<KitAsset, "u
         <Bookmark {...icon} style={{ marginLeft: "auto" }} />
       </div>
       <div style={{ padding: "0 12px 12px", fontSize: 13, lineHeight: 1.35, color: "#3b352f" }}>
-        <b>{shop.handle}</b> {shop.title}, {shop.price}
+        <b>{shop.handle}</b> {shop.title}
+        {shop.price ? `, ${shop.price}` : ""}
       </div>
     </div>
   );
@@ -85,16 +87,7 @@ export function ListingCardFrame({ asset, shop, style }: { asset: Pick<KitAsset,
       </div>
       <div style={{ padding: "12px 14px 14px", display: "grid", gap: 6 }}>
         <div style={{ fontSize: 14, lineHeight: 1.3, fontWeight: 600 }}>{shop.title}</div>
-        <div style={{ display: "flex", alignItems: "center", gap: 2, color: "#e0701b" }}>
-          {[0, 1, 2, 3, 4].map((i) => (
-            <Star key={i} width={13} height={13} fill={i < 4 ? "currentColor" : "none"} strokeWidth={1.8} />
-          ))}
-          <span style={{ marginLeft: 6, fontSize: 12, color: "#6f6962" }}>4.3 (212)</span>
-        </div>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-          <span style={{ fontSize: 19, fontWeight: 800 }}>{shop.price}</span>
-          {shop.wasPrice && <span style={{ fontSize: 13, color: "#8a837b", textDecoration: "line-through" }}>{shop.wasPrice}</span>}
-        </div>
+        {shop.price && <div style={{ fontSize: 19, fontWeight: 800 }}>{shop.price}</div>}
         <div style={{ height: 36, borderRadius: 9, background: "#1c1712", color: "#fff", fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
           <ShoppingBag width={15} height={15} /> Add to cart
         </div>
@@ -103,7 +96,7 @@ export function ListingCardFrame({ asset, shop, style }: { asset: Pick<KitAsset,
   );
 }
 
-/** A chat catalogue item: the square tile with price, inside a message bubble. */
+/** A chat catalogue item: the square tile (and its price, if any), inside a message bubble. */
 export function CatalogTileFrame({ asset, shop, style }: { asset: Pick<KitAsset, "url" | "alt">; shop: ShopFacts; style?: CSSProperties }) {
   return (
     <div className="pz-frame" data-dark="true" style={{ background: "#171310", padding: 12, ...style }}>
@@ -111,7 +104,7 @@ export function CatalogTileFrame({ asset, shop, style }: { asset: Pick<KitAsset,
         <Img src={asset.url} alt={asset.alt} className="pz-frame-img" style={{ aspectRatio: "1 / 1" }} />
         <div style={{ padding: "10px 12px 12px", display: "grid", gap: 4 }}>
           <div style={{ fontSize: 14, fontWeight: 600, color: "#f2eee8" }}>{shop.title}</div>
-          <div style={{ fontSize: 15, fontWeight: 800, color: "#ffc76a" }}>{shop.price}</div>
+          {shop.price && <div style={{ fontSize: 15, fontWeight: 800, color: "#ffc76a" }}>{shop.price}</div>}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12, color: "#a79c8e" }}>
             <span>View in catalogue</span>
             <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
@@ -169,9 +162,9 @@ export function PhoneFrame({ children, style, label }: { children: ReactNode; st
   );
 }
 
-export function BrowserFrame({ host, children, style }: { host: string; children: ReactNode; style?: CSSProperties }) {
+export function BrowserFrame({ host, children, style, dark = false }: { host: string; children: ReactNode; style?: CSSProperties; dark?: boolean }) {
   return (
-    <div className="pz-browser" style={style}>
+    <div className="pz-browser" data-dark={dark || undefined} style={style}>
       <div className="pz-browser-bar">
         <span className="pz-dots">
           <i />
@@ -181,7 +174,7 @@ export function BrowserFrame({ host, children, style }: { host: string; children
         <span className="pz-url-pill">
           <Lock width={14} height={14} /> {host}
         </span>
-        <Share2 width={18} height={18} color="#6f6962" />
+        <Share2 width={18} height={18} color={dark ? "#a89f92" : "#6f6962"} />
       </div>
       {children}
     </div>

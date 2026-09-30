@@ -135,13 +135,14 @@ export function useBeat(times: readonly number[]): number {
   return beat;
 }
 
-/** Counts to `to` over `duration` s after `delay` s; reduced motion shows the value at once. */
-export function CountUp({ to, from = 0, duration = 1.4, delay = 0, format = (n: number) => String(Math.round(n)), className, style }: {
+/** Counts to `to` over `duration` s after `delay` s; reduced motion shows the value at once. `linear` for clocks. */
+export function CountUp({ to, from = 0, duration = 1.4, delay = 0, format = (n: number) => String(Math.round(n)), linear = false, className, style }: {
   to: number;
   from?: number;
   duration?: number;
   delay?: number;
   format?: (n: number) => string;
+  linear?: boolean;
   className?: string;
   style?: CSSProperties;
 }) {
@@ -153,13 +154,13 @@ export function CountUp({ to, from = 0, duration = 1.4, delay = 0, format = (n: 
     const t0 = performance.now(); // wall-clock start, so a throttled tab catches up instead of lagging
     const tick = (t: number) => {
       const p = Math.min(1, Math.max(0, (t - t0 - delay * 1000) / (duration * 1000)));
-      const e = 1 - Math.pow(1 - p, 4);
+      const e = linear ? p : 1 - Math.pow(1 - p, 4);
       setV(from + (to - from) * e);
       if (p < 1) raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [to, from, duration, delay, reduced]);
+  }, [to, from, duration, delay, linear, reduced]);
   return (
     <span className={["pz-num", className].filter(Boolean).join(" ")} style={style}>
       {format(reduced ? to : v)}

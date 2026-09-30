@@ -12,8 +12,12 @@
  *
  *      `showcase.json` may be `Kit[]` or `{ kits: Kit[] }`. The first Exact-mode
  *      kit with a scene and a cutout is featured (or pass `featuredSku`).
- *      Anything a kit can't provide (live pipeline timings, the QA evidence
- *      pair, shop name, photoshoot estimate) comes from `EXTRAS` below.
+ *      Anything a kit can't provide (the QA evidence pair, the shop, the live
+ *      shelf snapshot) comes from `EXTRAS` below.
+ *
+ * Every number, name and disclosure comes from lib/claims.ts (the measured
+ * photo → ZIP time, the photoshoot estimate, product names, the sample-photo
+ * disclosure). Never inline a figure in a chapter.
  *
  * Everything here is pure and deterministic: the same input always yields the
  * same Cloudinary URLs, so each derived image is billed once and then cached.
@@ -21,10 +25,20 @@
  * transform workstream (scripts/dev/channel-check.mts, reel-check.mts,
  * og-check.mts), so this deck costs close to zero new transformations.
  */
+import {
+  CREDITS_SAVED_COPY,
+  DEMO_SHELF,
+  MEASURED_PHOTO_TO_ZIP_S,
+  PHOTO_TO_KIT_MEASURED_COPY,
+  PHOTOSHOOT_INR_ESTIMATE,
+  PHOTOSHOOT_NOTE,
+  PRODUCT_NAMES,
+  SAMPLE_PHOTO_DISCLOSURE,
+  SAMPLE_PHOTO_LABEL,
+} from "@/lib/claims";
 import { channelAssets, offerLayout } from "@/lib/transform/channels";
 import { compositeUrl, defaultControls, deliveryBase, geometry, layerId, quantise } from "@/lib/transform/composite";
-import { ogImageUrl } from "@/lib/transform/og";
-import { reelUrl } from "@/lib/transform/reel";
+import { REEL_MOVES, reelUrl } from "@/lib/transform/reel";
 import { describeTransformation } from "@/lib/transform/xray";
 import {
   PLATE,
@@ -84,17 +98,31 @@ export interface QaCard {
 export interface PipelineStat {
   id: PipelineStepId;
   label: string;
-  /** Measured seconds, or null when the step costs no extra time. */
-  seconds: number | null;
-  /** Shown instead of a time when seconds is null. */
-  display?: string;
+  /**
+   * Relative share of a run, used ONLY to pace the animation. Never shown as a
+   * time: the one speed number the deck states is MEASURED_PHOTO_TO_ZIP_S.
+   */
+  weight: number;
   detail: string;
 }
 
+/** One product on the live Demo Studio shelf, exactly as /shelf/demo-studio shows it. */
 export interface ShelfProduct {
+  sku: string;
   title: string;
-  price: string;
-  image: PresentImage;
+  /** The short "colour · material" line under the name. */
+  facts: string;
+  /** The same crop and width the shelf page renders (a cache hit), plus its 2x. */
+  image: PresentImage & { srcSet: string };
+  /** The stored transparent cutout, native size (scaled DOWN in CSS, never up). */
+  cutout: PresentImage;
+}
+
+export interface ReelClip extends PresentImage {
+  publicId: string;
+  /** Ken Burns move, as the reel URL spells it ("slow push in"). */
+  move: string;
+  seconds: number;
 }
 
 export interface PresentData {
@@ -103,9 +131,20 @@ export interface PresentData {
   shop: { name: string; slug: string; url: string; host: string };
   product: {
     sku: string;
+    /** Canonical kit name (lib/claims PRODUCT_NAMES). */
     name: string;
+    /** How a seller would list it on a channel ("Steel water bottle"). */
+    listingTitle: string;
     caption: string;
-    raw: PresentImage & { bytes: number; format: string; source: string };
+    raw: PresentImage & {
+      bytes: number;
+      format: string;
+      /** "Sample photo" for the seeded kits (their input photos are AI-generated test images). */
+      source: string;
+      /** Shown under the photo whenever the input is a sample; null for a seller's own photo. */
+      disclosure: string | null;
+    };
+    /** seconds: this kit's own recorded cutout time. */
     cutout: PresentImage & { box: Rect | null; seconds: number | null; chain: string };
   };
   scene: Scene & { image: PresentImage };
@@ -115,25 +154,30 @@ export interface PresentData {
   stages: StageShot[];
   qa: { approved: QaCard; rejected: QaCard } | null;
   pack: KitAsset[];
-  reel: { url: string; poster: string; seconds: number; clips: PresentImage[]; built: BuiltUrl } | null;
+  /** clips are read back from the reel URL itself, so the count can't drift from the video. */
+  reel: { url: string; poster: string; seconds: number; clips: ReelClip[]; built: BuiltUrl } | null;
   xray: { hero: BuiltUrl; extras: { title: string; segment: XraySegment }[] };
-  pipeline: { steps: PipelineStat[]; totalSeconds: number; note: string };
+  /** totalSeconds / claim: the one measured speed number (lib/claims), used by every chapter. */
+  pipeline: { steps: PipelineStat[]; totalSeconds: number; claim: string; note: string };
   cost: {
     generationCredits: number;
-    sceneCredits: number; // what the featured scene cost once, when the library was seeded
-    creditsSavedByReuse: number;
+    sceneTitle: string;
+    sceneCredits: number; // what the reused scene cost ONCE, when the library was seeded
+    creditsSavedByReuse: number; // the app's per-kit number (= that scene's cost)
     reuseNote: string;
     transformations: number; // tx estimate for the whole kit
     bytesOriginal: number;
-    bytesDeliveredFallback: number; // measured offline; the deck re-measures live
+    bytesDeliveredFallback: number; // measured offline for deliveredUrl; the deck re-measures live
     deliveredUrl: string; // image whose delivered size the deck measures live
     photoshootInr: number;
     photoshootNote: string;
     inrPerCredit: number;
     inrNote: string;
-    seconds: number;
   };
+  /** The live Demo Studio storefront, snapshotted (the deck fetches nothing at runtime). */
   shelf: {
+    title: string;
+    tagline: string;
     products: ShelfProduct[];
     share: { image: PresentImage; title: string; description: string; message: string };
   };
@@ -149,14 +193,15 @@ export interface PresentExtras {
   cutoutBoxInRaw: Record<string, { x: number; y: number }>;
   /** Library scenes to stage the featured cutout on when the kits don't already do it. */
   stageScenes: Scene[];
-  /** Live pipeline timings (seconds). */
-  pipeline: { steps: PipelineStat[]; note: string };
+  /** The six steps, with animation weights. */
+  pipeline: { steps: PipelineStat[] };
+  /** Delivered bytes of the raw photo URL, measured in Chrome (WEBP), keyed by raw public id. */
+  rawDeliveredBytes: Record<string, number>;
   /** Reference-vs-candidate evidence for the QA chapter when no kit carries a creative pair. */
   qaFallback: { approved: QaCard; rejected: QaCard } | null;
   /** Reel inputs when the featured kit has none. */
   reelFallback: { images: string[]; offer: { hindi?: string; english?: string } } | null;
-  shelfTitles: Record<string, { title: string; price: string }>;
-  extraShelf: ShelfProduct[];
+  shelf: PresentData["shelf"];
   photoshootInr: number;
   photoshootNote: string;
   inrPerCredit: number;
@@ -358,6 +403,53 @@ const QA_EVIDENCE: { approved: QaCard; rejected: QaCard } = {
   },
 };
 
+// ─── The live Demo Studio shelf (snapshot) ───────────────────────────────────
+
+/**
+ * /shelf/demo-studio exactly as it was served on 30 Sep 2026 (GET /api/shelf/demo-studio,
+ * plus the page's og:image). Hardcoded so the deck fetches nothing at runtime. Tile URLs are
+ * the crops and widths the shelf page itself renders, so they are cache hits, not new
+ * transformations. Cutout sizes read from the stored PNGs. Re-snapshot if the shelf changes.
+ */
+const shelfItem = (o: { sku: string; title: string; facts: string; hero: string; v: number; crop: string; cutout: [number, number] }): ShelfProduct => {
+  const tile = (w: number) => up(`${o.crop}/c_limit,w_${w}/f_auto,q_auto/v${o.v}`, `snap2shelf/products/${o.sku}/${o.hero}`);
+  return {
+    sku: o.sku,
+    title: o.title,
+    facts: o.facts,
+    image: { url: tile(360), srcSet: `${tile(360)} 1x, ${tile(720)} 2x`, width: 360, height: 450, alt: `${o.title}, ${o.facts.toLowerCase()}, on the Diwali glow scene` },
+    // the stored original, no transformation: native pixels, always scaled down on screen
+    cutout: { url: `${deliveryBase(CLOUD)}/f_auto,q_auto/snap2shelf/products/${o.sku}/cutout`, width: o.cutout[0], height: o.cutout[1], alt: `${o.title}, cut out` },
+  };
+};
+
+export const DEMO_SHELF_SNAPSHOT: PresentData["shelf"] = {
+  title: DEMO_SHELF.title,
+  tagline: "The Diwali edit · real products, one festive stage",
+  products: [
+    shelfItem({ sku: "s2candle", title: "Scented glass candle", facts: "White · wax", hero: "hero-diwali-final-59f4388a-d4d9dc2f", v: 1790741099, crop: "c_crop,w_627,h_784,x_227,y_272", cutout: [508, 659] }),
+    shelfItem({ sku: "s2trlmix", title: "Trail mix pouch", facts: "Brown · plastic", hero: "hero-diwali-final-59f4388a-8b8e8e32", v: 1790741100, crop: "c_crop,w_662,h_827,x_209,y_239", cutout: [709, 1015] }),
+    shelfItem({ sku: "9uo8w8pc", title: "Stainless steel water bottle", facts: "Silver · stainless steel", hero: "hero-diwali-final-59f4388a-61fd138b", v: 1790741099, crop: "c_crop,w_905,h_1131,x_88,y_4", cutout: [309, 1223] }),
+    shelfItem({ sku: "zi86lf6a", title: "Casual sneaker", facts: "White · mesh", hero: "hero-diwali-final-59f4388a-b65fa150", v: 1790741099, crop: "c_crop,w_840,h_1050,x_120,y_210", cutout: [976, 523] }),
+  ],
+  share: {
+    // the page's og:image, verbatim
+    image: {
+      url: up(
+        "c_fill,w_1200,h_630,g_auto/e_blur:1500/e_brightness:-70/co_rgb:f5a524,l_text:Inter@google_22_700_letter_spacing_6:SNAP2SHELF%20%C2%B7%20SHOP/fl_layer_apply,g_north_west,x_72,y_104/co_rgb:f4efe7,c_fit,w_500,l_text:Fraunces@google_80_600_line_spacing_-6:Demo%20Studio/fl_layer_apply,g_north_west,x_72,y_146/co_rgb:a89f92,c_fit,w_480,l_text:Inter@google_26_500_line_spacing_6:The%20Diwali%20edit%20%C2%B7%20real%20products%252C%20one%20festive%20stage/fl_layer_apply,g_north_west,x_74,y_258/l_snap2shelf:products:s2candle:hero-diwali-final-59f4388a-d4d9dc2f/c_scale,w_252,h_58/co_rgb:f5a524,e_colorize:100/co_rgb:0e0c0a,l_text:Inter@google_24_700:Open%20the%20shelf%20%20%E2%86%92/fl_layer_apply,g_center/r_29/fl_layer_apply,g_south_west,x_72,y_64/l_snap2shelf:products:s2candle:hero-diwali-final-59f4388a-d4d9dc2f/c_crop,w_627,h_784,x_227,y_272/c_fill,w_200,h_250,g_auto/bo_5px_solid_rgb:f4efe7/r_20/a_-3/co_black,e_shadow:60,x_8,y_14/fl_layer_apply,g_center,x_190,y_-125/l_snap2shelf:products:s2trlmix:hero-diwali-final-59f4388a-8b8e8e32/c_crop,w_662,h_827,x_209,y_239/c_fill,w_200,h_250,g_auto/bo_5px_solid_rgb:f4efe7/r_20/a_3/co_black,e_shadow:60,x_8,y_14/fl_layer_apply,g_center,x_420,y_-150/l_snap2shelf:products:9uo8w8pc:hero-diwali-final-59f4388a-61fd138b/c_crop,w_905,h_1131,x_88,y_4/c_fill,w_200,h_250,g_auto/bo_5px_solid_rgb:f4efe7/r_20/a_2/co_black,e_shadow:60,x_8,y_14/fl_layer_apply,g_center,x_190,y_140/l_snap2shelf:products:zi86lf6a:hero-diwali-final-59f4388a-b65fa150/c_crop,w_840,h_1050,x_120,y_210/c_fill,w_200,h_250,g_auto/bo_5px_solid_rgb:f4efe7/r_20/a_-2/co_black,e_shadow:60,x_8,y_14/fl_layer_apply,g_center,x_420,y_115/f_jpg,q_auto",
+        "snap2shelf/products/s2candle/hero-diwali-final-59f4388a-d4d9dc2f",
+      ),
+      width: 1200,
+      height: 630,
+      alt: "Demo Studio link preview: Scented glass candle, Trail mix pouch, Stainless steel water bottle, Casual sneaker",
+    },
+    title: DEMO_SHELF.title,
+    description: "The Diwali edit · real products, one festive stage",
+    // app/shelf/[shop]/page.tsx shareMessage()
+    message: "Demo Studio: The Diwali edit · real products, one festive stage. Take a look at the shelf 👇",
+  },
+};
+
 // ─── Extras for the sample data ──────────────────────────────────────────────
 
 export const EXTRAS: PresentExtras = {
@@ -369,7 +461,7 @@ export const EXTRAS: PresentExtras = {
     repoLabel: "github.com/GODOSTROYER/snap2shelf",
   },
   // The storefront seeded by scripts/seed-shelf.mts (/shelf/demo-studio).
-  shop: { name: "Demo Studio", slug: "demo-studio" },
+  shop: { name: DEMO_SHELF.title, slug: DEMO_SHELF.slug },
   // measured pixel-exact by matching opaque cutout pixels against the raw photo
   cutoutBoxInRaw: {
     "snap2shelf/dev/sneaker_decent/cutout": { x: 79, y: 473 },
@@ -378,44 +470,24 @@ export const EXTRAS: PresentExtras = {
   },
   stageScenes: [LIBRARY.diwali, LIBRARY.marble, LIBRARY.kitchen, LIBRARY.cafe],
   pipeline: {
-    // Live end-to-end run through the deployed API routes, 30 Sep 2026 (scripts/e2e-pipeline.mts, run 1).
+    // weights: step shares of an end-to-end API run (scripts/e2e-pipeline.mts); pacing only, never shown
     steps: [
-      { id: "fix", label: "Fix", seconds: 4.7, detail: "Caption, focus check, product reading" },
-      { id: "cutout", label: "Cut out", seconds: 5.7, detail: "Background removed once, trimmed, stored" },
-      { id: "stage", label: "Stage", seconds: 1.5, detail: "Cutout composited onto a library scene" },
-      { id: "light", label: "Light-match", seconds: null, display: "in the URL", detail: "Shadows and tint from the scene's DNA" },
-      { id: "qa", label: "QA", seconds: 5.4, detail: "AI Vision approves or rejects the image" },
-      { id: "pack", label: "Pack", seconds: 10.8, detail: "Every channel format, zipped" },
+      { id: "fix", label: "Fix", weight: 4.7, detail: "Caption, focus check, product reading" },
+      { id: "cutout", label: "Cut out", weight: 5.7, detail: "Background removed once, trimmed, stored" },
+      { id: "stage", label: "Stage", weight: 1.5, detail: "Cutout composited onto a library scene" },
+      { id: "light", label: "Light-match", weight: 0.9, detail: "Shadows and tint from the scene's DNA, in the URL" },
+      { id: "qa", label: "QA", weight: 5.4, detail: "AI Vision approves or rejects the image" },
+      { id: "pack", label: "Pack", weight: 10.8, detail: "Every channel format, zipped" },
     ],
-    note: "Measured on a live run, 30 Sep 2026. Upload time not included.",
   },
+  // curl with Chrome's Accept header, 30 Sep 2026: f_auto answered WEBP (server-timing bytes=157588)
+  rawDeliveredBytes: { "snap2shelf/products/shmessy1/raw": 157588 },
   qaFallback: QA_EVIDENCE,
   reelFallback: null,
-  shelfTitles: {
-    sneakerd: { title: "Casual sneaker, grey suede", price: "₹2,499" },
-    bottlekt: { title: "Steel water bottle, 750 ml", price: "₹649" },
-    pouchjut: { title: "Trail mix, 200 g", price: "₹299" },
-  },
-  extraShelf: [
-    {
-      title: "Casual sneaker, royal blue",
-      price: "₹2,499",
-      image: { url: up(VERIFIED_FMT, "snap2shelf/dev/kit/sneaker-diwali/recolor-1e3a8a"), width: 1080, height: 1350, alt: "The same casual sneaker recoloured royal blue, on the Diwali table" },
-    },
-    {
-      title: "White running shoe",
-      price: "₹1,899",
-      image: { url: up("c_limit,w_720/f_auto,q_auto", "snap2shelf/products/7chyt905/hero-diwali-teak-42-cc0c4509"), width: 720, height: 900, alt: "A white running shoe on a teak table with diyas behind" },
-    },
-    {
-      title: "Retro runner, tan and rose",
-      price: "₹3,199",
-      image: { url: up("c_limit,w_720/f_auto,q_auto", "snap2shelf/spikes/heroes/shoe_diwali"), width: 720, height: 900, alt: "A white, tan and rose retro runner on a teak table with marigolds behind" },
-    },
-  ],
-  // Illustrative, clearly labelled as estimates in the deck.
-  photoshootInr: 4000,
-  photoshootNote: "Typical small-studio quote for one product",
+  shelf: DEMO_SHELF_SNAPSHOT,
+  // lib/claims: an estimate, and labelled as one wherever it's shown
+  photoshootInr: PHOTOSHOOT_INR_ESTIMATE,
+  photoshootNote: PHOTOSHOOT_NOTE,
   inrPerCredit: 33,
   inrNote: "about ₹33 per credit at Cloudinary Plus list price",
 };
@@ -467,22 +539,46 @@ function qaFromKits(kits: Kit[]): PresentData["qa"] {
   return { approved: card(ok, true), rejected: card(bad, false) };
 }
 
+/** Seeded kits carry their run's step timings (ms) next to the Kit fields. */
+type KitWithRun = Kit & { title?: string; sample?: boolean; timings?: Partial<Record<string, number>> };
+
+/**
+ * Reads the clips back out of a reel URL: the base image, then every fl_splice layer, each with
+ * the Ken Burns move and duration its e_zoompan spells. The reel shown IS this URL, so the count,
+ * the moves and the seconds can't drift from the video.
+ */
+export function reelClipsFromUrl(built: BuiltUrl): { publicId: string; move: string; seconds: number }[] {
+  const at = built.url.indexOf(built.transformation);
+  const base = at >= 0 ? built.url.slice(at + built.transformation.length + 1).replace(/\.[a-z0-9]+$/i, "") : "";
+  const layers = [...built.transformation.matchAll(/fl_splice,l_([^/,]+)/g)].map((m) => m[1].replace(/:/g, "/"));
+  const zooms = [...built.transformation.matchAll(/e_zoompan:du_([\d.]+);fps_\d+;from_\(([^)]*)\);to_\(([^)]*)\)/g)];
+  return [base, ...layers].filter(Boolean).map((publicId, i) => {
+    const z = zooms[i];
+    const move = z ? REEL_MOVES.find((m) => m.from === z[2] && m.to === z[3])?.label : undefined;
+    return { publicId, move: move ?? "Ken Burns move", seconds: z ? Number(z[1]) : 0 };
+  });
+}
+
 export function fromKits(kits: Kit[], x: PresentExtras = EXTRAS, featuredSku?: string): PresentData {
   if (!kits.length) throw new Error("present: no kits to show");
   const cloud = x.cloud;
-  const k = pickFeatured(kits, featuredSku);
+  const k = pickFeatured(kits, featuredSku) as KitWithRun;
   const p = k.product;
   const cut = p.cutout!;
   const placement: Placement = p.understanding?.placement ?? "standing";
   const sc = k.scene ?? x.stageScenes[0];
   const controls = k.controls ?? quantise(defaultControls(placement, sc.dna, cut));
   const g = geometry(cut, sc.dna, controls, placement);
-  const name = p.understanding?.name ?? "Your product";
+  const name = PRODUCT_NAMES[k.sku] ?? k.title ?? p.understanding?.name ?? "Your product";
+  const listingTitle = k.title ?? p.understanding?.name ?? name;
+  // seeded kits are samples unless the record says otherwise: their photos are AI-generated test images
+  const isSample = k.sample !== false;
 
   // Raw photo, delivered at its own size in the best format (and measured live).
   const rawUrl = up("c_limit,w_1200/f_auto,q_auto", p.rawPublicId, cloud);
   const boxPx = x.cutoutBoxInRaw[cut.publicId];
   const cutoutBox: Rect | null = boxPx ? { x: boxPx.x / p.rawWidth, y: boxPx.y / p.rawHeight, w: cut.width / p.rawWidth, h: cut.height / p.rawHeight } : null;
+  const cutoutMs = k.timings?.cutout;
 
   // One cutout, every stage: kits that share this cutout first, then library plates.
   const stageKits = kits.filter((o) => o.product.cutout?.publicId === cut.publicId && o.scene);
@@ -493,9 +589,9 @@ export function fromKits(kits: Kit[], x: PresentExtras = EXTRAS, featuredSku?: s
     const b = compositeUrl({ scenePublicId: s.publicId, dna: s.dna, cutout: cut, placement, controls: c, format: VERIFIED_FMT, cloud });
     return {
       scene: s,
-      image: { url: b.url, width: PLATE.width, height: PLATE.height, alt: `${name} on the ${s.title} scene` },
+      image: { url: b.url, width: PLATE.width, height: PLATE.height, alt: `${listingTitle} on the ${s.title} scene` },
       baseY: geometry(cut, s.dna, c, placement).baseY / PLATE.height,
-      credits: 0,
+      credits: 0, // reused from the library: the scene's own cost (scene.credits) was paid once, when it was generated
     };
   });
 
@@ -504,36 +600,38 @@ export function fromKits(kits: Kit[], x: PresentExtras = EXTRAS, featuredSku?: s
   const offerText = { hindi: OFFER.hindi, english: OFFER.english };
   const card = offerLayout(sc.dna.text_zone, g, offerText).card;
 
-  // Pack: every framed kit asset, plus the shelf's link-preview card.
-  const shelfHeroes = kits.map((o) => o.hero.publicId).filter((id): id is string => !!id);
-  const ogIds = [...shelfHeroes, ...k.assets.filter((a) => a.format === "recolor" && a.publicId).map((a) => a.publicId!)].slice(0, 4);
-  const og = ogIds.length ? ogImageUrl({ heroes: ogIds, shopName: x.shop.name, cloud }) : null;
+  // Pack: this kit's own channel formats (the shelf's link preview belongs to the shelf chapter).
   const pack: KitAsset[] = k.assets
     .filter((a) => a.format !== "hero")
     .map((a) => (a.format === "recolor" ? { ...a, label: `Colour variant, ${swatchName(a.id.replace(/^recolor-/, ""))}` } : { ...a }));
-  if (og) {
-    pack.push({ id: "og", format: "feed", label: "Link preview 1200×630", url: og.url, width: 1200, height: 630, frame: "none", alt: `${x.shop.name}: link preview with four products`, xray: og });
-  }
 
   // Reel: the kit's own, else the verified sample reel (stored images only).
-  let reel: PresentData["reel"] = null;
-  const reelImages = k.reel
-    ? null
-    : x.reelFallback?.images ??
+  let reelBuilt: { url: string; seconds: number; built: BuiltUrl } | null = null;
+  if (k.reel) {
+    reelBuilt = { url: k.reel.url, seconds: k.reel.seconds, built: k.reel.xray };
+  } else {
+    const shelfHeroes = kits.map((o) => o.hero.publicId).filter((id): id is string => !!id);
+    const images =
+      x.reelFallback?.images ??
       [k.assets.find((a) => a.format === "story")?.publicId, k.hero.publicId, k.assets.find((a) => a.format === "recolor")?.publicId, ...shelfHeroes.filter((id) => id !== k.hero.publicId).slice(-1)].filter(
         (id): id is string => !!id,
       );
-  if (k.reel) {
-    reel = { url: k.reel.url, poster: k.hero.url, seconds: k.reel.seconds, clips: [], built: k.reel.xray };
-  } else if (reelImages && reelImages.length >= 3) {
-    const r = reelUrl({ images: reelImages, offer: x.reelFallback?.offer ?? offerText, cloud });
-    reel = {
-      url: r.url,
-      poster: up(VERIFIED_FMT, reelImages[0], cloud),
-      seconds: r.seconds,
-      clips: reelImages.map((id) => ({ url: up("c_fill,w_240,h_427,g_center/f_auto,q_auto", id, cloud), width: 240, height: 427, alt: "" })),
-      built: r,
-    };
+    if (images.length >= 3) {
+      const r = reelUrl({ images, offer: x.reelFallback?.offer ?? offerText, cloud });
+      reelBuilt = { url: r.url, seconds: r.seconds, built: r };
+    }
+  }
+  let reel: PresentData["reel"] = null;
+  if (reelBuilt) {
+    // thumbnails: the kit's own stored asset URLs where they exist (already on screen in the pack chapter)
+    const known = [k.hero, ...k.assets];
+    const clips: ReelClip[] = reelClipsFromUrl(reelBuilt.built).map((c) => {
+      const a = known.find((o) => o.publicId === c.publicId);
+      return a
+        ? { ...c, url: a.url, width: a.width, height: a.height, alt: "" }
+        : { ...c, url: up("c_fill,w_240,h_427,g_center/f_auto,q_auto", c.publicId, cloud), width: 240, height: 427, alt: "" };
+    });
+    reel = { url: reelBuilt.url, poster: clips[0]?.url ?? k.hero.url, seconds: reelBuilt.seconds, clips, built: reelBuilt.built };
   }
 
   const story = k.assets.find((a) => a.format === "story");
@@ -549,17 +647,6 @@ export function fromKits(kits: Kit[], x: PresentExtras = EXTRAS, featuredSku?: s
     if (v) extras.push({ title: "Kit Reel", segment: v });
   }
 
-  const savedByReuse = stages.reduce((n, s) => n + s.scene.credits, 0);
-  const pipelineTotal = round1(x.pipeline.steps.reduce((n, s) => n + (s.seconds ?? 0), 0));
-
-  const shelfProducts: ShelfProduct[] = [
-    ...kits.map((o) => ({
-      title: x.shelfTitles[o.sku]?.title ?? o.product.understanding?.name ?? "Product",
-      price: x.shelfTitles[o.sku]?.price ?? "",
-      image: { url: o.hero.url, width: o.hero.width, height: o.hero.height, alt: o.hero.alt },
-    })),
-    ...x.extraShelf,
-  ].slice(0, 6);
   const shopUrl = `${x.site.url}/shelf/${x.shop.slug}`;
 
   return {
@@ -569,15 +656,25 @@ export function fromKits(kits: Kit[], x: PresentExtras = EXTRAS, featuredSku?: s
     product: {
       sku: k.sku,
       name,
+      listingTitle,
       caption: p.caption ?? name,
-      raw: { url: rawUrl, width: p.rawWidth, height: p.rawHeight, alt: p.caption ?? `${name}, as photographed`, bytes: p.rawBytes, format: "PNG", source: "Phone photo" },
+      raw: {
+        url: rawUrl,
+        width: p.rawWidth,
+        height: p.rawHeight,
+        alt: p.caption ?? `${name}, as photographed`,
+        bytes: p.rawBytes,
+        format: "PNG",
+        source: isSample ? SAMPLE_PHOTO_LABEL : "Your photo",
+        disclosure: isSample ? SAMPLE_PHOTO_DISCLOSURE : null,
+      },
       cutout: {
         url: up("c_limit,w_1200/f_auto,q_auto", cut.publicId, cloud),
         width: cut.width,
         height: cut.height,
-        alt: `${name}, cut out on a transparent background`,
+        alt: `${listingTitle}, cut out on a transparent background`,
         box: cutoutBox,
-        seconds: x.pipeline.steps.find((s) => s.id === "cutout")?.seconds ?? null,
+        seconds: typeof cutoutMs === "number" && cutoutMs > 0 ? round1(cutoutMs / 1000) : null,
         chain: "e_background_removal/e_trim/f_png",
       },
     },
@@ -592,31 +689,28 @@ export function fromKits(kits: Kit[], x: PresentExtras = EXTRAS, featuredSku?: s
     pack,
     reel,
     xray: { hero: heroBuilt, extras },
-    pipeline: { steps: x.pipeline.steps, totalSeconds: pipelineTotal, note: x.pipeline.note },
+    pipeline: {
+      steps: x.pipeline.steps,
+      totalSeconds: MEASURED_PHOTO_TO_ZIP_S,
+      claim: PHOTO_TO_KIT_MEASURED_COPY,
+      note: "Measured on the live site: one run on 30 Sep 2026, from choosing the file to the ZIP link, upload included.",
+    },
     cost: {
       generationCredits: k.cost.generationCredits,
+      sceneTitle: sc.title,
       sceneCredits: sc.credits,
-      creditsSavedByReuse: savedByReuse,
-      reuseNote: `${stages.length} library scenes, generated once, reused at 0 credits`,
+      creditsSavedByReuse: k.cost.creditsSavedByReuse,
+      reuseNote: CREDITS_SAVED_COPY,
       transformations: k.cost.transformationsEstimate,
       bytesOriginal: k.cost.bytesOriginal || p.rawBytes,
-      bytesDeliveredFallback: k.cost.bytesDelivered,
+      bytesDeliveredFallback: x.rawDeliveredBytes[p.rawPublicId] ?? k.cost.bytesDelivered,
       deliveredUrl: rawUrl,
       photoshootInr: x.photoshootInr,
       photoshootNote: x.photoshootNote,
       inrPerCredit: x.inrPerCredit,
       inrNote: x.inrNote,
-      seconds: pipelineTotal,
     },
-    shelf: {
-      products: shelfProducts,
-      share: {
-        image: og ? { url: og.url, width: 1200, height: 630, alt: `${x.shop.name} link preview` } : shelfProducts[0].image,
-        title: x.shop.name,
-        description: `${shelfProducts.length} products · shop the shelf`,
-        message: "Diwali stock is up. Have a look",
-      },
-    },
+    shelf: x.shelf,
   };
 }
 

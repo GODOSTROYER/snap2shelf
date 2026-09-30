@@ -165,7 +165,10 @@ export function Stages({ d }: ChapterProps) {
   const s = 0.64;
   const gap = 40;
   const rowW = n * CW * s + (n - 1) * gap;
-  const B = { y: 650 };
+  const B = { y: 606 };
+  // the library's one-off cost, spelled out: 5 + 4 + 4 + 4 = 17 (each kit then reuses these for 0)
+  const libraryCredits = shots.reduce((t, x) => t + x.scene.credits, 0);
+  const credits = (c: number) => `${c} ${c === 1 ? "credit" : "credits"}`;
   const bx = (i: number) => 960 - rowW / 2 + CW * s * (i + 0.5) + gap * i;
   const cur = shots[current];
 
@@ -179,19 +182,19 @@ export function Stages({ d }: ChapterProps) {
         </Rise>
       </div>
 
-      <motion.div style={abs(120, 390, { width: 700 })} animate={{ opacity: spread ? 0 : 1 }} transition={{ duration: 0.4 }}>
+      <motion.div style={abs(120, 390, { width: 780 })} animate={{ opacity: spread ? 0 : 1 }} transition={{ duration: 0.4 }}>
         <Rise delay={0.2} as="p" className="pz-lede" style={{ margin: 0 }}>
-          The product is never regenerated. Scenes come from a shared library, so every reuse costs 0 credits.
+          The product is never regenerated. Each scene is generated once for a shared library, so every reuse costs 0 credits.
         </Rise>
         <div style={{ marginTop: 56, minHeight: 150 }}>
           <motion.div key={cur.scene.publicId} initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.35, ease: EASE }}>
             <div className="pz-display pz-h3">{cur.scene.title}</div>
             <div style={{ display: "flex", gap: 10, marginTop: 18, flexWrap: "wrap" }}>
               <span className="pz-chip">Light {Math.round(cur.scene.dna.light_azimuth)}°</span>
-              <span className="pz-chip">{cur.scene.dna.temperature}</span>
               <span className="pz-chip">{cur.scene.dna.glossy ? "glossy: reflection" : "matte"}</span>
+              <span className="pz-chip">Made once: {credits(cur.scene.credits)}</span>
               <span className="pz-chip" data-tone="lit">
-                {cur.credits} credits
+                Reused here: {credits(cur.credits)}
               </span>
             </div>
           </motion.div>
@@ -237,14 +240,22 @@ export function Stages({ d }: ChapterProps) {
             {shot.scene.title}
           </div>
           <div className="pz-small" style={{ marginTop: 4 }}>
-            {shot.scene.dna.glossy ? "Glossy, so a reflection" : "Matte surface"} · 0 credits
+            {shot.scene.dna.glossy ? "Glossy, so a reflection" : "Matte surface"} · made once, {credits(shot.scene.credits)}
           </div>
         </motion.div>
       ))}
 
-      <motion.div style={abs(960, 996, { translate: "-50% 0", whiteSpace: "nowrap" })} initial={{ opacity: 0 }} animate={{ opacity: spread ? 1 : 0 }} transition={{ delay: spread ? 0.8 : 0, duration: 0.5 }}>
+      <motion.div
+        style={abs(960, 930, { translate: "-50% 0", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 18 })}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: spread ? 1 : 0 }}
+        transition={{ delay: spread ? 0.8 : 0, duration: 0.5 }}
+      >
         <span className="pz-chip" data-tone="lit">
-          1 cutout · {n} scenes · {d.cost.creditsSavedByReuse} credits saved by reuse
+          1 cutout · {n} scenes · {shots.reduce((t, x) => t + x.credits, 0)} new generation credits
+        </span>
+        <span className="pz-small" style={{ fontSize: 19, color: "var(--pz-dim)" }}>
+          The library paid {shots.map((x) => x.scene.credits).join(" + ")} = {credits(libraryCredits)} once, when these scenes were made.
         </span>
       </motion.div>
     </>

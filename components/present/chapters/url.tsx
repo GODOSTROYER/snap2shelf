@@ -179,7 +179,7 @@ function Row({ l, r, strong }: { l: string; r: string; strong?: boolean }) {
 
 function Meter({ label, value, ratio, delay, color, dim }: { label: string; value: React.ReactNode; ratio: number; delay: number; color: string; dim?: boolean }) {
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "250px 1fr 190px", alignItems: "center", gap: 22 }}>
+    <div style={{ display: "grid", gridTemplateColumns: "270px 1fr 190px", alignItems: "center", gap: 22 }}>
       <span style={{ fontSize: 21, color: dim ? "var(--pz-faint)" : "var(--pz-dim)" }}>{label}</span>
       <div className="pz-meter">
         <motion.i style={{ background: color }} initial={{ scaleX: 0 }} animate={{ scaleX: Math.max(0.012, Math.min(1, ratio)) }} transition={{ delay, duration: 1.3, ease: EASE }} />
@@ -208,9 +208,11 @@ export function Cost({ d }: ChapterProps) {
     };
   }, [c.deliveredUrl]);
 
+  // 1 credit = 1,000 transformations; generation credits are 0 for an Exact kit
   const kitCredits = c.generationCredits + c.transformations / 1000;
   const kitInr = Math.max(1, Math.round(kitCredits * c.inrPerCredit));
   const reelSeconds = d.reel ? Math.round(d.reel.seconds) : null;
+  const credits = (n: number) => `${n} ${n === 1 ? "credit" : "credits"}`;
 
   const RECEIPT_H = 700;
   return (
@@ -232,49 +234,56 @@ export function Cost({ d }: ChapterProps) {
           {reelSeconds !== null && <Row l="Kit reel" r={`${reelSeconds} s video`} />}
           <hr />
           <Row l="Generation credits" r={String(c.generationCredits)} strong />
+          <Row l="Saved by reusing a scene" r={credits(c.creditsSavedByReuse)} />
           <Row l="Transformations" r={`≈${fmtInt(c.transformations)} tx`} />
-          <Row l="Credits saved by reuse" r={String(c.creditsSavedByReuse)} />
-          <Row l="Photo to kit" r={`${c.seconds.toFixed(1)} s`} />
           <hr />
           <div style={{ textAlign: "center", fontSize: 15, opacity: 0.7 }}>Every line is a URL. Thank you for shopping.</div>
         </motion.div>
       </div>
 
-      <div style={abs(800, 110, { width: 1000 })}>
+      <div style={abs(800, 88, { width: 1000 })}>
         <Rise as="h1" className="pz-display pz-h1" style={{ margin: 0 }}>
           What it cost.
         </Rise>
+        <Rise delay={0.3} as="p" className="pz-lede" style={{ margin: "18px 0 0", maxWidth: "none", fontSize: 26 }}>
+          And how fast: {d.pipeline.claim}.
+        </Rise>
       </div>
 
-      <div style={abs(800, 330, { width: 1000, display: "grid", gap: 64 })}>
-        <Rise delay={0.6} style={{ display: "grid", gap: 18 }}>
+      <div style={abs(800, 300, { width: 1000, display: "grid", gap: 38 })}>
+        <Rise delay={0.6} style={{ display: "grid", gap: 12 }}>
           <div className="pz-display" style={{ fontSize: 44 }}>
-            <CountUp to={c.creditsSavedByReuse} duration={1.4} delay={0.8} /> credits saved by reuse
-            <span style={{ color: "var(--pz-faint)" }}>, {c.generationCredits} spent</span>
+            {c.generationCredits} new generation credits
+            <span style={{ color: "var(--pz-faint)" }}>, the scene is reused</span>
           </div>
-          <Meter label="Fresh scene per stage" value={`${c.creditsSavedByReuse} credits`} ratio={1} delay={1} color="rgb(244 236 224 / 0.28)" dim />
-          <Meter label="Reused from the library" value={<CountUp to={0} from={c.creditsSavedByReuse} delay={1.4} duration={1.2} format={(v) => `${Math.round(v)} credits`} />} ratio={0.012} delay={1.4} color="var(--pz-marigold)" />
+          <Meter label="Generate a new scene" value={credits(c.sceneCredits)} ratio={1} delay={1} color="rgb(244 236 224 / 0.28)" dim />
+          <Meter label={`Reuse ${c.sceneTitle}`} value={<CountUp to={0} from={c.sceneCredits} delay={1.4} duration={1.2} format={(v) => credits(Math.round(v))} />} ratio={0.012} delay={1.4} color="var(--pz-marigold)" />
+          <span className="pz-small">
+            The {c.sceneTitle} scene cost {credits(c.sceneCredits)} once, when the library was built. This kit reused it.
+          </span>
         </Rise>
 
-        <Rise delay={1.6} style={{ display: "grid", gap: 18 }}>
+        <Rise delay={1.6} style={{ display: "grid", gap: 12 }}>
           <div className="pz-display" style={{ fontSize: 44 }}>
             {fmtBytes(c.bytesOriginal)} → <CountUp key={delivered.bytes} to={delivered.bytes / 1024} from={c.bytesOriginal / 1024} delay={1.9} duration={1.6} format={(v) => `${Math.round(v)} KB`} />
             <span style={{ color: "var(--pz-faint)" }}> delivered</span>
           </div>
-          <Meter label="Phone photo as shot" value={fmtBytes(c.bytesOriginal)} ratio={1} delay={1.9} color="rgb(244 236 224 / 0.28)" dim />
+          <Meter label={`${d.product.raw.source}, as uploaded`} value={fmtBytes(c.bytesOriginal)} ratio={1} delay={1.9} color="rgb(244 236 224 / 0.28)" dim />
           <Meter label={`Delivered${delivered.format ? ` as ${delivered.format}` : ""}`} value={fmtBytes(delivered.bytes)} ratio={delivered.bytes / c.bytesOriginal} delay={2.2} color="var(--pz-marigold)" />
           <span className="pz-small">{measured ? "Measured in this browser just now, same pixels, f_auto,q_auto." : "Measured offline; the live number appears when the photo has loaded."}</span>
         </Rise>
 
-        <Rise delay={2.8} style={{ display: "grid", gap: 18 }}>
+        <Rise delay={2.8} style={{ display: "grid", gap: 12 }}>
           <div className="pz-display" style={{ fontSize: 44 }}>
             ≈ ₹<CountUp to={kitInr} delay={3} duration={1} format={(v) => fmtInt(v)} />
             <span style={{ color: "var(--pz-faint)" }}> vs ≈ ₹{fmtInt(c.photoshootInr)} for a photoshoot</span>
           </div>
-          <Meter label="Studio photoshoot" value={`₹${fmtInt(c.photoshootInr)}`} ratio={1} delay={3} color="rgb(244 236 224 / 0.28)" dim />
-          <Meter label="This kit" value={`₹${fmtInt(kitInr)}`} ratio={kitInr / c.photoshootInr} delay={3.3} color="var(--pz-marigold)" />
+          <Meter label="Studio photoshoot" value={`≈ ₹${fmtInt(c.photoshootInr)}`} ratio={1} delay={3} color="rgb(244 236 224 / 0.28)" dim />
+          <Meter label="This kit, in credits" value={`≈ ₹${fmtInt(kitInr)}`} ratio={kitInr / c.photoshootInr} delay={3.3} color="var(--pz-marigold)" />
           <span className="pz-small">
-            Estimates: {c.photoshootNote.toLowerCase()}; {c.inrNote}.
+            {c.photoshootNote}.
+            <br />
+            This kit: ≈{fmtInt(c.transformations)} transformations ≈ {kitCredits.toFixed(2)} credits, {c.inrNote}.
           </span>
         </Rise>
       </div>
