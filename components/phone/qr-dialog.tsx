@@ -68,7 +68,7 @@ export default function QrDialog({ open, sku, onOpenChange, onArrived }: { open:
         {arrived ? (
           <div className="grid place-items-center gap-4 py-4">
             <div className="relative size-40 overflow-hidden rounded-2xl ring-1 ring-line-strong">
-              <img src={publicUrl(rawPublicId(sku), { w: 320, h: 320, crop: "c_fill" })} alt="The photo you just took" className="size-full object-cover" />
+              <img src={publicUrl(rawPublicId(sku), { w: 360, h: 360, crop: "c_fill" })} alt="The photo you just took" className="size-full object-cover" />
               <span className="absolute right-2 bottom-2 grid size-8 place-items-center rounded-full bg-leaf text-studio">
                 <Check className="size-5" />
               </span>

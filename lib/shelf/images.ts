@@ -2,13 +2,17 @@
  * Delivery URLs for shelf images. Pure and client-safe.
  * Versioned URLs (v<version>) so a re-saved hero never serves a stale CDN copy.
  */
+import { WIDTHS } from "../client/img";
 import { deliveryBase } from "../transform/composite";
 import { PLATE } from "../types";
 import { productCrop } from "./og";
 import type { PlateBox } from "./types";
 
-/** Widths the storefront asks for: phone 1x/2x/3x columns up to the full 1080 plate. */
-export const HERO_WIDTHS = [360, 540, 720, 900, 1080] as const;
+/**
+ * Widths the storefront asks for: the site's one fixed set (lib/client/img.ts),
+ * so a shelf never mints derivatives the kit pages don't already use.
+ */
+export const HERO_WIDTHS = WIDTHS;
 
 export interface HeroImageOptions {
   version?: number;
@@ -33,8 +37,10 @@ export function heroUrl(publicId: string, width: number, o: HeroImageOptions = {
 
 export function heroSrcSet(publicId: string, o: HeroImageOptions = {}): string {
   const max = sourceWidth(o.geo);
-  const widths = [...HERO_WIDTHS.filter((w) => w < max), max];
-  return widths.map((w) => `${heroUrl(publicId, w, o)} ${w}w`).join(", ");
+  // every fixed width up to the window, plus the first one past it: c_limit hands back the
+  // window itself there, so it is described by the pixels that arrive (never an odd w_)
+  const widths = HERO_WIDTHS.filter((w, i) => w <= max || i === 0 || HERO_WIDTHS[i - 1] < max);
+  return widths.map((w) => `${heroUrl(publicId, w, o)} ${Math.min(w, max)}w`).join(", ");
 }
 
 /** ~600-byte blurred JPEG, inlined as a data URI by the server for the blur-up. */
