@@ -176,7 +176,7 @@ globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) =>
       return new Response(null, { status: 423 });
     }
     const fail = failDerive.get(cloud);
-    if (fail && /e_background_removal|b_gen_fill|e_gen_/.test(m[2])) return new Response(null, { status: fail, headers: { "x-cld-error": `derivation failed on ${cloud}` } });
+    if (fail && /e_background_removal|b_gen_fill|e_gen_|e_upscale|e_enhance/.test(m[2])) return new Response(null, { status: fail, headers: { "x-cld-error": `derivation failed on ${cloud}` } });
     return new Response(method === "HEAD" ? null : "img", { status: 200, headers: { "content-type": "image/jpeg", "content-length": "54321" } });
   }
   throw new Error("unexpected fetch " + method + " " + url);
@@ -190,6 +190,7 @@ const products = await import("../lib/server/products.ts");
 const pack = await import("../lib/server/pack.ts");
 const cost = await import("../lib/server/cost.ts");
 const offload = await import("../lib/server/offload.ts");
+const retouch = await import("../lib/server/retouch.ts");
 const { channelAssets } = await import("../lib/transform/channels.ts");
 
 const logs: string[] = [];
@@ -219,7 +220,7 @@ const SKU = "abcd1234";
 const rawId = `snap2shelf/products/${SKU}/raw`;
 const cutId = `snap2shelf/products/${SKU}/cutout`;
 const heroUrl = "https://res.cloudinary.com/maincloud/image/upload/c_fill,w_1080,h_1350/l_snap2shelf:products:abcd1234:cutout/fl_layer_apply/f_jpg,q_90/snap2shelf/scenes/diwali/final-59f4388a";
-const GEN = /e_background_removal|b_gen_fill|e_gen_/;
+const GEN = /e_background_removal|b_gen_fill|e_gen_|e_upscale|e_enhance/;
 
 async function seedProduct() {
   put("maincloud", "image", rawId, { width: 1122, height: 1402, bytes: 2_000_000, format: "png" });
@@ -517,4 +518,123 @@ test("main's Upload API rate limited while storing a pool render: answered as wi
   }
   assert.ok(!calls.probes.some((u) => u.startsWith("https://res.cloudinary.com/maincloud/") && GEN.test(u)), "no background removal on main");
   assert.deepEqual((await pool.rankAccounts("transformations", 0.1)).map((a) => a.label), ["pool2", "pool1", "main"], "pool not benched");
+});
+
+// ------------------------------------------------------------------ Q4 auto-retouch
+
+const retId = `snap2shelf/products/${SKU}/retouched`;
+const AI_CHAIN = "e_gen_remove:prompt_(hand)/e_gen_restore/c_limit,w_2000,h_2000/f_jpg,q_95";
+/** A product whose retouch plan is already stored (planning = AI Vision tagging, tested elsewhere). */
+async function seedPlanned(chain = AI_CHAIN, plan = "cleanup,restore", tx = "151") {
+  await seedProduct();
+  await facts.updateProduct(SKU, { ctx: { fix_tags: "hand-in-frame,blurry", fix_luma: "140.0", fix_focus: "", fix_plan: plan, fix_chain: chain, fix_tx: tx, t_fix: "700", ms_fix: "3000" } });
+}
+const resetAll = () => {
+  store.clear();
+  facts.__resetFactsCache();
+  pool.__resetPoolState();
+  offload.__resetOffloadState();
+  cldOffload.__resetPoolCopies();
+  failDerive.clear();
+  calls.uploads = [];
+  calls.probes = [];
+};
+
+test("retouch, flag on: an AI chain renders on the pool account; main stores the snapshot under the same id, tags and context", async () => {
+  process.env.S2S_OFFLOAD_POOL = "1";
+  await seedPlanned();
+  const out = await retouch.retouchProduct(SKU);
+  assert.equal(out.kind, "done");
+  assert.equal(out.response.status, "done");
+  assert.deepEqual((out.response as { fixes: { applied: string[] } }).fixes.applied, ["cleanup", "restore"]);
+
+  assert.deepEqual(poolUploads()[0] && `${poolUploads()[0].cloud} ${poolUploads()[0].public_id} ${poolUploads()[0].file}`, `pooltwo s2s-offload/${rawId} https://res.cloudinary.com/maincloud/image/upload/${rawId}`);
+  const saved = mainUploads("/retouched");
+  assert.equal(saved.length, 1);
+  assert.match(saved[0].file, /^https:\/\/res\.cloudinary\.com\/pooltwo\/image\/upload\/e_gen_remove:prompt_\(hand\)\/e_gen_restore\/c_limit,w_2000,h_2000\/f_jpg,q_95\/v\d+\/s2s-offload\/snap2shelf\/products\/abcd1234\/raw$/);
+  assert.equal(saved[0].overwrite, false);
+  assert.deepEqual(saved[0].tags, ["s2s", "s2s-retouched", `s2s-sku-${SKU}`]);
+  assert.deepEqual(saved[0].context, { source: rawId, chain: AI_CHAIN, fixes: "cleanup,restore" });
+  assert.ok(!calls.probes.some((u) => u.startsWith("https://res.cloudinary.com/maincloud/") && GEN.test(u)), "main derived no AI effect");
+
+  const doc = JSON.parse(factsDoc());
+  assert.equal(doc.retouched.o, 1);
+  assert.equal(doc.ctx.fix_id, retId);
+  assert.ok(noPoolNames(factsDoc()) && noPoolNames(JSON.stringify(out)), "no pool name in facts or the response");
+  assert.ok(JSON.stringify(out).includes("https://res.cloudinary.com/maincloud/"), "the client sees main URLs");
+  const c = await cost.costForProduct(SKU);
+  assert.ok(c.breakdown.transformations.some((t) => t.label === "Retouch (cleanup,restore) · key pool" && t.tx === 151));
+
+  // the cutout then starts from the retouched photo: the retouch already copied main's stored snapshot
+  // to the same pool account and started its background removal (prewarm), so the cutout reuses both
+  assert.ok(poolUploads().some((u) => u.cloud === "pooltwo" && u.public_id === `s2s-offload/${retId}` && u.file === `https://res.cloudinary.com/maincloud/image/upload/${retId}`));
+  assert.ok(calls.probes.some((u) => /\/pooltwo\/image\/upload\/e_background_removal\/e_trim\/f_png\/v\d+\/s2s-offload\/.+\/retouched$/.test(u)), "cutout render started");
+  const copies = poolUploads().length;
+  const cut = await products.ensureCutout(SKU);
+  assert.equal(cut.created, true);
+  assert.equal(poolUploads().length, copies, "no second copy");
+  assert.match(mainUploads("/cutout")[0].file, /\/pooltwo\/image\/upload\/e_background_removal\/e_trim\/f_png\/v\d+\/s2s-offload\/snap2shelf\/products\/abcd1234\/retouched$/);
+  assert.equal(calls.admin, 0);
+});
+
+test("retouch, flag on: still rendering → pending; the poll finishes on the same pool account", async () => {
+  process.env.S2S_OFFLOAD_POOL = "1";
+  await seedPlanned();
+  busy.push({ re: /\/pooltwo\/image\/upload\/e_gen_remove/, left: 1 });
+  const first = await retouch.retouchProduct(SKU, { budgetMs: 1500 });
+  assert.equal(first.kind, "pending");
+  assert.deepEqual((first.response as { planned: string[] }).planned, ["cleanup", "restore"]);
+  assert.equal(mainUploads("/retouched").length, 0);
+  pool.__resetPoolState();
+  credits.pooltwo = { usage: 10, limit: 25 }; // pool one now ranks first, but the render stays where it started
+  const second = await retouch.retouchProduct(SKU);
+  assert.equal(second.kind, "done");
+  assert.match(mainUploads("/retouched")[0].file, /\/pooltwo\//);
+  assert.equal(poolUploads().filter((u) => u.public_id.endsWith("/raw")).length, 1, "one copy of the raw");
+});
+
+test("retouch: a cheap chain (e_improve alone) and the flag off both stay on main", async () => {
+  process.env.S2S_OFFLOAD_POOL = "1";
+  await seedPlanned("e_improve/c_limit,w_2000,h_2000/f_jpg,q_95", "brightness", "1");
+  assert.equal((await retouch.retouchProduct(SKU)).kind, "done");
+  assert.deepEqual(poolUploads().map((u) => u.public_id), [`s2s-offload/${retId}`], "only the cutout prewarm of the stored snapshot; the chain itself ran on main");
+  assert.match(mainUploads("/retouched")[0].file, /^https:\/\/res\.cloudinary\.com\/maincloud\/image\/upload\/e_improve\//);
+
+  resetAll();
+  delete process.env.S2S_OFFLOAD_POOL;
+  await seedPlanned();
+  assert.equal((await retouch.retouchProduct(SKU)).kind, "done");
+  assert.equal(poolUploads().length, 0);
+  assert.match(mainUploads("/retouched")[0].file, /^https:\/\/res\.cloudinary\.com\/maincloud\/image\/upload\/e_gen_remove/);
+  assert.equal(JSON.parse(factsDoc()).retouched.o, undefined);
+});
+
+test("retouch fallback: every pool account failing → main renders it; a 400 → main's path decides (fix_err, cutout uses the raw)", async () => {
+  process.env.S2S_OFFLOAD_POOL = "1";
+  await seedPlanned();
+  failDerive.set("pooltwo", 503);
+  failDerive.set("poolone", 500);
+  const out = await retouch.retouchProduct(SKU);
+  assert.equal(out.kind, "done");
+  assert.equal(out.response.status, "done");
+  assert.match(mainUploads("/retouched")[0].file, /^https:\/\/res\.cloudinary\.com\/maincloud\/image\/upload\/e_gen_remove/);
+  assert.ok(logs.some((l) => /\[offload\] retouch: pool1 failed .*main renders it/.test(l)));
+  assert.ok(noPoolNames(JSON.stringify(out)));
+
+  // fresh product, pools healthy, but the photo is bad input for the effect everywhere
+  resetAll();
+  failDerive.set("pooltwo", 400);
+  failDerive.set("maincloud", 400);
+  await seedPlanned();
+  const bad = await retouch.retouchProduct(SKU);
+  assert.equal(bad.kind, "done");
+  assert.equal(bad.response.status, "none", "as without offload: Cloudinary couldn't apply the fixes");
+  assert.equal(JSON.parse(factsDoc()).ctx.fix_err, "1");
+  assert.equal(poolUploads().filter((u) => u.cloud === "poolone").length, 0, "no second pool account for a 400");
+  assert.equal(await products.cutoutSource(SKU), rawId);
+});
+
+test("retouch effects count as expensive; auto-improve does not", () => {
+  for (const t of ["e_gen_restore/c_limit,w_2000,h_2000/f_jpg,q_95", "e_upscale/c_limit,w_2000,h_2000/f_jpg,q_95", "e_enhance/f_jpg,q_95", "e_gen_remove:prompt_(hand;price%20tag)/f_jpg"]) assert.ok(offload.isExpensiveTransformation(t), t);
+  assert.ok(!offload.isExpensiveTransformation("e_improve/c_limit,w_2000,h_2000/f_jpg,q_95"));
 });
