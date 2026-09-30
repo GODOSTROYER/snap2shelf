@@ -3,13 +3,17 @@
 import * as Tabs from "@radix-ui/react-tabs";
 import { ArrowUpRight, ChevronDown, Download, ImageUp, Link2, RefreshCw, RotateCcw, Store, WandSparkles } from "lucide-react";
 import { MotionConfig } from "motion/react";
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import * as React from "react";
+import { BriefBar } from "@/components/features/brief-bar";
+import { CostReceipt } from "@/components/features/cost-receipt";
 import { ReadOnlyNote } from "@/components/features/shared";
-import type { DealRequest } from "@/components/kit/kit-shelves";
+import { RetouchCard } from "@/components/features/retouch-card";
+import { SceneGenerator } from "@/components/features/scene-generator";
+import { KitShelves, type DealRequest } from "@/components/kit/kit-shelves";
+import { KitReadiness } from "@/components/readiness/KitReadiness";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Tip, TooltipProvider } from "@/components/ui/tip";
+import { Tip, TooltipProvider } from "@/components/ui/controls";
 import type { BriefResponse } from "@/lib/api-contract";
 import * as api from "@/lib/client/api";
 import { fixMeta } from "@/lib/client/features";
@@ -41,52 +45,12 @@ import {
   type Scene,
   type SceneDNA,
 } from "@/lib/types";
-import type { PackSettings } from "./composite-panel";
+import { CompositePanel, type PackSettings } from "./composite-panel";
+import { CreativePanel } from "./creative-panel";
+import { DnaToggle } from "./dna-toggle";
 import { PipelineRail, type StepStatus } from "./pipeline-rail";
 import { SamplePicker, SourcePicker, type SourceReady } from "./source-picker";
 import { Stage, type QaStory } from "./stage";
-
-/*
- * Everything that only appears once a photo is in (the panels, the brief, the
- * shelves, the receipt) loads on demand instead of with the source picker, and
- * is warmed once the page has finished loading, so it is usually cached by the
- * time a sample or an upload needs it.
- */
-const PARTS = {
-  brief: () => import("@/components/features/brief-bar"),
-  cost: () => import("@/components/features/cost-receipt"),
-  retouch: () => import("@/components/features/retouch-card"),
-  scenes: () => import("@/components/features/scene-generator"),
-  shelves: () => import("@/components/kit/kit-shelves"),
-  readiness: () => import("@/components/readiness/KitReadiness"),
-  composite: () => import("./composite-panel"),
-  creative: () => import("./creative-panel"),
-  dna: () => import("./dna-toggle"),
-};
-const BriefBar = dynamic(() => PARTS.brief().then((m) => m.BriefBar));
-const CostReceipt = dynamic(() => PARTS.cost().then((m) => m.CostReceipt));
-const RetouchCard = dynamic(() => PARTS.retouch().then((m) => m.RetouchCard));
-const SceneGenerator = dynamic(() => PARTS.scenes().then((m) => m.SceneGenerator));
-const KitShelves = dynamic(() => PARTS.shelves().then((m) => m.KitShelves));
-const KitReadiness = dynamic(() => PARTS.readiness().then((m) => m.KitReadiness));
-const CompositePanel = dynamic(() => PARTS.composite().then((m) => m.CompositePanel));
-const CreativePanel = dynamic(() => PARTS.creative().then((m) => m.CreativePanel));
-const DnaToggle = dynamic(() => PARTS.dna().then((m) => m.DnaToggle));
-
-function useWarmParts() {
-  React.useEffect(() => {
-    let timer = 0;
-    const warm = () => {
-      timer = window.setTimeout(() => Object.values(PARTS).forEach((load) => void load().catch(() => undefined)), 800);
-    };
-    if (document.readyState === "complete") warm();
-    else window.addEventListener("load", warm, { once: true });
-    return () => {
-      window.removeEventListener("load", warm);
-      window.clearTimeout(timer);
-    };
-  }, []);
-}
 
 type Status = Record<PipelineStepId, StepStatus>;
 const IDLE: Status = { fix: "waiting", cutout: "waiting", stage: "waiting", light: "waiting", qa: "waiting", pack: "waiting" };
@@ -199,7 +163,6 @@ function presentAsset(a: KitAsset, p: ProductRecord): KitAsset {
 }
 
 export function Studio({ initialSample, initialSku }: { initialSample?: string; initialSku?: string }) {
-  useWarmParts();
   const [source, setSource] = React.useState<SourceReady | null>(null);
   const [linkError, setLinkError] = React.useState<string | null>(null);
   // a ?sku= link (phone capture, refresh): look for that photo before offering the picker

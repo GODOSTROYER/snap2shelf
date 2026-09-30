@@ -3,19 +3,13 @@
 /* eslint-disable @next/next/no-img-element -- Cloudinary delivery URL, already sized */
 import { ArrowRight, CodeXml, Eye, ShieldCheck, Wrench } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import dynamic from "next/dynamic";
 import * as React from "react";
 import { QaBadge } from "@/components/kit/qa-badge";
+import { XraySheet } from "@/components/kit/xray-sheet";
 import { SceneDnaOverlay } from "@/components/present/SceneDnaOverlay";
 import { cn } from "@/lib/client/util";
 import type { KitAsset, QaResult, SceneDNA } from "@/lib/types";
 import { CrossfadeImage, type Enter } from "./crossfade-image";
-
-// The X-ray sheet (a Radix dialog plus the URL anatomy) loads when first wanted:
-// warmed on hover/focus of "See the URL", mounted on the first click.
-const loadXray = () => import("@/components/kit/xray-sheet");
-const XraySheet = dynamic(() => loadXray().then((m) => m.XraySheet), { ssr: false });
-const warmXray = () => void loadXray();
 
 /** The QA gate's automatic retry, told on the stage: caught → fixed → approved. */
 export interface QaStory {
@@ -50,7 +44,6 @@ export const Stage = React.forwardRef<
 >(function Stage({ src, alt, placeholder, originalSrc, originalLabel = "Hold to see your photo", qaStory, scanning, qa, onBusy, busyLabel, xray, enter, light, dna }, ref) {
   const [showOriginal, setShowOriginal] = React.useState(false);
   const [xrayOpen, setXrayOpen] = React.useState(false);
-  const [xrayWanted, setXrayWanted] = React.useState(false);
   const [failed, setFailed] = React.useState<string | null>(null);
 
   return (
@@ -145,12 +138,7 @@ export const Stage = React.forwardRef<
       {xray ? (
         <button
           type="button"
-          onClick={() => {
-            setXrayWanted(true);
-            setXrayOpen(true);
-          }}
-          onPointerEnter={warmXray}
-          onFocus={warmXray}
+          onClick={() => setXrayOpen(true)}
           className={cn(
             "absolute top-3 right-3 inline-flex h-9 items-center gap-2 rounded-full bg-studio/85 px-3.5 text-[0.8rem] font-semibold text-paper backdrop-blur-sm transition-colors hover:bg-studio hover:text-marigold",
             qaStory && "max-sm:invisible",
@@ -160,7 +148,7 @@ export const Stage = React.forwardRef<
           See the URL
         </button>
       ) : null}
-      {xrayWanted ? <XraySheet asset={xrayOpen ? (xray ?? null) : null} onOpenChange={setXrayOpen} /> : null}
+      <XraySheet asset={xrayOpen ? (xray ?? null) : null} onOpenChange={setXrayOpen} />
 
       {originalSrc ? (
         <button
