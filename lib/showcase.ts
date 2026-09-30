@@ -36,15 +36,8 @@ export const SHOWCASE_CLOUD = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "
 // widths snap to the site's fixed set (lib/client/img.ts): every new width is a new billable derivative
 const stored = (publicId: string, w?: number) => `${deliveryBase(SHOWCASE_CLOUD)}/${w ? `c_limit,w_${snapWidth(w)}/` : ""}f_auto,q_auto/${publicId}`;
 
-/** Canonical display name of a sample (lib/claims.ts), e.g. "Chikankari kurta". */
+/** Canonical listing name of a sample (lib/claims.ts), e.g. "Chikankari kurta"; anything else keeps its own. */
 export const productName = (sku: string, fallback = "Your product") => PRODUCT_NAMES[sku] ?? fallback;
-/** The same name, short enough for a shop listing or alt text ("Steel bottle, cluttered-counter photo" → "Steel bottle"). */
-export const shortProductName = (sku: string, fallback = "Your product") => (PRODUCT_NAMES[sku] ? PRODUCT_NAMES[sku].split(",")[0] : fallback);
-/** A title and its qualifier, for a two-line heading: "Steel bottle, cluttered-counter photo" → ["Steel bottle", "cluttered-counter photo"]. */
-export function nameParts(name: string): [string, string | undefined] {
-  const at = name.indexOf(", ");
-  return at < 0 ? [name, undefined] : [name.slice(0, at), name.slice(at + 2)];
-}
 
 /** A real QA rejection from the seeded run, retold by the replay: caught → auto-fixed → approved. */
 export interface SampleQaStory {
@@ -422,8 +415,8 @@ function buildSample(s: SampleSpec): SampleProduct {
  * has a stored ZIP. Titles are the canonical names (lib/claims.ts).
  */
 const SEEDED_META: { sku: Sku; blurb: string; highlight?: string; listed: boolean }[] = [
-  { sku: "shmessy1", blurb: "Mug, fruit bowl and towels behind it", highlight: "QA catches a floating bottle, then fixes it", listed: true },
-  { sku: "shbottle", blurb: "On a kitchen counter", listed: true },
+  { sku: "shmessy1", blurb: "Cluttered kitchen counter", highlight: "QA catches a floating bottle, then fixes it", listed: true },
+  { sku: "shbottle", blurb: "Clean white counter", listed: true },
   { sku: "shtrail1", blurb: "Beside a house plant", listed: true },
   { sku: "shkurta1", blurb: "Laid flat on a patterned sheet", listed: true },
   { sku: "shsneakr", blurb: "On a marble floor", listed: true },
@@ -483,7 +476,7 @@ function qaStoryOf(k: ShowcaseKit): SampleQaStory | undefined {
  */
 function renamed(k: ShowcaseKit): Pick<Kit, "product" | "hero" | "assets"> {
   const read = k.product.understanding?.name;
-  const name = shortProductName(k.sku, read);
+  const name = productName(k.sku, read);
   const alt = (s: string) => (read && s.startsWith(read) ? name + s.slice(read.length) : s);
   return {
     product: k.product.understanding ? { ...k.product, understanding: { ...k.product.understanding, name } } : k.product,

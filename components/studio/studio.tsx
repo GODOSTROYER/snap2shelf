@@ -11,7 +11,6 @@ import { ReadOnlyNote } from "@/components/features/shared";
 import { RetouchCard } from "@/components/features/retouch-card";
 import { SceneGenerator } from "@/components/features/scene-generator";
 import { KitShelves, type DealRequest } from "@/components/kit/kit-shelves";
-import { ProductTitle } from "@/components/kit/product-title";
 import { KitReadiness } from "@/components/readiness/KitReadiness";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Tip, TooltipProvider } from "@/components/ui/controls";
@@ -860,7 +859,7 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <h1 className="font-display text-2xl leading-tight font-bold tracking-[-0.02em] sm:text-3xl">
-                  <ProductTitle name={sample ? sample.title : (product?.understanding?.name ?? "Your product")} qualifierClassName="mt-0.5 text-base sm:text-lg" />
+                  {sample ? sample.title : (product?.understanding?.name ?? "Your product")}
                 </h1>
                 {sample ? (
                   <Tip label="These are the real Cloudinary results from a live run of this sample photo, saved and replayed step by step, so a sample uses no AI quota. Upload your own photo to run every step live.">
@@ -1124,7 +1123,7 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
                   <p className="max-w-80 text-[0.8rem] leading-snug text-dim sm:text-right">The zip holds every image; the reel plays from its Cloudinary URL.</p>
                 ) : null}
                 {sample ? (
-                  <Link href={DEMO_SHELF.path} className="inline-flex min-h-8 items-center gap-1.5 text-sm font-medium text-paper underline decoration-marigold/60 underline-offset-4 hover:decoration-marigold">
+                  <Link href={DEMO_SHELF.path} prefetch={false} className="inline-flex min-h-8 items-center gap-1.5 text-sm font-medium text-paper underline decoration-marigold/60 underline-offset-4 hover:decoration-marigold">
                     <Store aria-hidden className="size-4 text-marigold" />
                     See a shop built from the sample products
                   </Link>

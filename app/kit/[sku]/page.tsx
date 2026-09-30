@@ -6,7 +6,6 @@ import { Suspense } from "react";
 import { CloudImg } from "@/components/cloud-img";
 import { CostReceipt } from "@/components/features/cost-receipt";
 import { KitShelves } from "@/components/kit/kit-shelves";
-import { ProductTitle } from "@/components/kit/product-title";
 import { QaBadge } from "@/components/kit/qa-badge";
 import { ReadinessGauge } from "@/components/readiness/ReadinessGauge";
 import { SiteFooter } from "@/components/site-footer";
@@ -34,7 +33,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!kit) return { title: "Kit not found" };
   const name = productName(sku, kit.product.understanding?.name ?? "Product");
   const sample = getSample(sku);
-  const description = `${kitContents(kit)}, ready to post, made from one ${sample ? "sample photo" : "photo"} with Snap2Shelf.`;
+  const description = `${kitContents(kit)}, ready to post, made from one ${sample ? `sample photo (${sample.blurb.toLowerCase()})` : "photo"} with Snap2Shelf.`;
   const og = kit.hero.publicId ? ogImageUrl({ heroes: [kit.hero.publicId], shopName: name, tagline: `${kitContents(kit)} from one photo` }).url : undefined;
   return {
     title: `${name} kit`,
@@ -83,10 +82,10 @@ export default async function KitPage({ params }: Props) {
           <div className="max-w-[36rem] lg:pt-4">
             {kit.hero.qa ? <QaBadge qa={kit.hero.qa} /> : null}
             <h1 className="mt-4 text-[clamp(2.4rem,6vw,4.25rem)] leading-[0.95] font-extrabold tracking-[-0.035em] [font-variation-settings:'wdth'_86,'opsz'_96]">
-              <ProductTitle name={name} qualifierClassName="mt-2 font-display text-[0.42em] leading-tight [font-variation-settings:normal]" />
+              {name}
             </h1>
             <p className="mt-4 text-lg text-dim">
-              {kitContents(kit)}, ready to post, from one {sample ? "sample photo" : "photo"}
+              {kitContents(kit)}, ready to post, from one {sample ? `sample photo (${sample.blurb.toLowerCase()})` : "photo"}
               {staged}. {FIDELITY_CLAIM}
             </p>
             {sample ? (
@@ -121,7 +120,7 @@ export default async function KitPage({ params }: Props) {
                 </li>
               ) : null}
               <li>
-                <Link href={DEMO_SHELF.path} className={`${textLink} inline-flex items-center gap-1.5`}>
+                <Link href={DEMO_SHELF.path} prefetch={false} className={`${textLink} inline-flex items-center gap-1.5`}>
                   <Store aria-hidden className="size-4 text-marigold" />
                   See a shop built from the sample products
                   <ArrowUpRight aria-hidden className="size-4" />

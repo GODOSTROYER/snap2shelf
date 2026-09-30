@@ -15,7 +15,7 @@ import { absoluteUrl, siteUrl } from "@/lib/shelf/site";
 import { checkShop, shelfPath, whatsappShareUrl } from "@/lib/shelf/slug";
 import type { Shelf, ShelfItem } from "@/lib/shelf/types";
 import { DEMO_SHELF } from "@/lib/claims";
-import { shortProductName } from "@/lib/showcase";
+import { productName } from "@/lib/showcase";
 import { SCENE_THEMES } from "@/lib/types";
 
 /** ISR: the shelf re-renders at most once a minute; POST /api/shelf revalidates it immediately. */
@@ -31,7 +31,7 @@ type Params = { params: Promise<{ shop: string }> };
 const loadShelf = cache(async (shop: string): Promise<Shelf | null> => {
   const shelf = checkShop(shop).ok ? await getShelf(shop) : null;
   // sample kits go by their canonical names (lib/claims.ts), not AI Vision's generic reading
-  return shelf ? { ...shelf, items: shelf.items.map((i) => ({ ...i, name: shortProductName(i.sku, i.name) })) } : null;
+  return shelf ? { ...shelf, items: shelf.items.map((i) => ({ ...i, name: productName(i.sku, i.name) })) } : null;
 });
 
 const sceneLabel = (slug?: string) => SCENE_THEMES.find((t) => slug?.startsWith(t.slug))?.label.toLowerCase();
@@ -158,7 +158,7 @@ export default async function ShelfPage({ params }: Params) {
           </span>
           <span className="text-[#a89f92]/70">
             {shop === DEMO_SHELF.slug
-              ? "Demo shop: the product photos are Snap2Shelf's samples (AI-generated test images). Their pixels are kept as shot; only the stage is AI."
+              ? "Sample products from AI-generated test photos · the product pixels are never redrawn; AI builds only the stage."
               : "Product pixels come from the seller's own photo; only the stage is AI."}
           </span>
         </p>

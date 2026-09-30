@@ -120,6 +120,8 @@ export function SourcePicker({ onReady }: { onReady: (s: SourceReady) => void })
  */
 export function SamplePicker({ onPick, compact, className }: { onPick: (s: SampleProduct) => void; compact?: boolean; className?: string }) {
   const [featured, ...rest] = LISTED_SAMPLES;
+  // samples that share a listing name (the two bottle kits) always show which photo they are
+  const shared = new Set(LISTED_SAMPLES.filter((s, i, all) => all.findIndex((o) => o.title === s.title) !== i).map((s) => s.title));
   return (
     <div className={cn("min-w-0 rounded-3xl bg-stage p-5 ring-1 ring-line sm:p-6", compact && "p-4 sm:p-4", className)}>
       {compact ? null : (
@@ -140,14 +142,14 @@ export function SamplePicker({ onPick, compact, className }: { onPick: (s: Sampl
       >
         {featured ? <SampleTile sample={featured} featured={!compact} onPick={onPick} /> : null}
         {rest.map((s) => (
-          <SampleTile key={s.sku} sample={s} onPick={onPick} />
+          <SampleTile key={s.sku} sample={s} onPick={onPick} blurbAlways={shared.has(s.title)} />
         ))}
       </ul>
     </div>
   );
 }
 
-function SampleTile({ sample: s, featured, onPick }: { sample: SampleProduct; featured?: boolean; onPick: (s: SampleProduct) => void }) {
+function SampleTile({ sample: s, featured, blurbAlways, onPick }: { sample: SampleProduct; featured?: boolean; blurbAlways?: boolean; onPick: (s: SampleProduct) => void }) {
   // the sample photo as taken, then its hero on hover (fixed widths: lib/client/img.ts)
   const w = featured ? 720 : 360;
   const before = rawAt(s.product, w);
@@ -176,7 +178,7 @@ function SampleTile({ sample: s, featured, onPick }: { sample: SampleProduct; fe
         <span aria-hidden className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/45 to-transparent px-2.5 pt-10 pb-2.5 sm:px-3">
           <span className={cn("block leading-tight font-semibold text-white", featured ? "text-[0.8rem] sm:text-[0.95rem] lg:text-base" : "text-[0.8rem]")}>{s.title}</span>
           {/* the photo's story, then (with the hero) where it was staged */}
-          <span className={cn("mt-0.5 grid text-xs leading-snug", !featured && "lg:hidden")}>
+          <span className={cn("mt-0.5 grid text-xs leading-snug", !featured && !blurbAlways && "lg:hidden")}>
             <span className="text-white/75 transition-opacity duration-300 [grid-area:1/1] group-hover:opacity-0 group-focus-visible:opacity-0">{s.blurb}</span>
             <span className="font-semibold text-marigold-hi opacity-0 transition-opacity duration-300 [grid-area:1/1] group-hover:opacity-100 group-focus-visible:opacity-100">
               Staged on {s.scene.title}

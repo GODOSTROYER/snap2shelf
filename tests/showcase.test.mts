@@ -28,11 +28,12 @@ test("samples go by their canonical names, and never call the AI-generated input
   for (const s of SAMPLES) {
     assert.equal(s.title, PRODUCT_NAMES[s.sku], s.sku);
     assert.doesNotMatch(s.blurb, /phone/i, s.sku);
-    const read = s.kit.product.understanding?.name ?? "";
-    assert.equal(read, PRODUCT_NAMES[s.sku].split(",")[0], `${s.sku} product name`);
+    assert.equal(s.kit.product.understanding?.name, PRODUCT_NAMES[s.sku], `${s.sku} product name`);
     for (const a of [s.kit.hero, ...s.kit.assets]) assert.ok(!/Embroidered linen tunic|Stainless steel water bottle/.test(a.alt), `${s.sku} ${a.id} alt`);
   }
-  assert.notEqual(getSample("shmessy1")!.title, getSample("shbottle")!.title);
+  // the two bottle kits share a listing name; the picker tells them apart by their photos
+  assert.equal(getSample("shmessy1")!.title, getSample("shbottle")!.title);
+  assert.notEqual(getSample("shmessy1")!.blurb, getSample("shbottle")!.blurb);
 });
 
 test("display widths come from one fixed set", () => {
