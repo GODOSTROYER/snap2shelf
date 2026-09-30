@@ -1,6 +1,7 @@
+import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import { SHOWCASE_KIT_SKU } from "@/lib/claims";
-import { Wordmark } from "./site-header";
+import { GitHubMark, HOW_BUILT_URL, REPO_URL, Wordmark } from "./site-header";
 
 export function SiteFooter() {
   return (
@@ -20,6 +21,14 @@ export function SiteFooter() {
           <Link href="/#how" className="inline-flex min-h-11 items-center hover:text-paper">
             How it works
           </Link>
+          <a href={HOW_BUILT_URL} className="inline-flex min-h-11 items-center gap-1 hover:text-paper">
+            How it&apos;s built
+            <ArrowUpRight aria-hidden className="size-3.5" />
+          </a>
+          <a href={REPO_URL} className="inline-flex min-h-11 items-center gap-2 font-medium text-paper hover:text-marigold">
+            <GitHubMark className="size-4" />
+            Read the code
+          </a>
         </nav>
       </div>
     </footer>
