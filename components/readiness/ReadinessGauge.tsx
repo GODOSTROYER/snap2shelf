@@ -28,8 +28,10 @@ export interface ReadinessGaugeProps {
   fixesDisabled?: boolean;
   /** Fix buttons explain rather than act (a saved sample): drawn as secondary buttons. */
   quietFixes?: boolean;
-  /** Show the "phone photo → kit" comparison when the report has a baseline. Default true. */
+  /** Show the "input photo → kit" comparison when the report has a baseline. Default true. */
   showBaseline?: boolean;
+  /** What the baseline image is: "Your photo", or the sample label (the samples are AI-generated test images). */
+  photoLabel?: string;
   title?: string;
   subtitle?: string;
   className?: string;
@@ -156,6 +158,7 @@ export function ReadinessGauge({
   fixesDisabled,
   quietFixes,
   showBaseline = true,
+  photoLabel = "Your photo",
   title = "Marketplace readiness",
   subtitle = "The main image on white, plus the social formats. Measured on the real pixels.",
   className = "",
@@ -183,7 +186,7 @@ export function ReadinessGauge({
           {baseline && (
             <div className="mt-4 flex w-full max-w-[260px] items-center justify-between gap-2 rounded-2xl bg-stage-2 px-4 py-3 ring-1 ring-line">
               <div className="text-center">
-                <p className="text-[0.72rem] font-medium whitespace-nowrap text-dim">Phone photo</p>
+                <p className="text-[0.72rem] font-medium whitespace-nowrap text-dim">{photoLabel}</p>
                 <p className="tabular font-display text-2xl font-bold text-sindoor">{baseline.score}</p>
               </div>
               <ArrowRight className="size-4 text-faint" aria-hidden />
@@ -192,7 +195,7 @@ export function ReadinessGauge({
                 <p className={cn("tabular font-display text-2xl font-bold", GRADE_TEXT[report.grade])}>{report.score}</p>
               </div>
               <span className="sr-only">
-                The original phone photo scores {baseline.score}; the Snap2Shelf marketplace image scores {report.score}.
+                The {photoLabel.toLowerCase()} scores {baseline.score}; the Snap2Shelf marketplace image scores {report.score}.
               </span>
             </div>
           )}

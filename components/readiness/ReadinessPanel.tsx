@@ -20,6 +20,8 @@ export interface ReadinessPanelProps {
   readOnly?: string;
   /** The studio is busy (re-staging, packing): hold the fix buttons. */
   busy?: boolean;
+  /** What the baseline image is (the gauge compares it with the kit): "Your photo" or the sample label. */
+  photoLabel?: string;
   className?: string;
 }
 
@@ -29,7 +31,7 @@ const BUSY_CODES = new Set([420, 429, 502, 503, 504]);
  * ReadinessGauge wired to the API: one-click server fixes (POST /api/readiness/:sku),
  * studio fixes (re-stage / re-pack) handed to the parent, and a re-measure button.
  */
-export function ReadinessPanel({ initial, onReport, onRestage, onRepack, readOnly, busy, className }: ReadinessPanelProps) {
+export function ReadinessPanel({ initial, onReport, onRestage, onRepack, readOnly, busy, photoLabel, className }: ReadinessPanelProps) {
   const [report, setReport] = useState(initial);
   const [fixing, setFixing] = useState<ReadinessCheck["id"] | null>(null);
   const [measuring, setMeasuring] = useState(false);
@@ -119,7 +121,7 @@ export function ReadinessPanel({ initial, onReport, onRestage, onRepack, readOnl
 
   return (
     <div className={className}>
-      <ReadinessGauge report={report} onFix={onFix} fixing={fixing} fixesDisabled={busy || measuring} quietFixes={!!readOnly} />
+      <ReadinessGauge report={report} onFix={onFix} fixing={fixing} fixesDisabled={busy || measuring} quietFixes={!!readOnly} photoLabel={photoLabel} />
       <div className="mt-3 flex min-h-11 flex-wrap items-center justify-between gap-3 px-1">
         <p role="status" aria-live="polite" className="min-w-0 flex-1 text-sm text-dim">
           {note}

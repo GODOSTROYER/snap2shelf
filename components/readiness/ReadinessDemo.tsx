@@ -9,7 +9,7 @@ export function ReadinessDemo({ initial, name, rawUrl }: { initial: ReadinessRep
   const [report, setReport] = useState(initial);
   const thumb = report.image.url.replace("/upload/", "/upload/c_limit,w_720,h_720/");
   const images = [
-    { label: "Phone photo", url: rawUrl, bg: "bg-stage-2" },
+    { label: "Original photo", url: rawUrl, bg: "bg-stage-2" },
     { label: report.image.materialised ? "Marketplace image (saved)" : "Marketplace image (recipe)", url: thumb, bg: "bg-white" },
   ];
   return (
