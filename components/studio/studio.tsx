@@ -3,25 +3,22 @@
 import * as Tabs from "@radix-ui/react-tabs";
 import { ArrowUpRight, ChevronDown, Download, ImageUp, Link2, RefreshCw, RotateCcw, Store, WandSparkles } from "lucide-react";
 import { MotionConfig } from "motion/react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import * as React from "react";
-import { BriefBar } from "@/components/features/brief-bar";
-import { CostReceipt } from "@/components/features/cost-receipt";
 import { ReadOnlyNote } from "@/components/features/shared";
-import { RetouchCard } from "@/components/features/retouch-card";
-import { SceneGenerator } from "@/components/features/scene-generator";
-import { KitShelves, type DealRequest } from "@/components/kit/kit-shelves";
-import { KitReadiness } from "@/components/readiness/KitReadiness";
+import type { DealRequest } from "@/components/kit/kit-shelves";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Tip, TooltipProvider } from "@/components/ui/controls";
 import type { BriefResponse } from "@/lib/api-contract";
 import * as api from "@/lib/client/api";
 import { fixMeta } from "@/lib/client/features";
 import { useDebounced } from "@/lib/client/hooks";
-import { isBuiltUrl, publicUrl, sizedUrl, storedUrl } from "@/lib/client/img";
+import { isBuiltUrl, isGenerative, publicUrl, sizedUrl, storedUrl } from "@/lib/client/img";
 import { DEMO_SHELF, SAMPLE_PHOTO_DISCLOSURE, SAMPLE_PHOTO_LABEL } from "@/lib/claims";
 import { kitContents, zipLabel } from "@/lib/client/kit-view";
-import { sampleCost, sampleProcessingNote } from "@/lib/client/sample-data";
+import { dnaOf, firstSentence, fixWords, qaMarks, replayAttempts, type QaMarks } from "@/lib/client/qa-replay";
+import { sampleCost, sampleHeroWeight, sampleTimeLine } from "@/lib/client/sample-data";
 import { canRecolor, MAX_SWATCHES, recolorExplain, recolorLabel, swatchName } from "@/lib/client/swatches";
 import { rawInfo, rawPublicId, waitForRaw } from "@/lib/client/upload";
 import { Aborted, atLeast, cn, isAborted, preloadImage, sleep } from "@/lib/client/util";
@@ -31,6 +28,7 @@ import { compositeUrl, defaultControls, geometry, lqip, OFFSET_RANGE, quantise, 
 import { reelUrl } from "@/lib/transform/reel";
 import {
   PIPELINE_STEPS,
+  PLATE,
   SKU_RE,
   VIEW_FOR_PLACEMENT,
   type BriefKit,
@@ -45,12 +43,24 @@ import {
   type Scene,
   type SceneDNA,
 } from "@/lib/types";
-import { CompositePanel, type PackSettings } from "./composite-panel";
-import { CreativePanel } from "./creative-panel";
+import type { PackSettings } from "./composite-panel";
 import { DnaToggle } from "./dna-toggle";
 import { PipelineRail, type StepStatus } from "./pipeline-rail";
-import { SamplePicker, SourcePicker, type SourceReady } from "./source-picker";
+import type { SourceReady } from "./source-picker";
 import { Stage, type QaStory } from "./stage";
+
+// Split out of the first load: each panel loads when it is first shown (the kit's parts while the run works).
+const SourcePicker = dynamic(() => import("./source-picker").then((m) => m.SourcePicker));
+const CompositePanel = dynamic(() => import("./composite-panel").then((m) => m.CompositePanel), { ssr: false, loading: () => <PanelSkeleton /> });
+const SamplePicker = dynamic(() => import("./source-picker").then((m) => m.SamplePicker), { ssr: false });
+const CreativePanel = dynamic(() => import("./creative-panel").then((m) => m.CreativePanel), { ssr: false, loading: () => <PanelSkeleton /> });
+const BriefBar = dynamic(() => import("@/components/features/brief-bar").then((m) => m.BriefBar), { ssr: false, loading: () => <PanelSkeleton /> });
+const RetouchCard = dynamic(() => import("@/components/features/retouch-card").then((m) => m.RetouchCard), { ssr: false, loading: () => <PanelSkeleton /> });
+const SceneGenerator = dynamic(() => import("@/components/features/scene-generator").then((m) => m.SceneGenerator), { ssr: false, loading: () => <PanelSkeleton /> });
+const preloadKitParts = () => Promise.all([import("@/components/kit/kit-shelves"), import("@/components/readiness/KitReadiness"), import("@/components/features/cost-receipt")]);
+const KitShelves = dynamic(() => import("@/components/kit/kit-shelves").then((m) => m.KitShelves), { ssr: false });
+const KitReadiness = dynamic(() => import("@/components/readiness/KitReadiness").then((m) => m.KitReadiness), { ssr: false });
+const CostReceipt = dynamic(() => import("@/components/features/cost-receipt").then((m) => m.CostReceipt), { ssr: false });
 
 type Status = Record<PipelineStepId, StepStatus>;
 const IDLE: Status = { fix: "waiting", cutout: "waiting", stage: "waiting", light: "waiting", qa: "waiting", pack: "waiting" };
@@ -59,6 +69,13 @@ const PACK_POLL_MS = 2500;
 const PACK_TIMEOUT_MS = 90_000;
 const PACK_RESUME_MS = 4000;
 const RETOUCH_MAX_MS = 150_000;
+/** What a browser sends for an image: f_auto answers the format a real visitor gets (WebP/AVIF), not JPEG. */
+const IMAGE_ACCEPT = "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8";
+const CAUGHT_MS = 2200; // QA's catch stays on screen at least this long, so it can be read
+const APPROVED_MS = 1100; // and its "Approved" lands before the pack starts
+
+/** Where the stage's first frame comes from, and at which of the site's fixed widths. */
+const STAGE_SIZES = "(min-width: 1024px) 50vw, (min-width: 640px) min(36rem, calc(100vw - 4rem)), calc(100vw - 2rem)";
 
 function lightFrom(dna: SceneDNA) {
   const dirs = ["above", "the upper right", "the right", "the lower right", "below", "the lower left", "the left", "the upper left"];
@@ -154,6 +171,22 @@ function planFix(q: QaResult, c: CompositeControls, scene: Scene, scenes: Scene[
   return null;
 }
 
+/**
+ * Formats that can go on the shelf: saved, not still rendering, not failed. A failed
+ * format is never shown through its recipe URL: the browser would re-run a generative
+ * transformation that already failed (and bill it) on every view.
+ */
+function shelfReady(assets: KitAsset[], pending: string[], failed: string[]) {
+  const ok: KitAsset[] = [];
+  const bad: KitAsset[] = [];
+  for (const a of assets) {
+    if (a.id === "hero" || pending.includes(a.id)) continue;
+    if (failed.includes(a.id) || (!a.publicId && isGenerative(a))) bad.push(a);
+    else ok.push(a);
+  }
+  return { ok, bad };
+}
+
 /** Show a pack asset from its stored copy; label colour variants for what they really change. */
 function presentAsset(a: KitAsset, p: ProductRecord): KitAsset {
   const stored = a.publicId ? { url: storedUrl(a.publicId) } : {};
@@ -163,12 +196,14 @@ function presentAsset(a: KitAsset, p: ProductRecord): KitAsset {
 }
 
 export function Studio({ initialSample, initialSku }: { initialSample?: string; initialSku?: string }) {
-  const [source, setSource] = React.useState<SourceReady | null>(null);
+  // a ?sample= link renders the run from the first paint (the server HTML already shows the photo being read)
+  const [boot] = React.useState(() => getSample(initialSample) ?? getSample(initialSku) ?? null);
+  const [source, setSource] = React.useState<SourceReady | null>(() => (boot ? sourceOf(boot) : null));
   const [linkError, setLinkError] = React.useState<string | null>(null);
   // a ?sku= link (phone capture, refresh): look for that photo before offering the picker
   const [awaiting, setAwaiting] = React.useState(() => !!initialSku && SKU_RE.test(initialSku) && !getSample(initialSku) && !getSample(initialSample));
-  const [status, setStatus] = React.useState<Status>(IDLE);
-  const [notes, setNotes] = React.useState<Partial<Record<PipelineStepId, string>>>({});
+  const [status, setStatus] = React.useState<Status>(() => (boot ? { ...IDLE, fix: "active" } : IDLE));
+  const [notes, setNotes] = React.useState<Partial<Record<PipelineStepId, string>>>(() => (boot ? { fix: "AI Vision is reading your photo" } : {}));
   const [failure, setFailure] = React.useState<Failure | null>(null);
   const [product, setProduct] = React.useState<ProductRecord | null>(null);
   const [retouch, setRetouch] = React.useState<Retouch | null>(null);
@@ -183,15 +218,19 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
   const [replayShot, setReplayShot] = React.useState<string | null>(null); // a stored frame the replay shows (a rejected attempt)
   const [qa, setQa] = React.useState<QaResult | null>(null);
   const [qaStory, setQaStory] = React.useState<QaStory | null>(null);
+  const [settle, setSettle] = React.useState<number | null>(null); // QA's fix: the next frame settles by this much
   const [autoFixed, setAutoFixed] = React.useState(false);
   const [dnaOn, setDnaOn] = React.useState(false);
   const [dnaFlash, setDnaFlash] = React.useState(false);
   const [kit, setKit] = React.useState<Kit | null>(null);
   const [pendingFormats, setPendingFormats] = React.useState<string[]>([]);
+  const [failedFormats, setFailedFormats] = React.useState<KitAsset[]>([]); // formats Cloudinary couldn't render
+  const [heroFormat, setHeroFormat] = React.useState(""); // what a browser got for the hero (webp, avif…)
   const [deal, setDeal] = React.useState<DealRequest | null>(null);
   const [packedSig, setPackedSig] = React.useState<string | null>(null);
   const [demo, setDemo] = React.useState(false);
-  const [running, setRunning] = React.useState(false);
+  const [running, setRunning] = React.useState(!!boot);
+  const [adjustOpen, setAdjustOpen] = React.useState(false); // a sample's controls, folded away while it replays
   const [creditsUsed, setCreditsUsed] = React.useState(0);
   const [stageBusy, setStageBusy] = React.useState(false);
   const [tab, setTab] = React.useState("exact");
@@ -233,17 +272,36 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
   const stageAlt = heroOverride?.alt ?? ((sampleShot || preview) && product && scene ? heroAlt(product, scene) : product?.caption ? `${photoWord}: ${product.caption}` : photoWord);
   const scanning = status.fix === "active" ? (retouch?.state === "running" ? "Touching up" : "Reading your photo") : status.cutout === "active" ? "Cutting out" : null;
   const composite = !!scene && !heroOverride && !!(sampleShot || preview);
-  const stageXray: KitAsset | null =
-    heroOverride ??
-    (sample && sampleShot && !replayShot
-      ? sample.kit.hero
-      : preview && product && scene
-        ? { id: "stage", format: "hero", label: "Hero 4:5", url: preview.url, width: 1080, height: 1350, frame: "feed-post", alt: stageAlt, xray: preview, qa: qa ?? undefined }
-        : null);
+  // where the product sits on the plate: Scene DNA's labels keep off it
+  const productBox = product?.cutout && scene && controls ? geometry(product.cutout, scene.dna, controls, placement) : null;
+  const dnaShown = (dnaOn || dnaFlash) && composite && !!scene;
+  const [bx, by, bw, bh] = productBox ? [productBox.px, productBox.py, productBox.pw, productBox.ph] : [0, 0, 0, 0];
+  const stageDna = React.useMemo(
+    () => (dnaShown && scene ? { dna: scene.dna, key: scene.publicId, shadow: scene.view !== "top-down", product: bw ? { x: bx, y: by, w: bw, h: bh } : null } : null),
+    [dnaShown, scene, bx, by, bw, bh],
+  );
+  // the stage's object props keep their identity between renders, so the memoised stage only
+  // re-renders when what it shows changes (the replay re-renders the studio many times a second)
+  const previewUrl = preview?.url;
+  const stageXray: KitAsset | null = React.useMemo(
+    () =>
+      heroOverride ??
+      (sample && sampleShot && !replayShot
+        ? sample.kit.hero
+        : preview && product && scene
+          ? { id: "stage", format: "hero", label: "Hero 4:5", url: preview.url, width: 1080, height: 1350, frame: "feed-post", alt: stageAlt, xray: preview, qa: qa ?? undefined }
+          : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `preview` is rebuilt every render; its url is its identity
+    [heroOverride, sample, sampleShot, replayShot, previewUrl, product, scene, stageAlt, qa],
+  );
+  const lightOn = !!scene && !heroOverride && (status.light === "active" || status.qa === "active");
+  const lightAz = scene?.dna.light_azimuth ?? 0;
+  const stageLight = React.useMemo(() => (lightOn ? { azimuth: lightAz, key: runId } : null), [lightOn, lightAz, runId]);
 
+  // unchanged marks keep the same objects, so nothing re-renders for them
   const mark = React.useCallback((id: PipelineStepId, st: StepStatus, note?: string) => {
-    setStatus((s) => ({ ...s, [id]: st }));
-    if (note !== undefined) setNotes((n) => ({ ...n, [id]: note }));
+    setStatus((s) => (s[id] === st ? s : { ...s, [id]: st }));
+    if (note !== undefined) setNotes((n) => (n[id] === note ? n : { ...n, [id]: note }));
   }, []);
   const seen = React.useCallback((src: api.DataSource) => {
     if (src === "demo") setDemo(true);
@@ -297,13 +355,16 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
     }) => {
       const { src, product: p, settings: st, hero, signal } = args;
       const replay = getSample(src.sku);
-      const story = replay && !hero ? replay.qaStory : undefined;
-      let shot: string | null = story ? story.rejectedUrl : null; // the frame a replay shows
+      // a sample whose live run needed QA's fix replays every check it recorded
+      const attempts = replay && !hero ? replayAttempts(replay) : null;
+      let shot: string | null = attempts ? attempts[0].url : null; // the frame a replay shows
       let sc = args.scene;
       let c = args.controls;
       let step: PipelineStepId = "stage";
+      const placementOf = p.understanding?.placement ?? "standing";
       setRunId((n) => n + 1);
       setQaStory(null);
+      setSettle(null);
       setAutoFixed(false);
       try {
         mark("stage", "active", hero ? "Using your creative take" : `Placing it on the ${sc.title} scene`);
@@ -329,18 +390,16 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
         await lightUp();
 
         step = "qa";
+        void preloadKitParts().catch(() => {}); // the shelves, readiness and receipt: ready by the time the kit is
         let tokens = args.tokens;
-        let fixed: Fix | null = null;
-        let checks = 0;
+        let fixed: string | null = null; // what the automatic fix changed, when QA needed one
+        let firstCatch = "";
+        let lastMarks: QaMarks | null = null;
+        let checks = 1;
         const check = async (): Promise<QaResult> => {
           if (hero?.qa) {
             await sleep(500, signal);
             return hero.qa;
-          }
-          if (story && checks++ === 0) {
-            // the live run's first verdict, replayed
-            await sleep(replay!.pace.qa, signal);
-            return story.rejected;
           }
           const url = hero ? hero.url : buildHero(p, sc, c, { format: "f_jpg,q_90" }).url;
           const q = await atLeast(
@@ -352,36 +411,88 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
           tokens += q.data.tokens;
           return q.data.qa;
         };
+        /** QA caught it: hold the catch (the ring, the correction) long enough to read, then apply the fix. */
+        const catchAndFix = async (s: Omit<QaStory, "phase">, next: string) => {
+          setSettle(null);
+          setQaStory({ phase: "caught", ...s });
+          mark("qa", "active", `QA caught it: ${s.caught} Fixing it automatically…`);
+          await Promise.all([
+            sleep(CAUGHT_MS, signal),
+            preloadImage(next, signal).catch((e) => {
+              if (isAborted(e)) throw e;
+            }),
+          ]);
+          // the fixed frame settles down by exactly the correction the fix made
+          setSettle(s.marks?.dy ? s.marks.dy / PLATE.height : null);
+          setQaStory({ phase: "fixing", ...s });
+          mark("qa", "active", `Fixing it: we ${s.fix}`);
+          if (!firstCatch) firstCatch = s.caught;
+          lastMarks = s.marks ?? null;
+        };
         mark("qa", "active", "AI Vision is checking it looks real and nothing about your product changed");
-        let verdict = await check();
-        setQa(verdict);
+        let verdict: QaResult;
 
-        if (verdict.status === "rejected" && !hero) {
-          const fix: Fix | null = story ? { scene: sc, controls: replay!.controls, note: story.fix } : planFix(verdict, c, sc, args.scenes, p);
-          if (fix) {
-            // first sentence of the server's reason, as written
-            const caught = story?.caught ?? (verdict.reasons[0] ?? "Something looked off.").split(/(?<=\.)\s/)[0];
-            setQaStory({ phase: "fixing", caught, fix: fix.note });
-            mark("qa", "active", `QA caught it: ${caught} Fixing it automatically…`);
-            await sleep(1400, signal);
-            sc = fix.scene;
-            c = quantise(fix.controls);
-            shot = null;
-            setReplayShot(null);
-            setSceneId(sc.publicId);
+        if (attempts && replay) {
+          // the live run's checks, replayed in order, each on the frame it judged
+          const last = attempts[attempts.length - 1];
+          for (let i = 0; ; i++) {
+            const a = attempts[i];
+            await sleep(replay.pace.qa, signal);
+            verdict = a.qa;
+            setQa(verdict);
+            const next = attempts[i + 1];
+            if (verdict.status !== "rejected" || !next) break;
+            const same = next.scenePublicId === a.scenePublicId;
+            const nextScene = same ? sc : (args.scenes.find((x) => x.publicId === next.scenePublicId) ?? SCENE_LIBRARY.find((x) => x.publicId === next.scenePublicId) ?? sc);
+            const dna = dnaOf(a.scenePublicId, sc);
+            const marks = dna && p.cutout ? qaMarks({ cutout: p.cutout, dna, placement: placementOf, controls: a.controls }, { controls: next.controls, sameScene: same }) : null;
+            await catchAndFix(
+              {
+                check: i + 1,
+                checks: attempts.length,
+                caught: firstSentence(verdict.reasons[0]),
+                fix: fixWords({ controls: a.controls, scene: a.scenePublicId }, { controls: next.controls, scene: next.scenePublicId, sceneTitle: nextScene.title }),
+                marks,
+              },
+              next === last ? heroAt(replay.kit, 1080) : next.url,
+            );
+            if (nextScene.publicId !== sc.publicId) {
+              sc = nextScene;
+              setSceneId(sc.publicId);
+            }
+            c = quantise(next.controls);
+            shot = next === last ? null : next.url;
+            setReplayShot(shot);
             setControls(c);
             setQa(null);
-            await lightUp();
-            step = "qa";
-            mark("qa", "active", "Checking the fixed version");
-            verdict = await check();
-            setQa(verdict);
-            if (verdict.status === "approved") {
-              fixed = fix;
-              setAutoFixed(true);
-              setQaStory({ phase: "fixed", caught, fix: fix.note });
-            } else {
-              setQaStory(null);
+          }
+          checks = attempts.length;
+          if (verdict.status === "approved") fixed = fixWords({ controls: attempts[0].controls, scene: attempts[0].scenePublicId }, { controls: last.controls, scene: last.scenePublicId, sceneTitle: sc.title });
+        } else {
+          verdict = await check();
+          setQa(verdict);
+          if (verdict.status === "rejected" && !hero) {
+            const fix = planFix(verdict, c, sc, args.scenes, p);
+            if (fix) {
+              const next = quantise(fix.controls);
+              const same = fix.scene.publicId === sc.publicId;
+              const marks = p.cutout ? qaMarks({ cutout: p.cutout, dna: sc.dna, placement: placementOf, controls: c }, { controls: next, sameScene: same }) : null;
+              await catchAndFix({ check: 1, caught: firstSentence(verdict.reasons[0]), fix: fix.note, marks }, buildHero(p, fix.scene, next).url);
+              sc = fix.scene;
+              c = next;
+              shot = null;
+              setReplayShot(null);
+              setSceneId(sc.publicId);
+              setControls(c);
+              setQa(null);
+              await lightUp();
+              step = "qa";
+              mark("qa", "active", "Checking the fixed version");
+              verdict = await check();
+              setQa(verdict);
+              checks = 2;
+              if (verdict.status === "approved") fixed = fix.note;
+              else setQaStory(null);
             }
           }
         }
@@ -392,7 +503,17 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
           setFailure({ step: "qa", message: `${why} Adjust it on the right, then update the kit.`, from: "stage" });
           return;
         }
-        mark("qa", "done", fixed ? `Auto-fixed: ${fixed.note}. Approved` : "Approved: looks real, product unchanged");
+        if (fixed) {
+          setAutoFixed(true);
+          setQaStory({ phase: "fixed", check: checks, checks: attempts ? checks : undefined, caught: firstCatch, fix: fixed, marks: lastMarks });
+          mark("qa", "done", `Auto-fixed: ${fixed}. Approved${attempts ? ` after ${checks} checks` : ""}`);
+          await sleep(APPROVED_MS, signal);
+        } else {
+          mark("qa", "done", "Approved: looks real, product unchanged");
+        }
+        // a replay's controls unfold beside the stage once the story is told (phones keep them one tap
+        // away: opening them there would push the kit down while the shelves deal in)
+        if (replay && !hero && window.matchMedia("(min-width: 1024px)").matches) setAdjustOpen(true);
 
         step = "pack";
         mark("pack", "active", "Making every format");
@@ -409,8 +530,9 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
         seen(started.source);
         let assets = started.data.assets;
         let pending = started.data.pending;
+        let failed = started.data.failed ?? [];
         let zipUrl: string | undefined;
-        const total = assets.length;
+        const total = assets.filter((a) => a.id !== "hero").length;
         if (replay) {
           // replay: count the stored formats in as they "finish"
           for (let n = 1; n <= total; n++) {
@@ -420,12 +542,14 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
         }
         const t = Date.now();
         while (pending.length && Date.now() - t < PACK_TIMEOUT_MS) {
-          mark("pack", "active", `${total - pending.length} of ${total} formats ready`);
+          // failed formats are out of the count: "N of M" is only what can still arrive
+          mark("pack", "active", `${total - failed.length - pending.length} of ${total - failed.length} formats ready`);
           await sleep(PACK_POLL_MS, signal);
           const s = await api.packStatus(src.sku, signal);
           seen(s.source);
           assets = s.data.assets;
           pending = s.data.pending;
+          failed = s.data.failed ?? failed;
           zipUrl = s.data.zipUrl;
         }
         if (!zipUrl && !pending.length && started.source === "live") {
@@ -433,19 +557,27 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
         }
 
         const heroId = started.data.heroPublicId;
-        let delivered = 0;
-        try {
-          const h = await fetch(storedUrl(heroId), { method: "HEAD", signal });
-          delivered = Number(h.headers.get("content-length") ?? 0);
-        } catch {
-          delivered = 0;
+        // the hero's weight as a browser receives it (f_auto answers per Accept header); a sample's was measured once
+        const measured = replay && !hero ? sampleHeroWeight(src.sku) : null;
+        let delivered = measured?.delivered ?? 0;
+        let deliveredAs = measured?.format ?? "";
+        if (!measured) {
+          try {
+            const h = await fetch(storedUrl(heroId), { method: "HEAD", signal, headers: { Accept: IMAGE_ACCEPT } });
+            delivered = Number(h.headers.get("content-length") ?? 0);
+            deliveredAs = (h.headers.get("content-type") ?? "").split(";")[0].replace(/^image\//, "").trim();
+          } catch {
+            delivered = 0;
+          }
         }
+        setHeroFormat(deliveredAs);
+        const shelf = shelfReady(assets, pending, failed);
 
         let next: Kit;
         if (replay && !hero) {
-          next = { ...replay.kit, cost: { ...replay.kit.cost, bytesDelivered: delivered || replay.kit.cost.bytesDelivered } };
+          next = { ...replay.kit, cost: { ...replay.kit.cost, bytesOriginal: measured?.original ?? replay.kit.cost.bytesOriginal, bytesDelivered: delivered || replay.kit.cost.bytesDelivered } };
         } else {
-          const ready = assets.filter((a) => a.id !== "hero" && !pending.includes(a.id)).map((a) => presentAsset(a, p));
+          const ready = shelf.ok.map((a) => presentAsset(a, p));
           const heroAsset: KitAsset = hero
             ? { ...hero, id: "hero", label: "Hero 4:5", publicId: heroId }
             : { id: "hero", format: "hero", label: "Hero 4:5", url: full.url, width: 1080, height: 1350, frame: "feed-post", alt: heroAlt(p, sc), xray: full, publicId: heroId, qa: verdict };
@@ -476,6 +608,7 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
         }
         setKit(next);
         setPendingFormats(pending);
+        setFailedFormats(replay && !hero ? [] : shelf.bad.map((a) => presentAsset(a, p)));
         setPackedSig(sigOf(sc.publicId, c, st, hero));
         mark("pack", "done", pending.length ? `${next.assets.length} formats ready, ${pending.length} still rendering` : `Kit ready: ${kitContents(next)}`);
         setDeal((d) => ({ key: (d?.key ?? 0) + 1, from: () => stageRef.current?.getBoundingClientRect() ?? null }));
@@ -498,11 +631,12 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
       const signal = ac.signal;
       const t0 = performance.now();
       const replay = getSample(src.sku);
-      setSource(src);
+      // a sample link's first paint already shows this state: keep its objects (no re-render for nothing)
+      setSource((s) => (s && s.sku === src.sku && s.via === src.via ? s : src));
       setAwaiting(false);
       setLinkError(null);
-      setStatus(IDLE);
-      setNotes({});
+      setStatus((s) => (PIPELINE_STEPS.every((x) => s[x.id] === (x.id === "fix" ? "active" : "waiting")) ? s : { ...IDLE, fix: "active" }));
+      setNotes((n) => (Object.keys(n).length === 1 && n.fix === "AI Vision is reading your photo" ? n : { fix: "AI Vision is reading your photo" }));
       setFailure(null);
       setProduct(null);
       setRetouch(null);
@@ -519,9 +653,12 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
       setReplayShot(null);
       setQa(null);
       setQaStory(null);
+      setSettle(null);
       setDnaFlash(false);
+      setAdjustOpen(false);
       setKit(null);
       setPendingFormats([]);
+      setFailedFormats([]);
       setPackedSig(null);
       setCreditsUsed(0);
       setRunning(true);
@@ -591,19 +728,20 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
           list = sc.data;
         }
         const early = !replay && appliedBrief.current?.sku === src.sku ? appliedBrief.current.kit : null;
+        // a replay with QA catches starts from the attempt the live QA rejected first
+        const first = replayAttempts(replay)?.[0];
         const pick =
+          (first ? list.find((s) => s.publicId === first.scenePublicId) : undefined) ??
           (replay ? list.find((s) => s.publicId === replay.scene.publicId) : undefined) ??
           (early?.theme ? list.find((s) => s.theme === early.theme) : undefined) ??
           list.find((s) => p.understanding!.suggested_themes.includes(s.theme)) ??
           list[0];
         if (!pick) throw new api.ApiFailure(404, { error: "No scenes fit this product's angle yet. Try a sample product.", code: "not_found" });
-        const story = replay?.qaStory;
-        // a replay with a QA story starts from the attempt the live QA rejected
-        const ctl = story ? quantise(story.rejectedControls) : (replay?.controls ?? quantise(defaultControls(p.understanding!.placement, pick.dna, p.cutout)));
+        const ctl = first ? quantise(first.controls) : (replay?.controls ?? quantise(defaultControls(p.understanding!.placement, pick.dna, p.cutout)));
         setScenes(list);
         setSceneId(pick.publicId);
         setControls(ctl);
-        if (story) setReplayShot(story.rejectedUrl);
+        if (first) setReplayShot(first.url);
         const st: PackSettings = replay
           ? { offer: replay.offer, swatches: replay.swatches }
           : early
@@ -657,7 +795,9 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
         if (!s) continue;
         const heroMatches = !s.data.heroPublicId || s.data.heroPublicId === kit.hero.publicId;
         if (!heroMatches) return;
-        const ready = s.data.assets.filter((a) => a.id !== "hero" && !s.data.pending.includes(a.id)).map((a) => presentAsset(a, kit.product));
+        const shelf = shelfReady(s.data.assets, s.data.pending, s.data.failed ?? []);
+        const ready = shelf.ok.map((a) => presentAsset(a, kit.product));
+        setFailedFormats(shelf.bad.map((a) => presentAsset(a, kit.product)));
         setKit((k) => {
           if (!k || k.sku !== kit.sku) return k;
           const reel = reelUrl({ images: reelClips(k.hero.publicId!, ready), offer: settings.offer.hindi || settings.offer.english ? { hindi: settings.offer.hindi || undefined, english: settings.offer.english || undefined } : undefined });
@@ -693,7 +833,9 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
     setReplayShot(null);
     setQa(null);
     setQaStory(null);
+    setSettle(null);
     setDnaFlash(false);
+    setAdjustOpen(false);
     window.history.replaceState(null, "", "/studio");
   };
 
@@ -753,7 +895,8 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
     booted.current = true;
     const s = getSample(initialSample) ?? getSample(initialSku);
     if (s) {
-      void Promise.resolve().then(() => start(sourceOf(s)));
+      // its own task, after the first paint and hydration have finished
+      setTimeout(() => void start(sourceOf(s)), 0);
       return;
     }
     if (initialSample) {
@@ -837,19 +980,98 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
     );
   }
 
-  const barText = running
-    ? "Working on it…"
-    : sample
-      ? dirty
-        ? "Your changes preview live. Upload your own photo to build a kit with them."
-        : SAMPLE_PHOTO_DISCLOSURE
-      : dirty
-        ? "You've made changes."
-        : kit
-          ? "Kit is up to date."
-          : "Your kit appears below.";
+  const barText = running ? "Working on it…" : dirty ? "You've made changes." : kit ? "Kit is up to date." : "Your kit appears below.";
+  // the bar only floats over the controls when it has something to do
+  const barSticky = dirty && !running && tab === "exact";
 
   const marketplacePending = pendingFormats.includes("marketplace");
+
+  const controlsPanel = (
+    <Tabs.Root value={tab} onValueChange={setTab}>
+      <Tabs.List aria-label="Mode" className="grid grid-cols-2 gap-1 rounded-full bg-stage p-1 ring-1 ring-line">
+        {[
+          ["exact", "Exact"],
+          ["creative", "Creative"],
+        ].map(([v, l]) => (
+          <Tabs.Trigger
+            key={v}
+            value={v}
+            className="h-10 rounded-full text-sm font-semibold text-dim transition-colors hover:text-paper data-[state=active]:bg-paper data-[state=active]:text-studio"
+          >
+            {l}
+          </Tabs.Trigger>
+        ))}
+      </Tabs.List>
+      <p className="mt-3 text-[0.85rem] text-dim">
+        {tab === "exact" ? "The photo itself, composited onto a stage. No generation credits, and the product's pixels are never redrawn." : "A generated reshoot. Slower and uses credits, always QA-checked."}
+      </p>
+
+      <Tabs.Content value="exact" className="mt-6 focus-visible:outline-none">
+        <CompositePanel
+          scenes={scenes}
+          sceneId={sceneId}
+          onScene={selectScene}
+          controls={controls}
+          onControls={(c) => {
+            setHeroOverride(null);
+            setReplayShot(null);
+            setControls(c);
+            setQa(null);
+            setQaStory(null);
+          }}
+          onReset={() =>
+            scene && product?.understanding && setControls(sample && scene.publicId === sample.scene.publicId ? sample.controls : quantise(defaultControls(product.understanding.placement, scene.dna, product.cutout)))
+          }
+          product={product}
+          placement={placement}
+          settings={settings}
+          onSettings={setSettings}
+          disabled={!cutoutReady}
+          recolor={recolorOk}
+          top={sample ? <BriefTeaser /> :<BriefBar sku={source.sku} disabled={!product?.understanding} recolor={recolorOk} onResult={setBrief} onApply={applyBrief} />}
+          sceneExtra={
+            sample ? null : (
+              <Disclosure
+                open={genOpen}
+                onToggle={() => setGenOpen((o) => !o)}
+                label="Need a different backdrop?"
+                hint={brief?.kit.theme ? "Library matches for your brief, or a new plate" : "Search the library, or generate a new plate once"}
+                disabled={!cutoutReady}
+              >
+                <SceneGenerator
+                  heading={false}
+                  sku={source.sku}
+                  theme={brief?.kit.theme || product?.understanding?.suggested_themes[0]}
+                  prompt={brief?.scenePrompt}
+                  view={VIEW_FOR_PLACEMENT[placement]}
+                  selectedId={sceneId}
+                  onSelect={(s) => {
+                    setScenes((l) => (l?.some((x) => x.publicId === s.publicId) ? l : [...(l ?? []), s]));
+                    selectScene(s);
+                  }}
+                />
+              </Disclosure>
+            )
+          }
+        />
+      </Tabs.Content>
+      <Tabs.Content value="creative" className="mt-6 focus-visible:outline-none">
+        <CreativePanel
+          sku={source.sku}
+          ready={cutoutReady}
+          isSample={!!sample}
+          active={tab === "creative"}
+          onDemo={() => setDemo(true)}
+          onCredits={(n) => setCreditsUsed((x) => x + n)}
+          stageRect={() => stageRef.current?.getBoundingClientRect() ?? null}
+          onUseAsHero={(a) => {
+            setHeroOverride(a);
+            void update(a);
+          }}
+        />
+      </Tabs.Content>
+    </Tabs.Root>
+  );
 
   return (
     <MotionConfig reducedMotion="user">
@@ -878,10 +1100,17 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
                     </span>
                   </Tip>
                 ) : null}
-                <Button variant="ghost" size="sm" onClick={reset}>
-                  <RotateCcw />
-                  New photo
-                </Button>
+                {sample ? (
+                  <Button variant="secondary" size="sm" onClick={reset}>
+                    <ImageUp />
+                    Use my photo
+                  </Button>
+                ) : (
+                  <Button variant="ghost" size="sm" onClick={reset}>
+                    <RotateCcw />
+                    New photo
+                  </Button>
+                )}
               </div>
             </div>
 
@@ -948,6 +1177,9 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
               src={stageSrc}
               alt={stageAlt}
               placeholder={scene && (sampleShot || preview) ? lqip(scene.publicId) : (rawThumb ?? undefined)}
+              srcSet={sample ? `${beforeAt(sample, 720)} 720w, ${beforeAt(sample, 1080)} 1080w` : undefined}
+              sizes={STAGE_SIZES}
+              priority={!!sample}
               originalSrc={status.stage === "done" || heroOverride ? rawView : null}
               originalLabel={sample ? (atSampleDefaults ? "Hold to compare" : "Hold to see the sample photo") : "Hold to see your photo"}
               scanning={scanning}
@@ -955,12 +1187,15 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
               qaStory={qaStory}
               onBusy={setStageBusy}
               busyLabel={busyLabel}
-              enter={heroOverride ? "focus" : sampleShot || preview ? (running ? "focus" : "soft") : cutoutView ? "wipe" : "focus"}
-              light={scene && !heroOverride && (status.light === "active" || status.qa === "active") ? { azimuth: scene.dna.light_azimuth, key: runId } : null}
+              enter={settle != null ? "settle" : heroOverride ? "focus" : sampleShot || preview ? (running ? "focus" : "soft") : cutoutView ? "wipe" : "focus"}
+              settle={settle}
+              light={stageLight}
               xray={stageXray}
-              dna={(dnaOn || dnaFlash) && composite && scene ? { dna: scene.dna, key: scene.publicId, shadow: scene.view !== "top-down" } : null}
+              dna={stageDna}
             />
             <div aria-hidden className="shelf-ledge relative -mx-3 -mt-1 hidden sm:block sm:-mx-5" />
+            {/* said once, where the photo is */}
+            {sample ? <p className="mt-2.5 text-[13px] leading-snug text-dim sm:mt-1.5">{SAMPLE_PHOTO_DISCLOSURE}</p> : null}
             {scene ? <DnaToggle dna={scene.dna} on={dnaOn || dnaFlash} onChange={setDnaOn} disabled={!composite} /> : null}
           </div>
 
@@ -977,109 +1212,42 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
               </RetouchSlot>
             ) : null}
 
-            <Tabs.Root value={tab} onValueChange={setTab}>
-              <Tabs.List aria-label="Mode" className="grid grid-cols-2 gap-1 rounded-full bg-stage p-1 ring-1 ring-line">
-                {[
-                  ["exact", "Exact"],
-                  ["creative", "Creative"],
-                ].map(([v, l]) => (
-                  <Tabs.Trigger
-                    key={v}
-                    value={v}
-                    className="h-10 rounded-full text-sm font-semibold text-dim transition-colors hover:text-paper data-[state=active]:bg-paper data-[state=active]:text-studio"
-                  >
-                    {l}
-                  </Tabs.Trigger>
-                ))}
-              </Tabs.List>
-              <p className="mt-3 text-[0.85rem] text-dim">
-                {tab === "exact" ? "The photo itself, composited onto a stage. No generation credits, and the product's pixels are never redrawn." : "A generated reshoot. Slower and uses credits, always QA-checked."}
-              </p>
-
-              <Tabs.Content value="exact" className="mt-6 focus-visible:outline-none">
-                <CompositePanel
-                  scenes={scenes}
-                  sceneId={sceneId}
-                  onScene={selectScene}
-                  controls={controls}
-                  onControls={(c) => {
-                    setHeroOverride(null);
-                    setReplayShot(null);
-                    setControls(c);
-                    setQa(null);
-                    setQaStory(null);
-                  }}
-                  onReset={() =>
-                    scene && product?.understanding && setControls(sample && scene.publicId === sample.scene.publicId ? sample.controls : quantise(defaultControls(product.understanding.placement, scene.dna, product.cutout)))
-                  }
-                  product={product}
-                  placement={placement}
-                  settings={settings}
-                  onSettings={setSettings}
-                  disabled={!cutoutReady}
-                  recolor={recolorOk}
-                  top={sample ? <BriefTeaser /> :<BriefBar sku={source.sku} disabled={!product?.understanding} onResult={setBrief} onApply={applyBrief} />}
-                  sceneExtra={
-                    sample ? null : (
-                      <Disclosure
-                        open={genOpen}
-                        onToggle={() => setGenOpen((o) => !o)}
-                        label="Need a different backdrop?"
-                        hint={brief?.kit.theme ? "Library matches for your brief, or a new plate" : "Search the library, or generate a new plate once"}
-                        disabled={!cutoutReady}
-                      >
-                        <SceneGenerator
-                          heading={false}
-                          sku={source.sku}
-                          theme={brief?.kit.theme || product?.understanding?.suggested_themes[0]}
-                          prompt={brief?.scenePrompt}
-                          view={VIEW_FOR_PLACEMENT[placement]}
-                          selectedId={sceneId}
-                          onSelect={(s) => {
-                            setScenes((l) => (l?.some((x) => x.publicId === s.publicId) ? l : [...(l ?? []), s]));
-                            selectScene(s);
-                          }}
-                        />
-                      </Disclosure>
-                    )
-                  }
-                />
-              </Tabs.Content>
-              <Tabs.Content value="creative" className="mt-6 focus-visible:outline-none">
-                <CreativePanel
-                  sku={source.sku}
-                  ready={cutoutReady}
-                  isSample={!!sample}
-                  active={tab === "creative"}
-                  onDemo={() => setDemo(true)}
-                  onCredits={(n) => setCreditsUsed((x) => x + n)}
-                  stageRect={() => stageRef.current?.getBoundingClientRect() ?? null}
-                  onUseAsHero={(a) => {
-                    setHeroOverride(a);
-                    void update(a);
-                  }}
-                />
-              </Tabs.Content>
-            </Tabs.Root>
-
-            <div className="sticky bottom-0 z-10 -mx-4 mt-8 border-t border-line bg-studio/90 px-4 py-4 backdrop-blur-md sm:mx-0 sm:rounded-2xl sm:border sm:px-5 lg:bottom-4">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-sm text-dim" aria-live="polite">
-                  {barText}
-                </p>
-                {sample ? (
-                  <Button onClick={reset} variant={dirty ? "primary" : "secondary"} disabled={running}>
-                    <ImageUp />
-                    Use my photo
-                  </Button>
-                ) : (
-                  <Button onClick={() => void update()} disabled={!dirty || running}>
-                    <RefreshCw />
-                    Update kit
-                  </Button>
-                )}
-              </div>
-            </div>
+            {sample ? (
+              // a sample's controls stay folded while it replays: the stage and the rail tell the story
+              <Disclosure
+                open={adjustOpen}
+                onToggle={() => setAdjustOpen((o) => !o)}
+                label="Adjust this kit"
+                hint={running ? "Scene, placement, offer text and colours. Open it any time" : "Scene, placement, offer text and colours"}
+              >
+                {controlsPanel}
+                {dirty ? (
+                  <p className="mt-6 text-sm text-dim" aria-live="polite">
+                    Your changes preview live. Upload your own photo to build a kit with them.
+                  </p>
+                ) : null}
+              </Disclosure>
+            ) : (
+              <>
+                {controlsPanel}
+                <div
+                  className={cn(
+                    "z-10 mt-8 border-line bg-studio/90 px-4 py-4 backdrop-blur-md sm:px-5",
+                    barSticky ? "sticky bottom-0 -mx-4 border-t sm:mx-0 sm:rounded-2xl sm:border lg:bottom-4" : "rounded-2xl border",
+                  )}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm text-dim" aria-live="polite">
+                      {barText}
+                    </p>
+                    <Button onClick={() => void update()} disabled={!dirty || running}>
+                      <RefreshCw />
+                      Update kit
+                    </Button>
+                  </div>
+                </div>
+              </>
+            )}
           </aside>
         </div>
 
@@ -1133,33 +1301,37 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
             <div className="mt-6">
               <KitShelves kit={kit} deal={deal} rendering={pendingFormats} />
             </div>
+            {failedFormats.length ? <FailedFormats assets={failedFormats} /> : null}
 
-            <div className="mt-14 grid items-start gap-10 px-4 sm:px-8 lg:grid-cols-[minmax(0,1fr)_26rem] lg:gap-12">
-              {marketplacePending ? (
-                <KitReadiness sku={kit.sku} waiting />
-              ) : (
-                <KitReadiness
+            {/* below the shelves: mounted once the deal has played, and not laid out until scrolled near */}
+            <div className="mt-14 grid items-start gap-10 px-4 [contain-intrinsic-size:auto_900px] [content-visibility:auto] sm:px-8 lg:grid-cols-[minmax(0,1fr)_26rem] lg:gap-12">
+              <AfterDeal key={kit.sku}>
+                {marketplacePending ? (
+                  <KitReadiness sku={kit.sku} waiting />
+                ) : (
+                  <KitReadiness
+                    sku={kit.sku}
+                    sample={!!sample}
+                    measureKey={`${kit.hero.publicId}-${kit.createdAt}`}
+                    readOnly={sample ? "This is a saved sample, so it stays as measured. On a kit from your own photo, each fix is one click." : undefined}
+                    photoLabel={sample ? SAMPLE_PHOTO_LABEL : undefined}
+                    busy={running}
+                    onReport={onReadiness}
+                    onRestage={(patch) => restageFix(patch)}
+                    onRepack={(zone) => repackFix(zone)}
+                  />
+                )}
+                <CostReceipt
+                  key={kit.sku}
                   sku={kit.sku}
-                  sample={!!sample}
-                  measureKey={`${kit.hero.publicId}-${kit.createdAt}`}
-                  readOnly={sample ? "This is a saved sample, so it stays as measured. On a kit from your own photo, each fix is one click." : undefined}
-                  photoLabel={sample ? SAMPLE_PHOTO_LABEL : undefined}
-                  busy={running}
-                  onReport={onReadiness}
-                  onRestage={(patch) => restageFix(patch)}
-                  onRepack={(zone) => repackFix(zone)}
+                  scene={kit.scene?.publicId}
+                  refreshKey={`${kit.createdAt}-${creditsUsed}`}
+                  // a sample's receipt prints from its saved run: no request
+                  initial={sample && kit.sku === sample.sku ? sampleCost(sample, kit, heroFormat) : undefined}
+                  replay={sample && kit.sku === sample.sku ? sampleTimeLine(sample, kit) : undefined}
+                  className="lg:mx-0"
                 />
-              )}
-              <CostReceipt
-                key={kit.sku}
-                sku={kit.sku}
-                scene={kit.scene?.publicId}
-                refreshKey={`${kit.createdAt}-${creditsUsed}`}
-                // a sample's receipt prints from its saved run: no request
-                initial={sample && kit.sku === sample.sku ? sampleCost(sample, kit) : undefined}
-                replay={sample && kit.sku === sample.sku ? sampleProcessingNote(sample) : undefined}
-                className="lg:mx-0"
-              />
+              </AfterDeal>
             </div>
           </section>
         ) : status.pack === "active" ? (
@@ -1241,6 +1413,57 @@ function BriefTeaser() {
         <span className="min-w-0 flex-1 truncate text-base text-faint">Diwali sale, 20% off, Hindi, for WhatsApp + Instagram</span>
       </div>
     </section>
+  );
+}
+
+/**
+ * Formats Cloudinary couldn't render, as quiet placeholders: no image (their recipe
+ * would re-run a failed generative step on every view) and no retry.
+ */
+function FailedFormats({ assets }: { assets: KitAsset[] }) {
+  return (
+    <div className="mt-8 px-4 sm:px-8">
+      <p className="text-sm font-semibold text-paper">Not in this kit</p>
+      <ul className="mt-3 flex flex-wrap gap-3">
+        {assets.map((a) => (
+          <li key={a.id} className="grid aspect-[4/5] w-36 content-center justify-items-center gap-1.5 rounded-2xl border border-dashed border-line-strong bg-stage/50 p-3 text-center">
+            <span className="text-[0.82rem] leading-snug font-semibold text-paper">{a.label}</span>
+            <span className="text-[0.75rem] leading-snug text-dim">Couldn&apos;t render this format</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/**
+ * Mounts its children once the kit's deal has played (about 2.5 s) and the page is idle,
+ * so the shelves animate without a big mount landing in the middle of them.
+ */
+function AfterDeal({ children }: { children: React.ReactNode }) {
+  const [ready, setReady] = React.useState(false);
+  React.useEffect(() => {
+    let idle = 0;
+    const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number; cancelIdleCallback?: (id: number) => void };
+    const t = window.setTimeout(() => {
+      if (w.requestIdleCallback) idle = w.requestIdleCallback(() => setReady(true), { timeout: 1500 });
+      else setReady(true);
+    }, 2500);
+    return () => {
+      window.clearTimeout(t);
+      if (idle) w.cancelIdleCallback?.(idle);
+    };
+  }, []);
+  return ready ? <>{children}</> : null;
+}
+
+/** Holds a panel's place while its code loads (first open only). */
+function PanelSkeleton() {
+  return (
+    <div className="grid gap-3" aria-busy="true">
+      <div className="skeleton h-5 w-2/5 rounded-md" />
+      <div className="skeleton h-14 rounded-2xl" />
+    </div>
   );
 }
 

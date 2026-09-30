@@ -107,8 +107,9 @@ export function RetouchCard({ sku, autoStart = true, onDone, onError, client = f
               ? "Your photo, touched up"
               : "Your photo needs no touch-up";
 
+  // "Open full size" in the X-ray opens the stored result: the recipe URL would make Cloudinary run the whole AI chain again
   const xrayAsset: KitAsset | null = res?.xray
-    ? { id: "retouch", format: "hero", label: "Auto-retouch", url: res.xray.url, width: 1080, height: 1350, frame: "none", alt: "Retouched product photo", xray: res.xray }
+    ? { id: "retouch", format: "hero", label: "Auto-retouch", url: res.url ?? res.xray.url, width: 1080, height: 1350, frame: "none", alt: "Retouched product photo", xray: res.xray }
     : null;
 
   return (

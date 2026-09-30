@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUp, Check, WandSparkles } from "lucide-react";
+import { ArrowUp, Check, ChevronDown, WandSparkles } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import * as React from "react";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,8 @@ export interface BriefBarProps {
   defaultFestival?: FestivalSlug;
   /** e.g. until the product has been analysed. */
   disabled?: boolean;
+  /** false: this product gets no colour variants (printed packaging, food), so the brief's colours aren't shown. */
+  recolor?: boolean;
   client?: FeaturesClient;
   className?: string;
 }
@@ -52,11 +54,12 @@ type Phase =
  * setting focus-pulls into place with where it came from (their words, a festival
  * preset, or AI Vision looking at the product photo).
  */
-export function BriefBar({ sku, onApply, onResult, defaultBrief = "", defaultFestival, disabled, client = featuresClient, className }: BriefBarProps) {
+export function BriefBar({ sku, onApply, onResult, defaultBrief = "", defaultFestival, disabled, recolor = true, client = featuresClient, className }: BriefBarProps) {
   const [text, setText] = React.useState(defaultBrief);
   const [festival, setFestival] = React.useState<FestivalSlug | null>(defaultFestival ?? null);
   const [phase, setPhase] = React.useState<Phase>({ kind: "idle" });
   const [applied, setApplied] = React.useState<BriefResponse | null>(null);
+  const [sheetOpen, setSheetOpen] = React.useState(true); // the summary folds away once its settings are used
   const [hint, setHint] = React.useState<string | null>(null);
   const ac = React.useRef<AbortController | null>(null);
   const inputId = React.useId();
@@ -98,6 +101,7 @@ export function BriefBar({ sku, onApply, onResult, defaultBrief = "", defaultFes
       if (elapsed < 900) await new Promise((r) => setTimeout(r, 900 - elapsed));
       if (ctl.signal.aborted) return;
       setPhase({ kind: "done", brief, res, ms: performance.now() - t0 });
+      setSheetOpen(true);
       onResult?.(res);
     } catch (err) {
       if (isAborted(err) || ctl.signal.aborted) return;
@@ -225,16 +229,23 @@ export function BriefBar({ sku, onApply, onResult, defaultBrief = "", defaultFes
               </Notice>
             )}
           </motion.div>
+        ) : isApplied && !sheetOpen && done ? (
+          <motion.div key="applied" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.3, ease: EXPO }}>
+            <AppliedRow res={done.res} recolor={recolor} onOpen={() => setSheetOpen(true)} />
+          </motion.div>
         ) : (
           <motion.div key="sheet" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.35, ease: EXPO }}>
             <KitSheet
               phase={phase}
               applied={isApplied}
+              recolor={recolor}
               onApply={() => {
                 if (!done) return;
                 setApplied(done.res);
+                setSheetOpen(false);
                 onApply(done.res.kit, done.res);
               }}
+              onClose={isApplied ? () => setSheetOpen(false) : undefined}
             />
           </motion.div>
         )}
@@ -253,13 +264,58 @@ const ROWS: { key: keyof BriefKit; label: string }[] = [
   { key: "tone", label: "Tone" },
 ];
 
-function KitSheet({ phase, applied, onApply }: { phase: Extract<Phase, { kind: "reading" } | { kind: "done" }>; applied: boolean; onApply: () => void }) {
+/** The rows a product shows: no "Colours" where recolour doesn't apply (canRecolor, lib/client/swatches.ts). */
+const rowsFor = (recolor: boolean) => (recolor ? ROWS : ROWS.filter((r) => r.key !== "swatches"));
+
+/** After "Use these settings": one line that says what was applied, and reopens the sheet. */
+function AppliedRow({ res, recolor, onOpen }: { res: BriefResponse; recolor: boolean; onOpen: () => void }) {
+  const k = res.kit;
+  const parts = [
+    k.theme ? themeLabel(k.theme) : null,
+    k.offer.english || k.offer.hindi || null,
+    k.channels.length ? `${k.channels.length} ${k.channels.length === 1 ? "channel" : "channels"}` : null,
+    recolor && k.swatches.length ? `${k.swatches.length} ${k.swatches.length === 1 ? "colour" : "colours"}` : null,
+  ].filter((x): x is string => !!x);
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      aria-expanded={false}
+      className="flex w-full items-center gap-3 rounded-2xl bg-stage px-4 py-3 text-left ring-1 ring-line transition-colors duration-200 hover:bg-stage-2"
+    >
+      <span aria-hidden className="grid size-8 shrink-0 place-items-center rounded-full bg-leaf/14 text-leaf">
+        <Check className="size-4" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-semibold text-paper">Brief applied to the kit</span>
+        {parts.length ? <span className="block truncate text-[0.8rem] text-dim">{parts.join(" · ")}</span> : null}
+      </span>
+      <span className="shrink-0 text-[0.8rem] font-semibold text-marigold">Details</span>
+      <ChevronDown aria-hidden className="size-4 shrink-0 text-dim" />
+    </button>
+  );
+}
+
+function KitSheet({
+  phase,
+  applied,
+  recolor,
+  onApply,
+  onClose,
+}: {
+  phase: Extract<Phase, { kind: "reading" } | { kind: "done" }>;
+  applied: boolean;
+  recolor: boolean;
+  onApply: () => void;
+  onClose?: () => void;
+}) {
   const reduce = useReducedMotion();
   const res = phase.kind === "done" ? phase.res : null;
   const busyIn = useCountdown(phase.kind === "reading" ? (phase.busyUntil ?? null) : null);
   const marks = React.useMemo(() => briefHighlights(phase.brief), [phase.brief]);
   const festivalName = res?.festival ? festivalBySlug(res.festival)?.label : undefined;
-  const aiCount = res ? ROWS.filter((r) => res.sources[r.key] === "ai").length : 0;
+  const rows = rowsFor(recolor);
+  const aiCount = res ? rows.filter((r) => res.sources[r.key] === "ai").length : 0;
 
   return (
     <div className="rounded-[22px] bg-stage p-4 shadow-[0_30px_60px_-30px_rgb(0_0_0/0.9)] ring-1 ring-line sm:p-6">
@@ -288,7 +344,7 @@ function KitSheet({ phase, applied, onApply }: { phase: Extract<Phase, { kind: "
       </p>
 
       <dl className="mt-4 grid gap-x-5 border-t border-line sm:grid-cols-[6.5rem_minmax(0,1fr)]">
-        {ROWS.map((row, i) => (
+        {rows.map((row, i) => (
           <div key={row.key} className="grid gap-1.5 border-b border-line py-3.5 last:border-b-0 sm:col-span-2 sm:grid-cols-subgrid sm:items-start sm:gap-0">
             <dt className="flex items-center justify-between gap-2 text-[0.82rem] font-medium text-dim sm:pt-1">
               {row.label}
@@ -318,6 +374,12 @@ function KitSheet({ phase, applied, onApply }: { phase: Extract<Phase, { kind: "
           <Check />
           {applied ? "Settings applied" : "Use these settings"}
         </Button>
+        {onClose ? (
+          <Button variant="ghost" size="sm" onClick={onClose} className="max-sm:w-full">
+            Hide
+            <ChevronDown className="rotate-180" />
+          </Button>
+        ) : null}
         {res?.scenePrompt ? <p className="text-[0.8rem] text-faint">Also suggests a backdrop you can generate in the scene step.</p> : null}
       </div>
     </div>

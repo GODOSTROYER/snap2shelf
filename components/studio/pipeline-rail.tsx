@@ -2,6 +2,7 @@
 
 import { Check, Frame, PackageCheck, Pause, Scissors, ShieldCheck, SunMedium, WandSparkles, Wrench, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
+import * as React from "react";
 import { cn } from "@/lib/client/util";
 import { PIPELINE_STEPS, type PipelineStepId } from "@/lib/types";
 
@@ -21,12 +22,23 @@ const ICONS: Record<PipelineStepId, typeof Check> = {
  * calls finish. A lit fuse runs along the rail; each finished step flashes once.
  * `fixed` marks a QA pass that needed the automatic fix.
  */
-export function PipelineRail({ status, notes, fixed }: { status: Record<PipelineStepId, StepStatus>; notes: Partial<Record<PipelineStepId, string>>; fixed?: boolean }) {
+export const PipelineRail = React.memo(function PipelineRail({
+  status,
+  notes,
+  fixed,
+}: {
+  status: Record<PipelineStepId, StepStatus>;
+  notes: Partial<Record<PipelineStepId, string>>;
+  fixed?: boolean;
+}) {
   const doneCount = PIPELINE_STEPS.filter((s) => status[s.id] === "done").length;
   const active = PIPELINE_STEPS.find((s) => status[s.id] === "active" || status[s.id] === "failed" || status[s.id] === "paused");
   const progress = Math.min(1, (doneCount + (active && status[active.id] === "active" ? 0.5 : 0)) / (PIPELINE_STEPS.length - 1));
   const allDone = doneCount === PIPELINE_STEPS.length;
-  const note = active ? notes[active.id] : allDone ? (notes.pack ?? "Kit ready") : "Waiting for a photo";
+  // between steps (a finished step holding its moment before the next starts) the last one keeps the line
+  const lastDone = [...PIPELINE_STEPS].reverse().find((s) => status[s.id] === "done");
+  const note = active ? notes[active.id] : allDone ? (notes.pack ?? "Kit ready") : lastDone ? notes[lastDone.id] : "Waiting for a photo";
+  const stepKey = active ? active.id : allDone ? "done" : (lastDone?.id ?? "idle");
   const noteTone = active && status[active.id] === "failed" ? "text-sindoor" : active && status[active.id] === "paused" ? "text-marigold" : allDone ? "text-paper" : "text-dim";
 
   return (
@@ -99,19 +111,43 @@ export function PipelineRail({ status, notes, fixed }: { status: Record<Pipeline
         {note}
       </p>
       <p aria-hidden className="relative mt-3 grid min-h-10 place-items-center text-center text-sm sm:mt-2 sm:min-h-5">
+        {/* keyed on the step, not the text: a note that changes every few hundred ms (the pack
+            counter) must never restart the entrance, or it never gets out of its blur */}
         <AnimatePresence mode="popLayout" initial={false}>
           <motion.span
-            key={note}
+            key={stepKey}
             initial={{ opacity: 0, y: 8, filter: "blur(4px)" }}
             animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-            exit={{ opacity: 0, y: -6, filter: "blur(4px)" }}
+            exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
             className={cn("[grid-area:1/1] text-balance", noteTone)}
           >
-            {note}
+            <NoteText note={note} />
           </motion.span>
         </AnimatePresence>
       </p>
     </div>
+  );
+});
+
+const COUNT = /^(\d+) of (\d+) (.+)$/;
+
+/**
+ * A running count ("4 of 9 formats ready") swaps its digits in place; any other change of
+ * wording within a step brightens in quickly (opacity only, so the text is always crisp).
+ */
+function NoteText({ note = "" }: { note?: string }) {
+  const m = COUNT.exec(note);
+  if (m) {
+    return (
+      <span>
+        <span className="tabular-nums">{m[1]}</span> of {m[2]} {m[3]}
+      </span>
+    );
+  }
+  return (
+    <motion.span key={note} initial={{ opacity: 0.35 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }}>
+      {note}
+    </motion.span>
   );
 }

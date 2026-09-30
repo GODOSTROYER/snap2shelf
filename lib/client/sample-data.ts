@@ -5,9 +5,29 @@
  * real numbers without calling /api. Client-safe.
  */
 import type { CostResponse } from "../api-contract";
+import * as claims from "../claims";
 import type { ReadinessReport } from "../readiness";
 import type { SampleProduct } from "../showcase";
 import type { Kit } from "../types";
+
+/**
+ * lib/claims.ts owns the sample time note and the measured hero weights. They are
+ * read by name at run time, so this file works with or without them (they land on
+ * master with the kit/shelf work); without them, the older wording and a HEAD
+ * measurement stand in.
+ */
+type SharedClaims = {
+  sampleTimeNote?: (run: { seconds: number; qaChecks: number }) => string;
+  MEASURED_HERO_WEIGHT?: Record<string, { original: number; delivered: number; format: string }>;
+};
+const CLAIM_KEYS = { note: "sampleTimeNote", weight: "MEASURED_HERO_WEIGHT" } as const;
+const shared = claims as unknown as Record<string, unknown>;
+const claimed = <K extends keyof SharedClaims>(k: K) => shared[CLAIM_KEYS[k === "sampleTimeNote" ? "note" : "weight"]] as SharedClaims[K] | undefined;
+
+/** A sample hero's weight as a browser receives it (measured, lib/claims.ts), when it's known. */
+export function sampleHeroWeight(sku: string) {
+  return claimed("MEASURED_HERO_WEIGHT")?.[sku] ?? null;
+}
 
 /** Documented transformation counts (same table as the cost route). */
 const TX = { derived: 1, backgroundRemoval: 75, genFill: 50, genRecolor: 50 } as const;
@@ -26,8 +46,8 @@ const STEP_LABELS: [keyof NonNullable<SampleProduct["timings"]>, string][] = [
   ["zip", "Zip"],
 ];
 
-/** The cost ledger of a sample's live run, in the cost route's shape. */
-export function sampleCost(sample: SampleProduct, kit: Kit = sample.kit): CostResponse {
+/** The cost ledger of a sample's live run, in the cost route's shape. `format`: what a browser got for the hero (webp, avif…). */
+export function sampleCost(sample: SampleProduct, kit: Kit = sample.kit, format = ""): CostResponse {
   const c = kit.cost;
   const formats = kit.assets.map((a) => ({
     label: a.label,
@@ -46,16 +66,29 @@ export function sampleCost(sample: SampleProduct, kit: Kit = sample.kit): CostRe
     ...(analyzeTokens ? [{ label: "Product reading", tokens: analyzeTokens }] : []),
     ...(qaTokens ? [{ label: sample.qaStory ? `QA, ${sample.qaStory.attempts} checks` : "QA check", tokens: qaTokens }] : []),
   ];
-  const steps = sample.timings ? STEP_LABELS.flatMap(([k, label]) => (sample.timings?.[k] ? [{ label, ms: sample.timings[k]! }] : [])) : [];
+  // the QA line covers every check the run made ("QA checks (3)"), not one
+  const checks = sample.qaStory?.attempts ?? 1;
+  const labelOf = (k: string, label: string) => (k === "qa" && checks > 1 ? `QA checks (${checks})` : label);
+  const steps = sample.timings ? STEP_LABELS.flatMap(([k, label]) => (sample.timings?.[k] ? [{ label: labelOf(k, label), ms: sample.timings[k]! }] : [])) : [];
   return {
     sku: kit.sku,
     // server time = every step after the upload landed (the reel renders on first view, so it's left out)
     cost: { ...c, seconds: sample.timings ? Math.round((sample.timings.total - sample.timings.upload) / 100) / 10 : 0 },
     breakdown: { generation: [], tokens, transformations, steps },
-    delivered: { url: kit.hero.url, format: "", bytes: c.bytesDelivered, from: "hero" },
+    delivered: { url: kit.hero.url, format, bytes: c.bytesDelivered, from: "hero" },
     wallClockSeconds: sample.timings ? Math.round(sample.timings.total / 1000) : c.seconds || null,
     estimated: true,
   };
+}
+
+/**
+ * What a sample's processing time covers, for its receipt: lib/claims.ts's
+ * sampleTimeNote (the live end-to-end figure, and why this run took longer), or
+ * the older wording where that isn't available.
+ */
+export function sampleTimeLine(sample: SampleProduct, kit: Kit = sample.kit): string {
+  const note = claimed("sampleTimeNote");
+  return note ? note({ seconds: sampleCost(sample, kit).cost.seconds, qaChecks: sample.qaStory?.attempts ?? 1 }) : sampleProcessingNote(sample);
 }
 
 /** What a sample's processing time covers, for its receipt ("… this run needed 3 QA checks"). */
