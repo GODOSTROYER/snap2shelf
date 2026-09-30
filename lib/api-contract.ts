@@ -147,7 +147,7 @@ export interface RetouchPendingResponse extends ApiError {
 
 // POST /api/brief  → one-line brief → kit settings (AI Vision General on the product photo + rules).
 // Explicit words in the brief win (channels, %, "Hindi"), then the festival preset (lib/festivals.ts),
-// then AI Vision, then the product's own suggested theme. Cached per (sku, brief, festival).
+// then AI Vision, then the product's own suggested theme. The last 3 briefs per product are cached (tokens: 0).
 export interface BriefRequest {
   sku: Sku;
   brief: string; // ≤ 300 chars, e.g. "Diwali sale ad, 20% off, Hindi, for WhatsApp + Instagram"

@@ -395,6 +395,39 @@ const cachedSchema = z.object({
 export const briefHash = (brief: string, festival?: string | null) =>
   createHash("sha256").update(`${cleanBrief(brief).toLowerCase()}|${festival ?? ""}`).digest("hex").slice(0, 16);
 
+/**
+ * The last three kits per product live in the raw asset's context as
+ * brief_a / brief_b / brief_c = "<hash16>:<json>", written round-robin (brief_n
+ * points at the next slot), so re-running a brief, or switching back to an
+ * earlier one, costs no AI Vision tokens.
+ */
+export const BRIEF_SLOTS = ["brief_a", "brief_b", "brief_c"] as const;
+const BRIEF_CACHE_MAX = 880;
+
+export type CachedBrief = z.infer<typeof cachedSchema>;
+
+export function readBriefCache(ctx: Record<string, string>, hash: string): CachedBrief | null {
+  for (const slot of BRIEF_SLOTS) {
+    const v = ctx[slot];
+    if (!v || !v.startsWith(`${hash}:`)) continue;
+    try {
+      return cachedSchema.parse(JSON.parse(v.slice(hash.length + 1)));
+    } catch {
+      return null; // truncated or stale shape: recompute
+    }
+  }
+  return null;
+}
+
+/** Context patch that stores a kit in the next slot (empty when it wouldn't fit). */
+export function briefCachePatch(ctx: Record<string, string>, hash: string, value: CachedBrief): Record<string, string> {
+  const json = JSON.stringify(value);
+  if (hash.length + 1 + json.length > BRIEF_CACHE_MAX) return {};
+  const reuse = BRIEF_SLOTS.findIndex((slot) => ctx[slot]?.startsWith(`${hash}:`));
+  const next = reuse >= 0 ? reuse : (Number(ctx.brief_n) || 0) % BRIEF_SLOTS.length;
+  return { [BRIEF_SLOTS[next]]: `${hash}:${json}`, ...(reuse >= 0 ? {} : { brief_n: String((next + 1) % BRIEF_SLOTS.length) }) };
+}
+
 export async function runBrief(
   sku: Sku,
   brief: string,
@@ -404,24 +437,20 @@ export async function runBrief(
   const t0 = Date.now();
   const raw = await requireRaw(sku);
   const hash = briefHash(brief, festival);
-  if (raw.context.brief_h === hash && raw.context.brief_kit) {
-    try {
-      const c = cachedSchema.parse(JSON.parse(raw.context.brief_kit));
-      return {
-        spent: false,
-        response: {
-          sku,
-          kit: c.kit as BriefKit,
-          festival: festivalBySlug(c.festival)?.slug,
-          scenePrompt: c.scenePrompt,
-          sources: c.sources as BriefResponse["sources"],
-          tokens: 0,
-          cached: true,
-        },
-      };
-    } catch {
-      // stale or truncated cache: recompute below
-    }
+  const c = readBriefCache(raw.context, hash);
+  if (c) {
+    return {
+      spent: false,
+      response: {
+        sku,
+        kit: c.kit as BriefKit,
+        festival: festivalBySlug(c.festival)?.slug,
+        scenePrompt: c.scenePrompt,
+        sources: c.sources as BriefResponse["sources"],
+        tokens: 0,
+        cached: true,
+      },
+    };
   }
 
   opts.beforeSpend?.();
@@ -448,10 +477,9 @@ export async function runBrief(
     tokens,
     cached: false,
   };
-  const cache = JSON.stringify({ kit: merged.kit, festival: rules.festival?.slug, scenePrompt: merged.scenePrompt, sources: merged.sources });
   const prevTokens = Number(raw.context.t_brief) || 0;
   await addContext([raw.publicId], {
-    ...(cache.length <= 880 ? { brief_h: hash, brief_kit: cache } : {}),
+    ...briefCachePatch(raw.context, hash, { kit: merged.kit, festival: rules.festival?.slug, scenePrompt: merged.scenePrompt, sources: merged.sources }),
     t_brief: String(prevTokens + tokens),
     ms_brief: String(Date.now() - t0),
   });

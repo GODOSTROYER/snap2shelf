@@ -145,6 +145,21 @@ test("brief: festival chip overrides the text; prompt delimiters are stripped", 
   assert.notEqual(brief.briefHash("diwali sale", "diwali"), brief.briefHash("diwali sale"));
 });
 
+test("brief: the last three kits are cached round-robin in the raw's context", () => {
+  const kit = (theme: string) => ({ kit: { theme, offer: {}, channels: ["feed"], swatches: [], tone: "warm" as const }, sources: { theme: "ai" } });
+  let ctx: Record<string, string> = { caption: "x" };
+  const hashes = ["a".repeat(16), "b".repeat(16), "c".repeat(16), "d".repeat(16)];
+  hashes.forEach((h, i) => (ctx = { ...ctx, ...brief.briefCachePatch(ctx, h, kit(`t${i}`)) }));
+  assert.equal(brief.readBriefCache(ctx, hashes[0]), null, "oldest evicted by the fourth");
+  assert.equal(brief.readBriefCache(ctx, hashes[1])?.kit.theme, "t1");
+  assert.equal(brief.readBriefCache(ctx, hashes[3])?.kit.theme, "t3");
+  // re-storing an existing hash overwrites its own slot and doesn't advance the pointer
+  const again = brief.briefCachePatch(ctx, hashes[2], kit("t2b"));
+  assert.deepEqual(Object.keys(again), ["brief_c"]);
+  assert.deepEqual(brief.briefCachePatch(ctx, "e".repeat(16), { ...kit("x"), scenePrompt: "y".repeat(900) }), {}, "too big to cache");
+  assert.equal(brief.readBriefCache({ brief_a: `${hashes[0]}:{broken` }, hashes[0]), null);
+});
+
 test("brief: offer/scene validators", () => {
   assert.equal(brief.validOfferLine("x".repeat(41), "english"), null);
   assert.equal(brief.validOfferLine("<b>sale</b>", "english"), null);
