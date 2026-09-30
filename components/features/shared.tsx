@@ -1,9 +1,10 @@
 "use client";
 
-import { RefreshCw, Sparkles } from "lucide-react";
+import { ImageUp, RefreshCw, Sparkles } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import Link from "next/link";
 import * as React from "react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/client/util";
 
 /** Marks a field that AI Vision filled in (as opposed to the seller's words or a preset). */
@@ -136,6 +137,34 @@ export function useCountdown(until: number | null): number {
     return () => clearInterval(t);
   }, [until]);
   return until ? Math.max(0, Math.ceil((until - now) / 1000)) : 0;
+}
+
+/**
+ * The server's write lock (403 "read_only"), said calmly: this product can be
+ * looked at, not changed, and the visitor's own photo can be. Never the
+ * access-code dialog. Pass `onUpload` where a plain link to /studio wouldn't
+ * leave the current screen (inside the studio itself).
+ */
+export function ReadOnlyNote({ message, onUpload, className }: { message: string; onUpload?: () => void; className?: string }) {
+  return (
+    <div role="status" className={cn("flex flex-col gap-3 rounded-2xl bg-stage-2 p-4 text-sm ring-1 ring-line sm:flex-row sm:items-center sm:justify-between", className)}>
+      <div className="min-w-0">
+        <p className="font-semibold text-paper">View only</p>
+        <p className="mt-0.5 text-dim">{message}</p>
+      </div>
+      {onUpload ? (
+        <Button size="sm" variant="secondary" onClick={onUpload} className="self-start sm:self-center">
+          <ImageUp />
+          Upload your photo
+        </Button>
+      ) : (
+        <Link href="/studio" className={cn(buttonVariants({ size: "sm", variant: "secondary" }), "self-start sm:self-center")}>
+          <ImageUp />
+          Upload your photo
+        </Link>
+      )}
+    </div>
+  );
 }
 
 /**

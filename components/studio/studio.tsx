@@ -7,6 +7,7 @@ import Link from "next/link";
 import * as React from "react";
 import { BriefBar } from "@/components/features/brief-bar";
 import { CostReceipt } from "@/components/features/cost-receipt";
+import { ReadOnlyNote } from "@/components/features/shared";
 import { RetouchCard } from "@/components/features/retouch-card";
 import { SceneGenerator } from "@/components/features/scene-generator";
 import { KitShelves, type DealRequest } from "@/components/kit/kit-shelves";
@@ -76,6 +77,7 @@ interface Failure {
   from: "fix" | "stage";
   busy?: boolean; // Cloudinary rate-limited or out of quota: offer a finished sample meanwhile
   quota?: boolean; // the live pipeline is paused (transformation floor / Admin API limit): lead with the samples
+  readOnly?: boolean; // the write lock (403 read_only): someone else's or a demo product, viewable but not changeable
 }
 
 /** The auto-retouch between analyze and the cutout (live photos only). */
@@ -481,8 +483,8 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
       } catch (e) {
         setDnaFlash(false);
         if (isAborted(e)) return;
-        mark(step, isBusy(e) ? "paused" : "failed", isBusy(e) ? "Paused: Cloudinary is busy right now" : api.messageFor(e));
-        setFailure({ step, message: api.messageFor(e), from: "stage", busy: isBusy(e), quota: isQuota(e) });
+        mark(step, isBusy(e) || api.isReadOnly(e) ? "paused" : "failed", isBusy(e) ? "Paused: Cloudinary is busy right now" : api.isReadOnly(e) ? "View only" : api.messageFor(e));
+        setFailure({ step, message: api.messageFor(e), from: "stage", busy: isBusy(e), quota: isQuota(e), readOnly: api.isReadOnly(e) });
       }
     },
     [buildHero, mark, seen],
@@ -613,8 +615,8 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
         await finish({ src, product: p, scene: pick, scenes: list, controls: ctl, settings: st, hero: null, tokens: a.data.tokens, t0, signal });
       } catch (e) {
         if (isAborted(e)) return;
-        mark(step, isBusy(e) ? "paused" : "failed", isBusy(e) ? "Paused: Cloudinary is busy right now" : api.messageFor(e));
-        setFailure({ step, message: api.messageFor(e), from: "fix", busy: isBusy(e), quota: isQuota(e) });
+        mark(step, isBusy(e) || api.isReadOnly(e) ? "paused" : "failed", isBusy(e) ? "Paused: Cloudinary is busy right now" : api.isReadOnly(e) ? "View only" : api.messageFor(e));
+        setFailure({ step, message: api.messageFor(e), from: "fix", busy: isBusy(e), quota: isQuota(e), readOnly: api.isReadOnly(e) });
       } finally {
         if (!signal.aborted) setRunning(false);
       }
@@ -888,7 +890,9 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
               <PipelineRail status={status} notes={notes} fixed={autoFixed} />
             </div>
 
-            {failure?.busy ? (
+            {failure?.readOnly ? (
+              <ReadOnlyNote message={failure.message} onUpload={reset} className="mt-4" />
+            ) : failure?.busy ? (
               <div role="alert" className="mt-4 grid gap-4 rounded-2xl bg-marigold/10 p-4 text-sm text-paper ring-1 ring-marigold/35">
                 <p>
                   {failure.quota ? (
@@ -1122,7 +1126,7 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
                 {sample ? (
                   <Link href={DEMO_SHELF.path} className="inline-flex min-h-8 items-center gap-1.5 text-sm font-medium text-paper underline decoration-marigold/60 underline-offset-4 hover:decoration-marigold">
                     <Store aria-hidden className="size-4 text-marigold" />
-                    See a shop built from the sample kits
+                    See a shop built from the sample products
                   </Link>
                 ) : null}
               </div>

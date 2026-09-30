@@ -11,6 +11,7 @@ import {
   featureMessage,
   featuresClient,
   isBusy,
+  isReadOnly,
   themeLabel,
   withBusyRetry,
   type FeaturesClient,
@@ -19,7 +20,7 @@ import { cn, isAborted } from "@/lib/client/util";
 import { FESTIVALS, festivalBySlug, type FestivalSlug } from "@/lib/festivals";
 import type { BriefKit, ChannelFormat, Sku } from "@/lib/types";
 import { devanagari } from "./fonts";
-import { AiBadge, Narration, Notice, useCountdown } from "./shared";
+import { AiBadge, Narration, Notice, ReadOnlyNote, useCountdown } from "./shared";
 
 const MAX = 300;
 const EXPO = [0.16, 1, 0.3, 1] as const;
@@ -43,7 +44,7 @@ type Phase =
   | { kind: "idle" }
   | { kind: "reading"; brief: string; busyUntil?: number }
   | { kind: "done"; brief: string; res: BriefResponse; ms: number }
-  | { kind: "error"; brief: string; message: string; busy: boolean };
+  | { kind: "error"; brief: string; message: string; busy: boolean; readOnly?: boolean };
 
 /**
  * Brief bar: one line of seller intent → the kit's stage, offer lines, channels,
@@ -100,7 +101,7 @@ export function BriefBar({ sku, onApply, onResult, defaultBrief = "", defaultFes
       onResult?.(res);
     } catch (err) {
       if (isAborted(err) || ctl.signal.aborted) return;
-      setPhase({ kind: "error", brief, message: err instanceof ApiFailure && err.status === 404 ? "We couldn't find this product's photo. Add the photo again, then describe the ad." : featureMessage(err), busy: isBusy(err) });
+      setPhase({ kind: "error", brief, message: err instanceof ApiFailure && err.status === 404 ? "We couldn't find this product's photo. Add the photo again, then describe the ad." : featureMessage(err), busy: isBusy(err), readOnly: isReadOnly(err) });
     }
   };
 
@@ -212,13 +213,17 @@ export function BriefBar({ sku, onApply, onResult, defaultBrief = "", defaultFes
       <AnimatePresence mode="wait" initial={false}>
         {phase.kind === "idle" ? null : phase.kind === "error" ? (
           <motion.div key="error" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.3, ease: EXPO }}>
-            <Notice
-              tone={phase.busy ? "busy" : "error"}
-              title={phase.busy ? "Still busy" : "That brief didn't go through"}
-              onRetry={() => void run()}
-            >
-              {phase.busy ? "Cloudinary is busy for a moment. Try again in a minute." : phase.message}
-            </Notice>
+            {phase.readOnly ? (
+              <ReadOnlyNote message={phase.message} />
+            ) : (
+              <Notice
+                tone={phase.busy ? "busy" : "error"}
+                title={phase.busy ? "Still busy" : "That brief didn't go through"}
+                onRetry={() => void run()}
+              >
+                {phase.busy ? "Cloudinary is busy for a moment. Try again in a minute." : phase.message}
+              </Notice>
+            )}
           </motion.div>
         ) : (
           <motion.div key="sheet" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.35, ease: EXPO }}>

@@ -28,10 +28,10 @@ import type {
   SceneMatch,
 } from "../api-contract";
 import { SCENE_THEMES, type BriefKit, type ChannelFormat, type RetouchFix, type Scene, type SceneView, type Sku } from "../types";
-import { ApiFailure } from "./errors";
+import { ApiFailure, isReadOnly, READ_ONLY_FALLBACK } from "./errors";
 import { sleep } from "./util";
 
-export { ApiFailure };
+export { ApiFailure, isReadOnly };
 
 // ─── transport ────────────────────────────────────────────────────────────────
 
@@ -313,6 +313,7 @@ export async function withBusyRetry<T>(call: () => Promise<T>, opts: { signal?: 
 
 /** Human message for any failure from this client. */
 export function featureMessage(e: unknown): string {
+  if (isReadOnly(e)) return e.body.error || READ_ONLY_FALLBACK;
   if (e instanceof ApiFailure) {
     if (isBusy(e)) return BUSY_MESSAGE;
     switch (e.body.code) {

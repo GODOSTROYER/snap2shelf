@@ -2,8 +2,10 @@
 
 import { RotateCcw } from "lucide-react";
 import { useState } from "react";
+import { ReadOnlyNote } from "@/components/features/shared";
 import { Button } from "@/components/ui/button";
 import type { ApiError, ReadinessResponse } from "@/lib/api-contract";
+import { readOnlyMessage } from "@/lib/client/errors";
 import type { ReadinessCheck, ReadinessReport } from "@/lib/readiness";
 import type { CompositeControls, SceneDNA } from "@/lib/types";
 import { ReadinessGauge } from "./ReadinessGauge";
@@ -22,8 +24,16 @@ export interface ReadinessPanelProps {
   busy?: boolean;
   /** What the baseline image is (the gauge compares it with the kit): "Your photo" or the sample label. */
   photoLabel?: string;
+  /**
+   * The server's answer to "may this browser change this kit?" (ReadinessResponse.canFix).
+   * false: a demo-shelf product or someone else's shared kit, shown as a read-only view.
+   */
+  canFix?: boolean;
   className?: string;
 }
+
+/** The read-only view's note, when the server hasn't worded it. */
+const VIEW_ONLY_NOTE = "View only: one-click fixes run on kits made from your own photo.";
 
 const BUSY_CODES = new Set([420, 429, 502, 503, 504]);
 
@@ -31,8 +41,15 @@ const BUSY_CODES = new Set([420, 429, 502, 503, 504]);
  * ReadinessGauge wired to the API: one-click server fixes (POST /api/readiness/:sku),
  * studio fixes (re-stage / re-pack) handed to the parent, and a re-measure button.
  */
-export function ReadinessPanel({ initial, onReport, onRestage, onRepack, readOnly, busy, photoLabel, className }: ReadinessPanelProps) {
+export function ReadinessPanel({ initial, onReport, onRestage, onRepack, readOnly, busy, photoLabel, canFix, className }: ReadinessPanelProps) {
   const [report, setReport] = useState(initial);
+  // the write lock: set by the server (canFix: false) or learned from a 403 "read_only" answer
+  const [locked, setLocked] = useState<string | null>(canFix === false ? VIEW_ONLY_NOTE : null);
+  const [seenCanFix, setSeenCanFix] = useState(canFix);
+  if (seenCanFix !== canFix) {
+    setSeenCanFix(canFix);
+    setLocked(canFix === false ? VIEW_ONLY_NOTE : null);
+  }
   const [fixing, setFixing] = useState<ReadinessCheck["id"] | null>(null);
   const [measuring, setMeasuring] = useState(false);
   const [note, setNote] = useState<string>("");
@@ -54,6 +71,12 @@ export function ReadinessPanel({ initial, onReport, onRestage, onRepack, readOnl
     try {
       const res = await fetch(`/api/readiness/${report.sku}`, { cache: "no-store", credentials: "same-origin", ...init });
       const body = (await res.json().catch(() => null)) as ReadinessResponse | ApiError | null;
+      const lock = readOnlyMessage(body);
+      if (lock) {
+        setLocked(lock);
+        setNote("");
+        return null;
+      }
       if (!res.ok || !body || "error" in body) {
         const code = body && "code" in body ? body.code : undefined;
         setNote(
@@ -81,6 +104,7 @@ export function ReadinessPanel({ initial, onReport, onRestage, onRepack, readOnl
       setNote(readOnly);
       return;
     }
+    if (locked) return; // no fix buttons in the read-only view; a click racing the lock lands here
     if (fix.kind === "transformation" && fix.apply && !fix.paid) {
       setFixing(check.id);
       setNote("");
@@ -121,12 +145,13 @@ export function ReadinessPanel({ initial, onReport, onRestage, onRepack, readOnl
 
   return (
     <div className={className}>
-      <ReadinessGauge report={report} onFix={onFix} fixing={fixing} fixesDisabled={busy || measuring} quietFixes={!!readOnly} photoLabel={photoLabel} />
-      <div className="mt-3 flex min-h-11 flex-wrap items-center justify-between gap-3 px-1">
+      <ReadinessGauge report={report} onFix={locked ? undefined : onFix} fixing={fixing} fixesDisabled={busy || measuring} quietFixes={!!readOnly} photoLabel={photoLabel} />
+      {locked ? <ReadOnlyNote message={locked} className="mt-3" /> : null}
+      <div className={locked && !note ? "hidden" : "mt-3 flex min-h-11 flex-wrap items-center justify-between gap-3 px-1"}>
         <p role="status" aria-live="polite" className="min-w-0 flex-1 text-sm text-dim">
           {note}
         </p>
-        {readOnly ? null : (
+        {readOnly || locked ? null : (
           <Button variant="ghost" size="sm" onClick={remeasure} disabled={measuring || busy || fixing !== null} className="-mr-2">
             <RotateCcw className={measuring ? "animate-spin [animation-direction:reverse]" : undefined} />
             {measuring ? "Measuring…" : "Measure again"}
