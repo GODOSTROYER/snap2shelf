@@ -25,11 +25,11 @@ import { PRIMARY_SAMPLE_SKU, PRODUCT_NAMES, SHOWCASE_KIT_SKU } from "./claims";
 import { snapWidth } from "./client/img";
 import { SHOWCASE, type ShowcaseKit, type ShowcaseTimings } from "./showcase-data";
 import { channelAssets } from "./transform/channels";
-import { compositeUrl, defaultControls, deliveryBase, geometry, quantise } from "./transform/composite";
+import { compositeUrl, defaultControls, deliveryBase, geometry, layerId, quantise } from "./transform/composite";
 import { ogImageUrl as ogUrl } from "./transform/og";
 import { reelUrl } from "./transform/reel";
 import { recolorExplain, recolorLabel, swatchName } from "./client/swatches";
-import type { CompositeControls, Kit, KitAsset, ProductRecord, QaResult, Scene, SceneDNA, Sku } from "./types";
+import { PLATE, type CompositeControls, type Kit, type KitAsset, type ProductRecord, type QaResult, type Scene, type SceneDNA, type Sku } from "./types";
 
 export const SHOWCASE_CLOUD = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "nyxyma1i";
 
@@ -547,11 +547,17 @@ export const getSample = (sku: string | null | undefined) => SAMPLES.find((s) =>
 export const isSampleSku = (sku: string | null | undefined) => !!getSample(sku);
 
 export const SHOWCASE_KITS: Kit[] = SAMPLES.map((s) => s.kit);
-/** The landing hero's before/after (and its how-it-works story) only. Its kit has no ZIP: link people to the two below. */
-export const FEATURED = SAMPLES[0];
-export const FEATURED_KIT = FEATURED.kit;
 /** Every "Try a sample" entry point: it has a ZIP and replays QA catching a bad placement, the auto-fix and the approval. */
-export const PRIMARY_SAMPLE = getSample(PRIMARY_SAMPLE_SKU) ?? FEATURED;
+export const PRIMARY_SAMPLE = getSample(PRIMARY_SAMPLE_SKU) ?? SAMPLES[0];
+/**
+ * The landing's one product, end to end: the hero's before/after, how it works,
+ * the URL anatomy, the shelves and every "Try a sample" (the same bottle the video shows).
+ */
+export const FEATURED = PRIMARY_SAMPLE;
+/** The mock API's fallback pack (lib/client/mock.ts): the hand-built sneaker kit, as before. */
+export const MOCK_PACK_KIT = SAMPLES[0].kit;
+/** @deprecated Not FEATURED's kit: the mock pack fallback. Use MOCK_PACK_KIT (or FEATURED.kit). */
+export const FEATURED_KIT = MOCK_PACK_KIT;
 /** Every "See a finished kit" link. */
 export const SHOWCASE_SAMPLE = getSample(SHOWCASE_KIT_SKU) ?? FEATURED;
 export const getShowcaseKit = (sku: string) => SHOWCASE_KITS.find((k) => k.sku === sku);
@@ -577,8 +583,60 @@ export function rawAt(p: Pick<ProductRecord, "rawPublicId">, w: number) {
   return `${deliveryBase(SHOWCASE_CLOUD)}/c_fill,ar_4:5,g_auto,w_${snapWidth(w)}/f_auto,q_auto/${p.rawPublicId}`;
 }
 
-/** Tiny blurred placeholder of a stored image (≈1 KB), painted under the real one. */
-export const lqipOf = (publicId: string) => `${deliveryBase(SHOWCASE_CLOUD)}/c_limit,w_32/e_blur:600,q_30/f_auto/${publicId}`;
+/**
+ * Where a sample's trimmed cut-out sits inside its raw photo (px, top-left). Measured by
+ * matching the cut-out's opaque pixels against the raw original: an exact match (mean
+ * absolute difference 0/255), 30 Sep.
+ */
+export const CUTOUT_IN_RAW: Record<string, { x: number; y: number }> = {
+  "snap2shelf/products/shmessy1/cutout": { x: 464, y: 106 },
+};
+
+/**
+ * The sample photo lined up with its hero for the wipe slider, as a transformation of
+ * the raw photo alone: no stored copy and no generated pixels. The photo, blurred and
+ * dimmed, fills the 4:5 frame; on top sits the photo itself, scaled and placed so its
+ * product lands exactly on the hero's product box (geometry() of the kit's own
+ * controls, the same numbers the hero's URL was built from). Null when the cut-out's
+ * place in the photo isn't known.
+ */
+export function alignedBeforeTransformation(s: Pick<SampleProduct, "product" | "scene" | "controls">): string | null {
+  const p = s.product;
+  const at = p.cutout ? CUTOUT_IN_RAW[p.cutout.publicId] : undefined;
+  if (!at || !p.cutout || !p.understanding) return null;
+  const g = geometry(p.cutout, s.scene.dna, quantise(s.controls), p.understanding.placement);
+  // the cut-out is a pixel-exact crop of the photo: scale the photo by the hero's product scale
+  const w = Math.round((p.rawWidth * g.pw) / p.cutout.width);
+  const h = Math.round((p.rawHeight * g.ph) / p.cutout.height);
+  const x = Math.round(g.px - (at.x * w) / p.rawWidth);
+  const y = Math.round(g.py - (at.y * h) / p.rawHeight);
+  return [
+    `c_fill,w_${PLATE.width},h_${PLATE.height}`,
+    "e_blur:1500",
+    "e_brightness:-35",
+    `l_${layerId(p.rawPublicId)}`,
+    `c_scale,w_${w},h_${h}`,
+    "r_18",
+    `fl_layer_apply,g_north_west,x_${x},y_${y}`,
+  ].join("/");
+}
+
+/** The landing's "before": the aligned photo at a fixed width, or the sample's usual before when it can't be aligned. */
+export function landingBeforeAt(s: SampleProduct, w: number) {
+  const t = alignedBeforeTransformation(s);
+  return t ? `${deliveryBase(SHOWCASE_CLOUD)}/${t}/c_scale,w_${snapWidth(w)}/f_auto,q_auto/${s.product.rawPublicId}` : beforeAt(s, w);
+}
+
+/** Tiny blurred placeholder of a stored image (≈1 KB), painted under the real one; `transformation` first when the image is a recipe. */
+export const lqipOf = (publicId: string, transformation?: string) =>
+  `${deliveryBase(SHOWCASE_CLOUD)}/${transformation ? `${transformation}/` : ""}c_limit,w_32/e_blur:600,q_30/f_auto/${publicId}`;
+
+/** Placeholder URL for the landing's "before" (null when there is none to show). */
+export function landingBeforeLqip(s: SampleProduct): string | null {
+  const t = alignedBeforeTransformation(s);
+  if (t) return lqipOf(s.product.rawPublicId, t);
+  return s.beforePublicId ? lqipOf(s.beforePublicId) : null;
+}
 
 export const heroLqip = (kit: Kit) => lqipOf(kit.hero.publicId ?? kit.scene?.publicId ?? kit.product.rawPublicId);
 
