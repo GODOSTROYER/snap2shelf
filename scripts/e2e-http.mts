@@ -88,6 +88,7 @@ step("usage + access");
     process.exit(2);
   }
   check(u.status === 200 && typeof (u.json.generation as { usable: number }).usable === "number", `GET /api/usage 200 (${u.ms} ms) liveGeneration=${u.json.liveGeneration}`);
+  check(typeof u.json.livePipeline === "boolean" && typeof u.json.transformations === "object", `usage exposes the credit floor: livePipeline=${u.json.livePipeline}`);
   check(Boolean(jar.cookie.startsWith("s2s_access=")), "anonymous session cookie issued");
   const bad = await jar.call("POST", "/api/access", { code: "definitely-wrong" });
   check(bad.status === 403 && bad.json.code === "locked", `wrong access code → ${bad.status} ${bad.json.code}`);
@@ -213,6 +214,15 @@ step("pack");
   const z = await fetch(zip);
   const buf = Buffer.from(await z.arrayBuffer());
   check(z.status === 200 && buf.subarray(0, 2).toString() === "PK", `zip → ${z.status} ${buf.length} B`);
+  const done = (await jar.call("GET", `/api/pack/${sku}`)).json.assets as { id: string; url: string }[];
+  const story = done.find((a) => a.id === "story");
+  check(Boolean(story && /\/f_auto,q_auto\/v\d+\/snap2shelf\/products\/[a-z0-9]{8}\/pack\/story$/.test(story.url)), `finished formats are served from their materialised copy (${story?.url.split("/upload/")[1]})`);
+
+  // The sample product (no raw upload) answers its prebuilt pack: no Cloudinary call, no transformation.
+  const sampleHero = `https://res.cloudinary.com/${cloud}/image/upload/f_jpg,q_90/snap2shelf/spikes/heroes/shoe_diwali`;
+  const sp = await jar.call("POST", "/api/pack", { sku: "sneaker1", heroUrl: sampleHero, sceneSlug: "diwali-teak" });
+  const ss = await jar.call("GET", "/api/pack/sneaker1");
+  check(sp.status === 200 && (sp.json.pending as string[]).length === 0 && ss.status === 200, `sample pack → ${sp.status} (${sp.ms} ms) ${(sp.json.assets as unknown[])?.length} prebuilt formats; status → ${ss.status} (${ss.ms} ms)`);
 }
 
 step("generate + jobs");
