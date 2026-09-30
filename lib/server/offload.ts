@@ -1,6 +1,6 @@
 import "server-only";
 import { getAccounts, type CloudinaryAccount } from "../cloudinary/accounts";
-import { ensurePoolCopy, poolCopyId, poolDeliveryUrl } from "../cloudinary/offload";
+import { ensurePoolCopy, forgetPoolCopy, poolCopyId, poolDeliveryUrl } from "../cloudinary/offload";
 import { bench, isQuotaError, QuotaError, rankAccounts } from "../cloudinary/pool";
 import { scrubSecrets } from "../cloudinary/safe";
 import { layerId } from "../transform/composite";
@@ -23,10 +23,16 @@ import { pinJpeg } from "./guard";
  *      unchanged. Main then only derives ordinary f_auto / width variants of it.
  *
  * Account choice: rankAccounts("transformations"): pool accounts only, most
- * plan credits left first, never below the floor, benched after a failure.
+ * plan credits left first, never below the floor; an account that fails is
+ * benched (1 h on quota errors, 10 min otherwise) and the next one is tried.
  * Renders already under way stay on the account that started them. If no pool
- * account can do it (none configured, all benched, any error), the caller runs
- * today's main path: a kit never fails because of offload.
+ * account can do it (none configured, all benched or failing, a 400 about this
+ * image, main unable to store the result), the caller runs today's main path:
+ * a kit never fails because of offload.
+ *
+ * Latency: analyze starts the cutout's pool render next to its AI Vision calls
+ * (prewarmCutout), and a pack's generative formats share one pool copy of the
+ * hero and render in parallel.
  *
  * Upload API and delivery only: no Admin API call (the usage reading behind the
  * ranking is the one the credit floor already refreshes). Pool URLs and cloud
@@ -87,12 +93,18 @@ async function candidates(key: string, cost: number): Promise<CloudinaryAccount[
 function clean(s: string): string {
   let out = scrubSecrets(s);
   for (const a of getAccounts()) if (!a.isMain && a.cloudName) out = out.split(a.cloudName).join(a.label);
-  return out.replace(/[\r\n]+/g, " ").slice(0, 200);
+  // "Invalid Signature <hex>. String to sign - …": the echoed request signature is not needed in a log
+  return out.replace(/(signature\s+)[0-9a-f]{16,}/gi, "$1[redacted]").replace(/[\r\n]+/g, " ").slice(0, 200);
 }
 const msgOf = (err: unknown) => clean(String((err as Error)?.message ?? err));
 
 /** Main's upload of the finished image failed: main's side, the pool account is not to blame. */
-class SaveError extends Error {}
+class SaveError extends Error {
+  constructor(readonly original: unknown) {
+    super(String((original as Error)?.message ?? original));
+  }
+}
+const httpCode = (err: unknown) => (err as { http_code?: number; status?: number })?.http_code ?? (err as { status?: number })?.status;
 /**
  * The derivation answered 400 (e.g. "Invalid input for gen_recolor": the named
  * part isn't found in this photo). It's about this image, not the account: no
@@ -129,6 +141,9 @@ async function onPool<T>(what: string, key: string, cost: number, deadline: numb
     } catch (err) {
       if (picks.get(key) === account.label) picks.delete(key);
       if (err instanceof SaveError) {
+        // main's Upload API is rate limited: rendering on main would fail at the same upload, so answer
+        // exactly as without offload (the route maps it to "pending" / quota_low) instead of spending main's credits
+        if (httpCode(err.original) === 420 || httpCode(err.original) === 429) throw err.original;
         console.warn(`[offload] ${what}: main could not store the ${account.label} render (${msgOf(err)}); main renders it`);
         return null;
       }
@@ -137,6 +152,7 @@ async function onPool<T>(what: string, key: string, cost: number, deadline: numb
         return null;
       }
       bench(account, "transformations", isQuotaError(err) ? QUOTA_BENCH_MS : ERROR_BENCH_MS);
+      forgetPoolCopy(account, key); // when it's back, re-check the copy instead of trusting this process's memo
       console.warn(`[offload] ${what}: ${account.label} failed (${msgOf(err)}); ${n + 1 < list.length ? "trying the next pool account" : "main renders it"}`);
     }
   }
@@ -170,7 +186,7 @@ async function saveOrMark<T>(save: (src: string) => Promise<T>, src: string): Pr
   try {
     return await save(src);
   } catch (err) {
-    throw new SaveError(String((err as Error)?.message ?? err));
+    throw new SaveError(err);
   }
 }
 

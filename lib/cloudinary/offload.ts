@@ -69,6 +69,11 @@ export function ensurePoolCopy(account: CloudinaryAccount, sourceUrl: string, ma
   return p;
 }
 
+/** Drop the memo of one pool copy (after a failed attempt), so the next call checks it again. */
+export function forgetPoolCopy(account: CloudinaryAccount, mainPublicId: string): void {
+  copies.delete(`${account.label}|${poolCopyId(mainPublicId)}`);
+}
+
 /** Test hook. */
 export function __resetPoolCopies(): void {
   copies.clear();

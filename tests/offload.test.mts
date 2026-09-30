@@ -92,7 +92,7 @@ up.explicit = async (id: string, o: Opts) => {
 up.upload = async (file: string, o: Opts) => {
   const cloud = o.cloud_name ?? "?";
   if (failUpload.has(cloud)) {
-    throw { error: { message: `Invalid Signature for api_key ${o.api_key} and api_secret=${o.api_secret}`, http_code: 401 }, request_options: { auth: `${o.api_key}:${o.api_secret}` } };
+    throw { error: { message: `Invalid Signature 0123456789abcdef0123456789abcdef01234567. String to sign - 'public_id=${o.public_id}' api_key ${o.api_key} api_secret=${o.api_secret}`, http_code: 401 }, request_options: { auth: `${o.api_key}:${o.api_secret}` } };
   }
   const rt = o.resource_type ?? "image";
   calls.uploads.push({ cloud, public_id: o.public_id, file, overwrite: o.overwrite, tags: tagsOf(o.tags), context: { ...(o.context ?? {}) } });
@@ -402,6 +402,7 @@ test("fallback: a failing pool account is benched and the next one renders; secr
   assert.deepEqual((await pool.rankAccounts("transformations", 0.1)).map((a) => a.label), ["pool1", "main"], "pool2 benched");
   const text = logs.join("\n");
   assert.ok(/\[offload\] cutout: pool2 failed .*trying the next pool account/.test(text), text);
+  assert.ok(!/Signature [0-9a-f]{16,}/i.test(text), "echoed request signatures are redacted");
   assert.ok(!SECRETS.some((s) => text.includes(s)), "no key or secret in logs");
   assert.ok(!POOLS.some((c) => text.includes(c)), "logs name pool accounts by label only");
 });
@@ -499,4 +500,21 @@ test("prewarm: bounded and silent when the pool is slow or failing", async () =>
   assert.ok(Date.now() - t0 < 1000);
   assert.ok(logs.some((l) => l.startsWith("[offload] cutout prewarm:")));
   assert.ok(!SECRETS.some((x) => logs.join("\n").includes(x)));
+});
+
+test("main's Upload API rate limited while storing a pool render: answered as without offload, main renders nothing", async () => {
+  process.env.S2S_OFFLOAD_POOL = "1";
+  await seedProduct();
+  const orig = up.upload as (file: string, o: Opts) => Promise<unknown>;
+  up.upload = async (file: string, o: Opts) => {
+    if (o.cloud_name === "maincloud" && o.public_id === cutId) throw { error: { message: "Rate Limit Exceeded", http_code: 420 } };
+    return orig(file, o);
+  };
+  try {
+    await assert.rejects(products.ensureCutout(SKU), (e: unknown) => (e as { http_code?: number }).http_code === 420);
+  } finally {
+    up.upload = orig;
+  }
+  assert.ok(!calls.probes.some((u) => u.startsWith("https://res.cloudinary.com/maincloud/") && GEN.test(u)), "no background removal on main");
+  assert.deepEqual((await pool.rankAccounts("transformations", 0.1)).map((a) => a.label), ["pool2", "pool1", "main"], "pool not benched");
 });
