@@ -4,6 +4,7 @@ import { CircleCheck, CircleX, Film } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import type { QaCard } from "@/lib/present/data";
+import { REEL_MOVES } from "@/lib/transform/reel";
 import { preloadVideo } from "@/lib/present/preload";
 import type { KitAsset } from "@/lib/types";
 import { CatalogTileFrame, FeedPostFrame, LinkPreviewFrame, ListingCardFrame, PhoneFrame, StoryFrame, WebBannerFrame, type ShopFacts } from "../frames";
@@ -281,7 +282,7 @@ export function Reel({ d }: ChapterProps) {
   const PW = 470;
   const CX = 1250;
   const PH = Math.round((PW - 28) * (16 / 9)) + 28;
-  const moves = ["Push in", "Pull back", "Pan", "Tilt down", "Pan back"];
+  const moves = REEL_MOVES.map((m) => m.label[0].toUpperCase() + m.label.slice(1));
 
   return (
     <>
@@ -312,14 +313,14 @@ export function Reel({ d }: ChapterProps) {
             >
               <Img src={c.url} alt="" className="pz-fill" />
             </div>
-            <span className="pz-small" style={{ color: i === activeClip ? "var(--pz-marigold-hi)" : undefined }}>
+            <span className="pz-small" style={{ width: 134, textAlign: "center", lineHeight: 1.3, color: i === activeClip ? "var(--pz-marigold-hi)" : undefined }}>
               {moves[i % moves.length]}
             </span>
           </Rise>
         ))}
       </div>
 
-      <Rise delay={0.9} style={abs(120, 910, { display: "flex", gap: 10 })}>
+      <Rise delay={0.9} style={abs(120, 936, { display: "flex", gap: 10 })}>
         {["e_zoompan", "fl_splice", "e_fade", "l_text", ".mp4"].map((t) => (
           <span key={t} className="pz-chip pz-mono" style={{ fontSize: 17 }}>
             {t}

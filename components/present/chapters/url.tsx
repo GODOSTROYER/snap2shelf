@@ -249,8 +249,8 @@ export function Cost({ d }: ChapterProps) {
       <div style={abs(800, 330, { width: 1000, display: "grid", gap: 64 })}>
         <Rise delay={0.6} style={{ display: "grid", gap: 18 }}>
           <div className="pz-display" style={{ fontSize: 44 }}>
-            <CountUp to={c.generationCredits} from={0} duration={0.6} delay={0.8} /> generation credits
-            <span style={{ color: "var(--pz-faint)" }}> for this kit</span>
+            <CountUp to={c.creditsSavedByReuse} duration={1.4} delay={0.8} /> credits saved by reuse
+            <span style={{ color: "var(--pz-faint)" }}>, {c.generationCredits} spent</span>
           </div>
           <Meter label="Fresh scene per stage" value={`${c.creditsSavedByReuse} credits`} ratio={1} delay={1} color="rgb(244 236 224 / 0.28)" dim />
           <Meter label="Reused from the library" value={<CountUp to={0} from={c.creditsSavedByReuse} delay={1.4} duration={1.2} format={(v) => `${Math.round(v)} credits`} />} ratio={0.012} delay={1.4} color="var(--pz-marigold)" />
@@ -274,7 +274,7 @@ export function Cost({ d }: ChapterProps) {
           <Meter label="Studio photoshoot" value={`₹${fmtInt(c.photoshootInr)}`} ratio={1} delay={3} color="rgb(244 236 224 / 0.28)" dim />
           <Meter label="This kit" value={`₹${fmtInt(kitInr)}`} ratio={kitInr / c.photoshootInr} delay={3.3} color="var(--pz-marigold)" />
           <span className="pz-small">
-            Estimates: {c.photoshootNote.toLowerCase()}; {c.inrNote.replace(/^≈ /, "")}.
+            Estimates: {c.photoshootNote.toLowerCase()}; {c.inrNote}.
           </span>
         </Rise>
       </div>

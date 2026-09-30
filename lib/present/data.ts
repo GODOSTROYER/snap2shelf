@@ -5,10 +5,9 @@
  * `fromKits(kits, extras)` from plain `Kit` records (lib/types.ts), so real
  * seeded kits drop in without touching a single chapter:
  *
- *   ── To switch to the seeded showcase, change the ONE marked line at the end
- *      of this file to:
+ *   ── To switch to the seeded showcase: uncomment the `showcase` import below
+ *      the other imports, and change the marked line at the end of this file to
  *
- *        import showcase from "@/data/showcase.json";
  *        export const PRESENT: PresentData = fromShowcase(showcase);
  *
  *      `showcase.json` may be `Kit[]` or `{ kits: Kit[] }`. The first Exact-mode
@@ -41,6 +40,7 @@ import {
   type SceneDNA,
   type XraySegment,
 } from "@/lib/types";
+// import showcase from "@/data/showcase.json"; // ← seeded kits (see the header)
 
 // ─── Public shape ─────────────────────────────────────────────────────────────
 
@@ -414,9 +414,9 @@ export const EXTRAS: PresentExtras = {
   ],
   // Illustrative, clearly labelled as estimates in the deck.
   photoshootInr: 4000,
-  photoshootNote: "Typical small-studio quote for one product (estimate)",
+  photoshootNote: "Typical small-studio quote for one product",
   inrPerCredit: 33,
-  inrNote: "≈ ₹33 per credit at Cloudinary Plus list price (estimate)",
+  inrNote: "about ₹33 per credit at Cloudinary Plus list price",
 };
 
 // ─── The adapter ──────────────────────────────────────────────────────────────
@@ -626,6 +626,6 @@ export function fromShowcase(json: unknown, featuredSku?: string): PresentData {
   return fromKits(kits, EXTRAS, featuredSku);
 }
 
-// ══ THE ONE LINE TO CHANGE ══════════════════════════════════════════════════
-// Seeded showcase:  import showcase from "@/data/showcase.json";  →  fromShowcase(showcase)
+// ══ THE LINE TO CHANGE ══════════════════════════════════════════════════════
+// Seeded showcase: export const PRESENT: PresentData = fromShowcase(showcase);
 export const PRESENT: PresentData = fromKits(SAMPLE_KITS, EXTRAS);

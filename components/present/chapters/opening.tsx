@@ -208,7 +208,10 @@ export function Cutout({ d }: ChapterProps) {
   const DUR = 7.4;
   const D0 = 1.0;
   const beat = useBeat([D0 + DUR * 0.28, D0 + DUR * 0.6, D0 + DUR * 0.86]);
-  const box = cut.box ?? { x: 0.08, y: 0.3, w: 0.84, h: 0.4 };
+  // unknown position in the photo: centre it, true to its aspect ratio
+  const fitH = Math.min(0.6, (0.84 * W * cut.height) / cut.width / H);
+  const fitW = (fitH * H * cut.width) / cut.height / W;
+  const box = cut.box ?? { x: (1 - fitW) / 2, y: 0.5 - fitH / 2, w: fitW, h: fitH };
 
   return (
     <>
