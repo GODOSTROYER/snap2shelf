@@ -1,6 +1,6 @@
 /**
  * Demo answers for every route in lib/api-contract.ts, used when
- * NEXT_PUBLIC_S2S_MOCK=1 or when a route isn't deployed yet.
+ * NEXT_PUBLIC_S2S_MOCK=1 (offline UI work only; production never uses them).
  * Wherever possible the answers are still real Cloudinary data: scenes come from
  * the public tag list, pack assets are real transformation URLs on a saved hero.
  */
@@ -19,11 +19,9 @@ import type {
   UsageResponse,
 } from "../api-contract";
 import { sceneFromListResource, sceneListUrl, SCENE_TAG } from "../scenes";
-import { CREATIVE_APPROVED, CREATIVE_MODELS, CREATIVE_REJECTED, FEATURED_KIT, getSample, SAMPLES, SHOWCASE_CLOUD, heroAlt } from "../showcase";
-import { channelAssets } from "../transform/channels";
+import { CREATIVE_APPROVED, CREATIVE_MODELS, CREATIVE_REJECTED, FEATURED_KIT, getSample, SAMPLES, SHOWCASE_CLOUD } from "../showcase";
 import { SCENE_ROOT, type KitAsset, type Scene, type SceneView, type Sku } from "../types";
 import { ApiFailure } from "./errors";
-import { recolorLabel } from "./swatches";
 
 export async function analyze(sku: Sku): Promise<AnalyzeResponse> {
   return {
@@ -110,17 +108,7 @@ const packs = new Map<Sku, PackStatusResponse>();
 
 export async function pack(req: PackRequest): Promise<PackResponse> {
   const s = getSample(req.sku) ?? SAMPLES[0];
-  const alt = heroAlt(s.product, s.scene);
-  const assets: KitAsset[] = channelAssets({
-    heroPublicId: s.heroPublicId,
-    cutoutPublicId: s.product.cutout!.publicId,
-    alt,
-    recolorPart: s.product.understanding?.recolorable_part,
-    swatches: req.recolor ?? s.swatches,
-    offer: req.offer ?? s.offer,
-    textZone: s.scene.dna.text_zone,
-    cloud: SHOWCASE_CLOUD,
-  }).map((a) => (a.id.startsWith("recolor-") ? { ...a, label: recolorLabel(a.id) } : a));
+  const assets: KitAsset[] = s.kit.assets;
   packs.set(req.sku, { assets, pending: [] });
   return { sku: req.sku, heroPublicId: s.heroPublicId, assets, pending: [] };
 }

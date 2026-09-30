@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { cn } from "@/lib/client/util";
+import { FEATURED } from "@/lib/showcase";
 
 export function Mark({ className }: { className?: string }) {
   // a product resting on a shelf, casting its shadow
@@ -25,7 +26,7 @@ type Section = "home" | "studio" | "kit" | "capture" | "admin";
 
 const links: { href: string; label: string; section: Section }[] = [
   { href: "/studio", label: "Studio", section: "studio" },
-  { href: "/kit/sneaker1", label: "Sample kit", section: "kit" },
+  { href: `/kit/${FEATURED.sku}`, label: "Sample kit", section: "kit" },
 ];
 
 export function SiteHeader({ current, children }: { current: Section; children?: React.ReactNode }) {

@@ -2,22 +2,12 @@
  * View-model helpers for showing a Kit: shelf grouping, X-ray colours, the
  * mock storefront copy inside frames. Pure and server-safe.
  */
+import { deliveryBase } from "../transform/composite";
+import { XRAY_KINDS } from "../transform/xray";
 import type { Kit, KitAsset, XraySegment } from "../types";
-import { reelPoster } from "./reel";
 
-export const KIND_META: Record<XraySegment["kind"], { label: string; color: string }> = {
-  crop: { label: "Crop", color: "var(--color-x-crop)" },
-  layer: { label: "Layer", color: "var(--color-x-layer)" },
-  placement: { label: "Placement", color: "var(--color-x-placement)" },
-  shadow: { label: "Shadow", color: "var(--color-x-shadow)" },
-  reflection: { label: "Reflection", color: "var(--color-x-reflection)" },
-  effect: { label: "Effect", color: "var(--color-x-effect)" },
-  "gen-ai": { label: "Generative AI", color: "var(--color-x-gen)" },
-  text: { label: "Text", color: "var(--color-x-text)" },
-  format: { label: "Format", color: "var(--color-x-format)" },
-  asset: { label: "Source", color: "var(--color-x-asset)" },
-  video: { label: "Video", color: "var(--color-x-video)" },
-};
+/** CSS colour for an X-ray segment kind: the theme token, with the module's swatch as fallback. */
+export const xrayColor = (kind: XraySegment["kind"]) => `var(${XRAY_KINDS[kind].token}, ${XRAY_KINDS[kind].swatch})`;
 
 export type ShelfItem =
   | { kind: "asset"; key: string; asset: KitAsset }
@@ -32,19 +22,26 @@ export interface ShelfGroup {
 const SOCIAL = new Set(["story", "feed", "offer"]);
 const SHOP = new Set(["marketplace", "whatsapp", "banner"]);
 
+/** First clip of a reel (the asset its .mp4 leaf names), as a poster frame. */
+export function reelPoster(kit: Kit, w = 360) {
+  const leaf = kit.reel?.xray.segments.find((s) => s.kind === "asset")?.text.replace(/\.mp4$/, "");
+  const id = leaf ?? kit.hero.publicId ?? kit.product.rawPublicId;
+  const cloud = /res\.cloudinary\.com\/([^/]+)\//.exec(kit.reel?.url ?? kit.hero.url)?.[1];
+  return `${deliveryBase(cloud)}/c_fill,w_720,h_1280,g_center/c_scale,w_${w}/f_auto,q_auto/${id}`;
+}
+
 /** Pseudo-asset for the reel so it can sit in a frame like everything else. */
 export function reelAsset(kit: Kit): ShelfItem | null {
   if (!kit.reel) return null;
-  const heroId = kit.hero.publicId ?? kit.product.rawPublicId;
   return {
     kind: "reel",
     key: "reel",
     src: kit.reel.url,
-    poster: reelPoster(heroId),
+    poster: reelPoster(kit),
     asset: {
       id: "reel",
       format: "story",
-      label: `Kit Reel ${Math.round(kit.reel.seconds)} s`,
+      label: `Kit Reel, ${Math.round(kit.reel.seconds)} s`,
       url: kit.reel.url,
       width: 720,
       height: 1280,

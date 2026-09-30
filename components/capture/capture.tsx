@@ -132,8 +132,8 @@ export function Capture({ sku: given }: { sku?: string }) {
           {phase.kind === "error" ? (
             <div role="alert" className="mt-5 rounded-xl bg-sindoor/10 px-4 py-3 text-sm text-sindoor ring-1 ring-sindoor/30">
               <p>{phase.message}</p>
-              <Link href="/studio?sample=sneaker1" className="mt-1.5 inline-block font-semibold text-paper underline decoration-sindoor/60">
-                Try the sample product
+              <Link href="/studio" className="mt-1.5 inline-block font-semibold text-paper underline decoration-sindoor/60">
+                Try a sample product instead
               </Link>
             </div>
           ) : null}

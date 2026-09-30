@@ -18,6 +18,7 @@ export function StaticShelves({ kit }: { kit: Kit }) {
                 <AssetFrame
                   asset={item.asset}
                   product={product}
+          frame={item.kind === "reel" ? "reel" : undefined}
                   media={item.kind === "reel" ? <ReelVideo src={item.src} poster={item.poster} label={item.asset.alt} /> : undefined}
                 />
               </div>

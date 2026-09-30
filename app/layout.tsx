@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
-import { FEATURED_KIT, ogImageUrl } from "@/lib/showcase";
+import { siteOgImage } from "@/lib/showcase";
 import "./globals.css";
 
 const display = Bricolage_Grotesque({
@@ -38,9 +38,9 @@ export const metadata: Metadata = {
     title: "Snap2Shelf",
     description,
     type: "website",
-    images: [{ url: ogImageUrl(FEATURED_KIT), width: 1200, height: 630, alt: FEATURED_KIT.hero.alt }],
+    images: [{ url: siteOgImage(), width: 1200, height: 630, alt: "Snap2Shelf: product photos staged on festive and studio scenes" }],
   },
-  twitter: { card: "summary_large_image", title: "Snap2Shelf", description },
+  twitter: { card: "summary_large_image", title: "Snap2Shelf", description, images: [siteOgImage()] },
 };
 
 export const viewport: Viewport = {

@@ -17,30 +17,30 @@ export function HowItWorks({ kit }: { kit: Kit }) {
     {
       title: "Snap",
       body: "Upload a photo, or scan a QR code and take one with your phone. Any background, any light.",
-      art: <CloudImg src={publicUrl(p.rawPublicId, { w: 480, h: 600, crop: "c_fill,g_auto" })} alt="The original phone photo of the sneaker" width={480} height={600} className="size-full object-cover" />,
+      art: <CloudImg src={publicUrl(p.rawPublicId, { w: 480, h: 600, crop: "c_fill,g_auto" })} alt={`The original phone photo: ${p.caption ?? "the product on a plain floor"}`} width={480} height={600} className="size-full object-cover" />,
     },
     {
       title: "Cut out",
       body: "The product is lifted off its background once. Every shot after this reuses the same cut-out.",
       art: (
         <div className="checker size-full">
-          <CloudImg src={publicUrl(p.cutout!.publicId, { w: 480, h: 600, crop: "c_pad,b_rgb:00000000" })} alt="The sneaker cut out, on a transparent background" width={480} height={600} className="size-full bg-transparent object-cover" />
+          <CloudImg src={publicUrl(p.cutout!.publicId, { w: 480, h: 600, crop: "c_pad,b_rgb:00000000" })} alt={`The ${p.understanding?.name.toLowerCase() ?? "product"} cut out, on a transparent background`} width={480} height={600} className="size-full bg-transparent object-cover" />
         </div>
       ),
     },
     {
       title: "Stage",
-      body: "Placed on a ready-made scene. AI Vision already knows where its surface is and where the light comes from, so the shadow falls the right way.",
+      body: "Placed on a ready-made scene. AI Vision already knows where its surface is and where the light comes from, so the shadows fall the right way and the tone matches.",
       art: <CloudImg src={heroAt(kit, 480)} alt={kit.hero.alt} width={480} height={600} className="size-full object-cover" />,
     },
     {
       title: "Check",
-      body: "AI Vision compares every result with your photo. This generated take looked great, and was rejected: it changed the shoe.",
+      body: "AI Vision checks every result against your photo. This generated take of a test sneaker looked great, and was rejected: the model redesigned the shoe.",
       art: (
         <div className="relative size-full">
           <CloudImg src={publicUrl(CREATIVE_REJECTED.publicId!, { w: 480, h: 600, crop: "c_fill,g_auto" })} alt={CREATIVE_REJECTED.alt} width={480} height={600} className="size-full object-cover" />
           <QaBadge qa={CREATIVE_REJECTED.qa!} className="absolute top-3 left-3 bg-studio/85 backdrop-blur-sm" />
-          <ul className="absolute inset-x-0 bottom-0 grid gap-1 bg-gradient-to-t from-black/85 via-black/60 to-transparent px-3 pt-10 pb-3 text-[0.74rem] leading-snug font-semibold text-white">
+          <ul className="absolute inset-x-0 bottom-0 grid gap-1 bg-gradient-to-t from-black/85 via-black/60 to-transparent px-3 pt-10 pb-3 text-[0.75rem] leading-snug font-semibold text-white">
             {CREATIVE_REJECTED.qa!.reasons.map((r) => (
               <li key={r} className="flex gap-1.5">
                 <span aria-hidden className="mt-[0.4em] size-1.5 shrink-0 rounded-full bg-sindoor" />
@@ -62,7 +62,7 @@ export function HowItWorks({ kit }: { kit: Kit }) {
               className="absolute top-1/2 left-1/2 w-[58%] overflow-hidden rounded-lg shadow-[0_18px_30px_-12px_rgb(0_0_0/0.9)] ring-1 ring-white/10"
               style={{ transform: `translate(-50%, -50%) translate(${(i - 1) * 22}%, ${Math.abs(i - 1) * 6}%) rotate(${(i - 1) * 11}deg)`, zIndex: i === 1 ? 2 : 1 }}
             >
-              <CloudImg src={sizedUrl(a, 320)} alt={a.label} width={a.width} height={a.height} className="block w-full bg-frame-line" />
+              <CloudImg src={sizedUrl(a, 320)} alt={`${a.label}: ${a.alt}`} width={a.width} height={a.height} className="block w-full bg-frame-line" />
             </div>
           ))}
         </div>

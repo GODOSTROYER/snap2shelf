@@ -30,8 +30,8 @@ export function Shelf({ title, children, className }: { title: string; children:
 /** Shelf-edge label: what the asset is and its size. */
 export function ShelfTag({ asset, children }: { asset: Pick<KitAsset, "label" | "width" | "height">; children?: React.ReactNode }) {
   return (
-    <div className="mt-[14px] flex items-center gap-2">
-      <p className="rounded-b-[5px] rounded-t-[2px] bg-paper px-2 py-1 text-[0.74rem] leading-none font-semibold text-studio shadow-[0_6px_14px_-6px_rgb(0_0_0/0.8)]">
+    <div data-tag className="mt-[14px] flex items-center gap-2">
+      <p className="rounded-b-[5px] rounded-t-[2px] bg-paper px-2 py-1 text-[0.75rem] leading-none font-semibold text-studio shadow-[0_6px_14px_-6px_rgb(0_0_0/0.8)]">
         {asset.label}
         <span className="tabular ml-1.5 font-medium text-studio/60">{dims(asset)}</span>
       </p>

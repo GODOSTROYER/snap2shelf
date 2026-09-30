@@ -22,7 +22,7 @@ export interface DealRequest {
  * on every card. When `deal` changes, the cards are dealt from the hero onto
  * the shelves, and the reel starts once they've landed.
  */
-export function KitShelves({ kit, deal, onDealt }: { kit: Kit; deal?: DealRequest | null; onDealt?: () => void }) {
+export function KitShelves({ kit, deal, onDealt, rendering = [] }: { kit: Kit; deal?: DealRequest | null; onDealt?: () => void; rendering?: string[] }) {
   const [xray, setXray] = React.useState<KitAsset | null>(null);
   const [reelReady, setReelReady] = React.useState(!deal);
   const root = React.useRef<HTMLDivElement>(null);
@@ -51,6 +51,12 @@ export function KitShelves({ kit, deal, onDealt }: { kit: Kit; deal?: DealReques
 
   return (
     <div ref={root} className="grid gap-4">
+      {rendering.length ? (
+        <p role="status" className="mx-4 flex items-center gap-2.5 rounded-xl bg-stage px-4 py-3 text-sm text-dim ring-1 ring-line sm:mx-8 sm:w-fit">
+          <span aria-hidden className="size-2 animate-pulse rounded-full bg-marigold" />
+          Still rendering: {rendering.map(formatName).join(", ")}. They land on the shelf as soon as Cloudinary finishes.
+        </p>
+      ) : null}
       {groups.map((g) => (
         <Shelf key={g.id} title={g.title}>
           {g.items.map((item) => (
@@ -65,6 +71,9 @@ export function KitShelves({ kit, deal, onDealt }: { kit: Kit; deal?: DealReques
   );
 }
 
+const NAMES: Record<string, string> = { story: "story", banner: "web banner", marketplace: "marketplace image", whatsapp: "catalog tile", offer: "festive offer", feed: "feed post" };
+const formatName = (id: string) => NAMES[id] ?? (id.startsWith("recolor-") ? "a colour variant" : id);
+
 function Card({ item, product, reelReady, onXray }: { item: ShelfItem; product: ReturnType<typeof frameProduct>; reelReady: boolean; onXray: (a: KitAsset) => void }) {
   const a = item.asset;
   return (
@@ -73,6 +82,7 @@ function Card({ item, product, reelReady, onXray }: { item: ShelfItem; product: 
         <AssetFrame
           asset={a}
           product={product}
+          frame={item.kind === "reel" ? "reel" : undefined}
           media={item.kind === "reel" ? <ReelVideo src={item.src} poster={item.poster} label={a.alt} ready={reelReady} /> : undefined}
         />
       </div>
@@ -104,6 +114,7 @@ function dealCards(root: HTMLElement, cards: HTMLElement[], from: () => DOMRect 
     state.cancelled = true;
     state.layer?.remove();
     cards.forEach((c) => (c.style.opacity = ""));
+    cards.forEach((c) => tagOf(c)?.style.removeProperty("opacity"));
   };
   const done = flyCards(root, cards, from, state).then(
     () => !state.cancelled,
@@ -118,6 +129,14 @@ function dealCards(root: HTMLElement, cards: HTMLElement[], from: () => DOMRect 
 async function flyCards(root: HTMLElement, cards: HTMLElement[], from: () => DOMRect | null, state: { cancelled: boolean; layer: HTMLElement | null }) {
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   cards.forEach((c) => (c.style.opacity = "0"));
+  // shelf-edge tags arrive with their card
+  cards.forEach((c) => tagOf(c)?.style.setProperty("opacity", "0"));
+  const showTag = (c: HTMLElement) => {
+    const t = tagOf(c);
+    if (!t) return;
+    t.style.removeProperty("opacity");
+    void animate(t, { opacity: [0, 1], y: [-4, 0] }, { duration: 0.35, ease: [0.16, 1, 0.3, 1] });
+  };
   // Load every card's image while we scroll, so no card is dealt face-down.
   const imgs = cards.flatMap((c) => Array.from(c.querySelectorAll("img")));
   imgs.forEach((i) => (i.loading = "eager"));
@@ -131,6 +150,7 @@ async function flyCards(root: HTMLElement, cards: HTMLElement[], from: () => DOM
       cards.map((c) =>
         animate(c, { opacity: [0, 1] }, { duration: 0.25 }).then(() => {
           c.style.opacity = "";
+          showTag(c);
         }),
       ),
     );
@@ -195,12 +215,15 @@ async function flyCards(root: HTMLElement, cards: HTMLElement[], from: () => DOM
     ).then(() => {
       if (state.cancelled) return;
       g.card.style.opacity = "";
+      showTag(g.card);
       g.ghost.remove();
     }),
   );
   await Promise.all(flights);
   layer.remove();
 }
+
+const tagOf = (card: HTMLElement) => card.parentElement?.querySelector<HTMLElement>("[data-tag]") ?? null;
 
 /** Scroll the shelves to the top of the viewport (if they aren't already) and wait for it to settle. */
 function bringIntoView(el: HTMLElement, reduced: boolean) {

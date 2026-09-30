@@ -1,5 +1,7 @@
+/* eslint-disable @next/next/no-img-element -- Cloudinary delivery URLs, already sized and formatted (f_auto,q_auto) */
 import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
+import { preload } from "react-dom";
 import { StaticShelves } from "@/components/kit/static-shelves";
 import { BeforeAfter } from "@/components/landing/before-after";
 import { HowItWorks } from "@/components/landing/how-it-works";
@@ -8,48 +10,122 @@ import { PhoneButton } from "@/components/phone/phone-button";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { buttonVariants } from "@/components/ui/button";
-import { isBuiltUrl, srcSet } from "@/lib/client/img";
+import { isBuiltUrl, sizedUrl, srcSet } from "@/lib/client/img";
 import { countAssets } from "@/lib/client/kit-view";
 import { cn } from "@/lib/client/util";
-import { FEATURED_KIT, heroAt, rawAt, SAMPLES } from "@/lib/showcase";
+import { beforeAt, FEATURED, heroAt, lqipOf } from "@/lib/showcase";
 
-const kit = FEATURED_KIT;
-const sample = SAMPLES[0];
+const sample = FEATURED;
+const kit = sample.kit;
 const WIDTHS = [480, 720, 1080];
+const SIZES = "(min-width: 1440px) 610px, (min-width: 1024px) 42vw, (min-width: 640px) 34rem, calc(100vw - 2rem)";
 
 const CLOUDINARY_PARTS = [
   ["Upload Widget and signed uploads", "Photos go straight from the laptop or phone to Cloudinary."],
   ["Background removal", "Cuts the product out once; every shot reuses that cut-out."],
   ["AI Vision", "Reads the product, maps each scene's surface and light, and runs the QA check."],
   ["Image Generation", "Builds the scene library once, and powers Creative mode."],
-  ["Layers and effects", "The hero itself: cut-out, contact shadow and cast shadow, placed by URL."],
+  ["Layers and effects", "The hero itself: cut-out, contact and cast shadows, light-match, placed by URL."],
   ["Generative fill and recolor", "Stretches the hero to story and banner sizes, and makes colour variants."],
   ["Text overlays with Google fonts", "Festive offers in Hindi and English, no font uploads."],
-  ["Video from stills", "The Kit Reel is spliced from photos, straight from a URL."],
+  ["Video from stills", "The Kit Reel is spliced from the stored formats, straight from a URL."],
   ["Archives and automatic format", "One zip for everything; every image in the lightest format each browser supports."],
 ] as const;
 
-export default function Home() {
+/** A ~1 KB blurred copy, inlined so the hero never paints as an empty box. */
+async function inlineLqip(publicId: string): Promise<string> {
+  const url = lqipOf(publicId).replace("/f_auto/", "/f_jpg/");
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(2500), cache: "force-cache" });
+    if (!res.ok) return url;
+    return `data:image/jpeg;base64,${Buffer.from(await res.arrayBuffer()).toString("base64")}`;
+  } catch {
+    return url;
+  }
+}
+
+export default async function Home() {
   const hero = kit.hero;
+  const find = (id: string) => kit.assets.find((a) => a.id === id || a.id.startsWith(id));
+  // front to back: the offer (text), a colour variant, the marketplace white
+  const fan = [find("offer"), find("recolor-"), find("marketplace")].filter((a): a is NonNullable<typeof a> => !!a);
+  const [heroPh, beforePh] = await Promise.all([inlineLqip(sample.heroPublicId), sample.beforePublicId ? inlineLqip(sample.beforePublicId) : Promise.resolve(undefined)]);
+
+  // the hero is the LCP image: start it with the HTML
+  preload(heroAt(kit, 720), { as: "image", imageSrcSet: srcSet((w) => heroAt(kit, w), WIDTHS), imageSizes: SIZES, fetchPriority: "high" });
+
   return (
     <>
       <SiteHeader current="home" />
       <main id="main">
-        {/* Hero */}
-        <section className="mx-auto grid max-w-[90rem] items-center gap-10 px-4 pt-4 pb-20 sm:px-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:gap-16 lg:pt-8 lg:pb-28">
-          <div className="max-w-[40rem]">
-            <h1 className="text-[clamp(3.1rem,10.5vw,6rem)] leading-[0.9] font-extrabold tracking-[-0.035em] [font-variation-settings:'wdth'_84,'opsz'_96]">
+        {/* Hero: on phones the picture sits between the promise and the buttons */}
+        <section className="mx-auto grid max-w-[90rem] overflow-x-clip gap-x-10 gap-y-5 px-4 pt-1 pb-20 [grid-template-areas:'title'_'figure'_'act'] sm:gap-y-8 sm:px-8 sm:pt-4 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:grid-rows-[1fr_auto_auto_1fr] lg:gap-x-16 lg:gap-y-0 lg:pt-6 lg:pb-28 lg:[grid-template-areas:'._figure'_'title_figure'_'act_figure'_'._figure']">
+          <div className="max-w-[40rem] [grid-area:title]">
+            <h1 className="text-[clamp(2.75rem,12vw,6rem)] leading-[0.9] font-extrabold tracking-[-0.035em] [font-variation-settings:'wdth'_84,'opsz'_96]">
               <span className="rise block">One photo.</span>
               <span className="rise block [animation-delay:110ms]">A whole shelf.</span>
             </h1>
-            <p className="rise mt-6 font-display text-[clamp(1.25rem,3.4vw,1.6rem)] leading-snug font-medium text-paper [animation-delay:220ms]">
+            <p className="rise mt-3 font-display text-[clamp(1.05rem,3.4vw,1.6rem)] leading-snug font-medium text-paper [animation-delay:220ms] sm:mt-6">
               AI builds the stage — your product stays real.
             </p>
-            <p className="mt-4 hidden max-w-[33rem] text-lg text-dim sm:block">
+          </div>
+
+          <figure className="relative mx-auto w-full max-w-[34rem] [grid-area:figure] lg:mr-0 lg:max-w-[min(100%,calc((100dvh-9rem)*0.8))] lg:self-center">
+            {/* the rest of the kit, dealt out from behind the hero (wide screens) */}
+            <div aria-hidden className="pointer-events-none absolute inset-0 hidden xl:block">
+              {fan.map((a, i) => {
+                const pose = [
+                  { left: "-26%", top: "33%", w: "33%", r: "-3deg", z: 3 },
+                  { left: "-22%", top: "6%", w: "30%", r: "-8deg", z: 2 },
+                  { left: "-20%", top: "67%", w: "27%", r: "-12deg", z: 1 },
+                ][i];
+                return (
+                  <img
+                    key={a.id}
+                    src={sizedUrl(a, 400)}
+                    alt=""
+                    width={a.width}
+                    height={a.height}
+                    loading="lazy"
+                    decoding="async"
+                    className="fan-card absolute rounded-xl bg-stage-2 shadow-[0_30px_60px_-20px_rgb(0_0_0/0.95)] ring-1 ring-white/10"
+                    style={{ left: pose.left, top: pose.top, width: pose.w, rotate: pose.r, zIndex: pose.z, "--i": i } as React.CSSProperties}
+                  />
+                );
+              })}
+            </div>
+            <div aria-hidden className="pointer-events-none absolute -inset-[8%] -z-10 bg-[radial-gradient(closest-side,rgb(245_165_36/0.16),transparent)]" />
+            <div className="relative z-10">
+            <BeforeAfter
+              width={1080}
+              height={1350}
+              sizes={SIZES}
+              before={{
+                src: beforeAt(sample, 720),
+                srcSet: srcSet((w) => beforeAt(sample, w), WIDTHS),
+                alt: `The original phone photo: ${sample.product.caption?.replace(/\.$/, "").replace(/^A /, "a ") ?? "the product"}`,
+                placeholder: beforePh,
+              }}
+              after={{ src: heroAt(kit, 720), srcSet: srcSet((w) => heroAt(kit, w), WIDTHS), alt: hero.alt, placeholder: heroPh }}
+            />
+            </div>
+            {/* the hero stands on the same lit shelf as everything it produces */}
+            <div aria-hidden className="shelf-ledge relative z-10 -mx-3 -mt-1 sm:-mx-6" />
+            <figcaption className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-dim sm:mt-3.5">
+              <span className="hidden rounded-t-[2px] rounded-b-[5px] bg-paper px-2 py-1 text-[0.75rem] leading-none font-semibold text-studio shadow-[0_6px_14px_-6px_rgb(0_0_0/0.8)] sm:inline">
+                Hero 4:5 <span className="tabular ml-1 font-medium text-studio/60">1080 × 1350</span>
+              </span>
+              <span className="sm:hidden">Drag to compare. Same sneaker, new stage.</span>
+              <span className="hidden sm:inline">Drag to compare. Same sneaker pixels, new stage, zero generation credits.</span>
+            </figcaption>
+          </figure>
+
+          <div className="max-w-[40rem] [grid-area:act]">
+            <p className="mt-6 hidden max-w-[33rem] text-lg text-dim sm:block">
               Snap one product photo. Snap2Shelf cuts it out, stages it on a festive or studio scene with matching shadows, checks that nothing about your product changed, then
               turns it into every format your shop and socials need.
             </p>
-            <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+            <div className="mt-1 flex flex-col gap-3 sm:mt-9 sm:flex-row sm:flex-wrap">
               <Link href={`/studio?sample=${sample.sku}`} className={buttonVariants({ size: "lg" })}>
                 Try a sample product (no signup)
               </Link>
@@ -62,32 +138,10 @@ export default function Home() {
               </Link>
             </p>
           </div>
-
-          <figure className="mx-auto w-full max-w-[34rem] lg:mr-0 lg:max-w-[min(100%,calc((100dvh-9rem)*0.8))]">
-            <BeforeAfter
-              width={1080}
-              height={1350}
-              sizes="(min-width: 1440px) 620px, (min-width: 1024px) 44vw, (min-width: 640px) 34rem, 92vw"
-              before={{
-                src: rawAt(kit.product, 720),
-                srcSet: srcSet((w) => rawAt(kit.product, w), WIDTHS),
-                alt: "The original phone photo: the sneaker floating on a flat pink background",
-              }}
-              after={{ src: heroAt(kit, 720), srcSet: srcSet((w) => heroAt(kit, w), WIDTHS), alt: hero.alt }}
-            />
-            {/* the hero stands on the same lit shelf as everything it produces */}
-            <div aria-hidden className="shelf-ledge relative -mx-3 -mt-1 sm:-mx-6" />
-            <figcaption className="mt-3.5 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-dim">
-              <span className="rounded-b-[5px] rounded-t-[2px] bg-paper px-2 py-1 text-[0.74rem] leading-none font-semibold text-studio shadow-[0_6px_14px_-6px_rgb(0_0_0/0.8)]">
-                Hero 4:5 <span className="tabular ml-1 font-medium text-studio/60">1080 × 1350</span>
-              </span>
-              Drag to compare. Same sneaker pixels, new stage, zero generation credits.
-            </figcaption>
-          </figure>
         </section>
 
         {/* The shelf */}
-        <section aria-labelledby="shelf-title" className="mx-auto max-w-[90rem] pb-24">
+        <section aria-labelledby="shelf-title" className="below-fold mx-auto max-w-[90rem] pb-24 [contain-intrinsic-size:auto_1500px]">
           <div className="flex flex-col gap-4 px-4 sm:flex-row sm:items-end sm:justify-between sm:px-8">
             <div className="max-w-[40rem]">
               <h2 id="shelf-title" className="text-[clamp(2rem,5vw,3.25rem)] leading-[1] font-bold tracking-[-0.03em]">
@@ -106,7 +160,7 @@ export default function Home() {
         </section>
 
         {/* How it works */}
-        <section id="how" aria-labelledby="how-title" className="border-t border-line">
+        <section id="how" aria-labelledby="how-title" className="below-fold scroll-mt-4 border-t border-line [contain-intrinsic-size:auto_900px]">
           <div className="mx-auto max-w-[90rem] px-4 py-20 sm:px-8 lg:py-28">
             <h2 id="how-title" className="max-w-[40rem] text-[clamp(2rem,5vw,3.25rem)] leading-[1] font-bold tracking-[-0.03em]">
               How it works
@@ -119,7 +173,7 @@ export default function Home() {
         </section>
 
         {/* All Cloudinary */}
-        <section aria-labelledby="url-title" className="border-t border-line">
+        <section aria-labelledby="url-title" className="below-fold border-t border-line [contain-intrinsic-size:auto_1400px]">
           <div className="mx-auto max-w-[90rem] px-4 py-20 sm:px-8 lg:py-28">
             <div className="max-w-[44rem]">
               <h2 id="url-title" className="text-[clamp(2rem,5vw,3.25rem)] leading-[1] font-bold tracking-[-0.03em]">
@@ -147,11 +201,11 @@ export default function Home() {
           <div className="mx-auto flex max-w-[90rem] flex-col items-start gap-6 px-4 py-20 sm:px-8 lg:flex-row lg:items-center lg:justify-between">
             <p className="max-w-[36rem] font-display text-[clamp(1.75rem,4vw,2.5rem)] leading-[1.05] font-bold tracking-[-0.025em]">Your next listing is one photo away.</p>
             <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
-              <Link href={`/studio?sample=${sample.sku}`} className={buttonVariants({ size: "lg" })}>
-                Try a sample product (no signup)
-              </Link>
-              <Link href="/studio" className={buttonVariants({ size: "lg", variant: "secondary" })}>
+              <Link href="/studio" className={buttonVariants({ size: "lg" })}>
                 Upload your photo
+              </Link>
+              <Link href={`/studio?sample=${sample.sku}`} className={buttonVariants({ size: "lg", variant: "secondary" })}>
+                Try a sample first
               </Link>
             </div>
           </div>

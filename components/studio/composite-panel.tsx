@@ -3,9 +3,10 @@
 import { Check, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RangeField, Segmented, Toggle } from "@/components/ui/controls";
-import { MAX_SWATCHES, SWATCHES } from "@/lib/client/swatches";
+import { isWholeRecolor, MAX_SWATCHES, SWATCHES } from "@/lib/client/swatches";
 import { cn } from "@/lib/client/util";
-import type { CompositeControls, Placement, Scene } from "@/lib/types";
+import { OFFSET_RANGE, SCALE_RANGE } from "@/lib/transform/composite";
+import type { CompositeControls, Placement, ProductRecord, Scene } from "@/lib/types";
 import { ScenePicker } from "./scene-picker";
 
 export interface PackSettings {
@@ -21,6 +22,7 @@ export function CompositePanel({
   controls,
   onControls,
   onReset,
+  product,
   placement,
   settings,
   onSettings,
@@ -32,12 +34,15 @@ export function CompositePanel({
   controls: CompositeControls | null;
   onControls: (c: CompositeControls) => void;
   onReset: () => void;
+  product?: ProductRecord | null;
   placement: Placement;
   settings: PackSettings;
   onSettings: (s: PackSettings) => void;
   disabled?: boolean;
 }) {
   const set = <K extends keyof CompositeControls>(k: K, v: CompositeControls[K]) => controls && onControls({ ...controls, [k]: v });
+  const whole = isWholeRecolor(product?.understanding);
+  const part = product?.understanding?.recolorable_part?.toLowerCase() || "product";
   const toggleSwatch = (hex: string) => {
     const has = settings.swatches.includes(hex);
     if (!has && settings.swatches.length >= MAX_SWATCHES) return;
@@ -61,16 +66,18 @@ export function CompositePanel({
       >
         {controls ? (
           <div className="grid gap-5">
-            <RangeField label="Size" min={0.2} max={0.8} step={0.02} value={controls.scale} display={`${Math.round(controls.scale * 100)}% of the width`} onChange={(v) => set("scale", v)} disabled={disabled} />
-            <RangeField label="Left and right" min={-300} max={300} step={10} value={controls.offsetX} display={nudge(controls.offsetX, "right", "left")} onChange={(v) => set("offsetX", v)} disabled={disabled} />
-            <RangeField label="Up and down" min={-300} max={300} step={10} value={controls.offsetY} display={nudge(controls.offsetY, "down", "up")} onChange={(v) => set("offsetY", v)} disabled={disabled} />
+            <RangeField label="Size" min={SCALE_RANGE.min} max={SCALE_RANGE.max} step={SCALE_RANGE.step} value={controls.scale} display={`${Math.round(controls.scale * 100)}% of the frame`} onChange={(v) => set("scale", v)} disabled={disabled} />
+            <RangeField label="Left and right" min={OFFSET_RANGE.min} max={OFFSET_RANGE.max} step={OFFSET_RANGE.step} value={controls.offsetX} display={nudge(controls.offsetX, "right", "left")} onChange={(v) => set("offsetX", v)} disabled={disabled} />
+            <RangeField label="Up and down" min={OFFSET_RANGE.min} max={OFFSET_RANGE.max} step={OFFSET_RANGE.step} value={controls.offsetY} display={nudge(controls.offsetY, "down", "up")} onChange={(v) => set("offsetY", v)} disabled={disabled} />
             <div className="grid gap-1">
-              <Toggle label="Cast shadow" hint="Falls away from the scene's light" checked={controls.shadow} onChange={(v) => set("shadow", v)} />
-              {placement !== "flatlay" ? <Toggle label="Contact shadow" hint="Grounds the product on the surface" checked={controls.contact} onChange={(v) => set("contact", v)} /> : null}
+              <Toggle label={placement === "flatlay" ? "Lift shadow" : "Cast shadow"} hint={placement === "flatlay" ? "A soft shadow as if it rests on the cloth" : "Falls away from the scene's light"} checked={controls.shadow} onChange={(v) => set("shadow", v)} disabled={disabled} />
+              {placement !== "flatlay" ? <Toggle label="Contact shadow" hint="Grounds the product on the surface" checked={controls.contact} onChange={(v) => set("contact", v)} disabled={disabled} /> : null}
+              <Toggle label="Light-match" hint="Tints your product toward the scene's light, colours kept true" checked={controls.harmonise} onChange={(v) => set("harmonise", v)} disabled={disabled} />
             </div>
             {placement !== "flatlay" ? (
               <Segmented
                 label="Reflection"
+                disabled={disabled}
                 value={controls.reflection}
                 onChange={(v) => set("reflection", v)}
                 options={[
@@ -89,7 +96,7 @@ export function CompositePanel({
         )}
       </Section>
 
-      <Section title="Offer text" hint="Printed on the festive offer and the reel.">
+      <Section title="Offer text" hint="Printed on the festive offer and across the reel.">
         <div className="grid gap-3">
           <label className="grid gap-1.5 text-sm">
             <span className="font-medium text-paper">Hindi</span>
@@ -105,7 +112,7 @@ export function CompositePanel({
             <span className="font-medium text-paper">English</span>
             <input
               value={settings.offer.english}
-              maxLength={48}
+              maxLength={40}
               onChange={(e) => onSettings({ ...settings, offer: { ...settings.offer, english: e.target.value } })}
               className="h-11 rounded-xl bg-stage-2 px-3.5 text-[0.95rem] text-paper ring-1 ring-line ring-inset focus:ring-marigold focus:outline-none"
             />
@@ -113,8 +120,15 @@ export function CompositePanel({
         </div>
       </Section>
 
-      <Section title="Colour variants" hint={`Pick up to ${MAX_SWATCHES}. Each one recolours the product with generative AI.`}>
-        <div className="flex flex-wrap gap-2.5" role="group" aria-label="Colour variants">
+      <Section
+        title={whole ? "Colourways" : "Colour variants"}
+        hint={
+          whole
+            ? `Pick up to ${MAX_SWATCHES}. Generative recolor repaints the whole shoe in each colour.`
+            : `Pick up to ${MAX_SWATCHES}. Generative recolor repaints only the ${part}, shading kept.`
+        }
+      >
+        <div className="flex flex-wrap gap-2.5" role="group" aria-label={whole ? "Colourways" : "Colour variants"}>
           {SWATCHES.map((s) => {
             const on = settings.swatches.includes(s.hex);
             const full = !on && settings.swatches.length >= MAX_SWATCHES;
@@ -125,7 +139,7 @@ export function CompositePanel({
                 aria-pressed={on}
                 aria-label={s.name}
                 title={full ? `You can pick up to ${MAX_SWATCHES}` : s.name}
-                disabled={full}
+                disabled={full || disabled}
                 onClick={() => toggleSwatch(s.hex)}
                 className={cn("grid size-10 place-items-center rounded-full ring-2 ring-offset-2 ring-offset-stage transition-shadow disabled:opacity-35", on ? "ring-marigold" : "ring-transparent hover:ring-line-strong")}
                 style={{ background: `#${s.hex}` }}

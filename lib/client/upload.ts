@@ -2,13 +2,16 @@
  * Getting a product photo into Cloudinary without our server touching the bytes:
  * the browser/phone uploads directly with parameters signed by /api/sign-upload.
  */
-import type { SignUploadResponse } from "../api-contract";
+import type { CaptureResponse, SignUploadResponse } from "../api-contract";
+import { isCaptured } from "../capture";
 import { cloudName, deliveryBase } from "../transform/composite";
 import { productId, type Sku } from "../types";
 import { sleep } from "./util";
 
 export const UPLOAD_PRESET = "s2s_ingest";
 export const rawPublicId = (sku: Sku) => productId(sku, "raw");
+/** Tags the upload signer accepts for a raw photo (lib/server/upload-sign.ts). */
+export const rawTags = (sku: Sku, ...extra: string[]) => ["s2s", "s2s-raw", ...extra, `s2s-sku-${sku}`].join(",");
 
 export interface RawInfo {
   width: number;
@@ -16,20 +19,41 @@ export interface RawInfo {
   bytes: number;
 }
 
+let bust = 0;
+const fresh = () => `v${Date.now() * 10 + (bust++ % 10)}`;
+
 /**
- * Is the raw photo there yet? fl_getinfo answers with its size as JSON (404 until
- * it exists). The query string only defeats CDN caching of the 404.
+ * Is the raw photo there yet? Asks /api/capture/:sku, which HEADs the original
+ * with a fresh version component (lib/capture.ts: no cache layer can answer with
+ * a stale 404, no Admin API call while waiting) and answers 200 {ready:false},
+ * so waiting leaves no errors in the console. If the route can't answer, ask
+ * Cloudinary directly.
  */
 export async function rawInfo(sku: Sku, signal?: AbortSignal): Promise<RawInfo | null> {
-  const res = await fetch(`${deliveryBase()}/fl_getinfo/${rawPublicId(sku)}?poll=${Date.now()}`, { signal, cache: "no-store" });
-  if (!res.ok) return null;
+  try {
+    const res = await fetch(`/api/capture/${sku}`, { signal, cache: "no-store", credentials: "same-origin" });
+    if (res.ok) {
+      const j = (await res.json()) as CaptureResponse;
+      if (!j.ready) return null;
+      if (j.product) return { width: j.product.rawWidth, height: j.product.rawHeight, bytes: j.product.rawBytes };
+    }
+  } catch (e) {
+    if (signal?.aborted) throw e;
+  }
+  const here = await isCaptured(cloudName(), sku, (u, init) => fetch(u, { ...init, signal }));
+  if (signal?.aborted) throw new DOMException("aborted", "AbortError");
+  if (!here) return null;
+  const res = await fetch(`${deliveryBase()}/fl_getinfo/${fresh()}/${rawPublicId(sku)}`, { signal, cache: "no-store" });
+  if (!res.ok) return { width: 0, height: 0, bytes: 0 };
   const j = (await res.json()) as { input?: RawInfo };
-  return j.input ?? null;
+  return j.input ?? { width: 0, height: 0, bytes: 0 };
 }
 
-/** Poll until the phone's upload lands (or the signal aborts). */
-export async function waitForRaw(sku: Sku, signal: AbortSignal, everyMs = 2500): Promise<RawInfo> {
+/** Poll until the phone's upload lands (or the signal aborts): one HEAD every 2.5 s, noticed within ~3 s. */
+export async function waitForRaw(sku: Sku, signal: AbortSignal, everyMs = 2500, maxMs = 10 * 60_000): Promise<RawInfo> {
+  const until = Date.now() + maxMs;
   for (;;) {
+    if (Date.now() > until) throw new UploadError("No photo arrived. Scan the code again to retry.");
     try {
       const info = await rawInfo(sku, signal);
       if (info) return info;
@@ -80,7 +104,8 @@ export async function signedUpload(file: Blob, sku: Sku, onProgress: (fraction: 
   const apiKey = process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY;
   if (!apiKey || !cloudName()) throw new UploadError("Uploads aren't configured for this site yet.");
   const timestamp = Math.round(Date.now() / 1000);
-  const params = { public_id: rawPublicId(sku), timestamp, upload_preset: UPLOAD_PRESET };
+  // tagged so /kit/<sku> can find the photo (and its AI reading) from the public tag list
+  const params = { context: "origin=phone", public_id: rawPublicId(sku), tags: rawTags(sku, "s2s-capture"), timestamp, upload_preset: UPLOAD_PRESET };
   const signature = await sign(params);
 
   const form = new FormData();

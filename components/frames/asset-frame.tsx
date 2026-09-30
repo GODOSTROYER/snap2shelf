@@ -4,7 +4,7 @@
  * brand-free. Height comes from the parent's --h (px); width follows the format.
  * Server-safe (no hooks); the chrome is decorative, the image carries the alt text.
  */
-import { Bookmark, ChevronUp, Heart, MessageCircle, Ellipsis, Send, Star } from "lucide-react";
+import { Bookmark, ChevronUp, Ellipsis, Heart, MessageCircle, Send, Star, VolumeX } from "lucide-react";
 import * as React from "react";
 import { CloudImg } from "@/components/cloud-img";
 import { sizedUrl } from "@/lib/client/img";
@@ -23,7 +23,8 @@ type Props = {
   className?: string;
   /** Replace the image with something else (the reel video). */
   media?: React.ReactNode;
-  frame?: PreviewFrame;
+  /** "reel": a vertical video post, chrome kept at the bottom so the reel's own offer card stays clear. */
+  frame?: PreviewFrame | "reel";
 };
 
 const shop = "yourshop";
@@ -33,22 +34,45 @@ function Avatar({ size = 22 }: { size?: number }) {
     <span
       aria-hidden
       style={{ width: size, height: size }}
-      className="grid shrink-0 place-items-center rounded-full bg-gradient-to-br from-marigold to-sindoor text-[0.6rem] font-bold text-marigold-ink"
+      className="grid shrink-0 place-items-center rounded-full bg-gradient-to-br from-marigold to-sindoor text-[0.75rem] font-bold text-marigold-ink"
     >
       Y
     </span>
   );
 }
 
-function Img({ asset, w, className }: { asset: KitAsset; w: number; className?: string }) {
-  return <CloudImg src={sizedUrl(asset, w)} alt={asset.alt} width={asset.width} height={asset.height} className={cn("block size-full object-cover", className)} />;
+/** Rendered width of each frame's picture at the shelf heights (--h 292/330/372 px), for `sizes`. */
+const FRAME_PX: Record<string, [number, number, number]> = {
+  "feed-post": [144, 174, 208],
+  story: [164, 186, 209],
+  reel: [164, 186, 209],
+  "listing-card": [174, 212, 254],
+  "catalog-tile": [196, 234, 276],
+  "web-banner": [466, 533, 608],
+};
+
+function Img({ asset, frame, className }: { asset: KitAsset; frame: string; className?: string }) {
+  const px = FRAME_PX[frame] ?? [200, 240, 280];
+  const widths = frame === "web-banner" ? [480, 720, 960, 1280] : [240, 360, 480, 640];
+  return (
+    <CloudImg
+      src={sizedUrl(asset, widths[2])}
+      srcSet={widths.map((w) => `${sizedUrl(asset, w)} ${w}w`).join(", ")}
+      sizes={`(min-width: 1024px) ${px[2]}px, (min-width: 640px) ${px[1]}px, ${px[0]}px`}
+      alt={asset.alt}
+      width={asset.width}
+      height={asset.height}
+      className={cn("block size-full object-cover", className)}
+    />
+  );
 }
 
-export function frameWidth(frame: PreviewFrame, asset: Pick<KitAsset, "width" | "height">): string {
+export function frameWidth(frame: PreviewFrame | "reel", asset: Pick<KitAsset, "width" | "height">): string {
   switch (frame) {
     case "feed-post":
       return "calc((var(--h) - 112px) * 0.8)";
     case "story":
+    case "reel":
       return "calc(var(--h) * 0.5625)";
     case "listing-card":
       return "calc(var(--h) - 118px)";
@@ -69,13 +93,13 @@ export function AssetFrame({ asset, product, className, media, frame = asset.fra
     case "feed-post":
       return (
         <div className={cn(base, "flex flex-col rounded-[14px] bg-frame-dark ring-1 ring-white/10")} style={{ width }}>
-          <div aria-hidden className="flex h-[40px] items-center gap-2 px-2.5 text-[0.7rem] font-semibold text-white">
+          <div aria-hidden className="flex h-[40px] items-center gap-2 px-2.5 text-[0.75rem] font-semibold text-white">
             <Avatar />
             <span className="truncate">{shop}</span>
             <Ellipsis className="ml-auto size-4 text-white/70" />
           </div>
-          <div className="min-h-0 flex-1">{media ?? <Img asset={asset} w={640} />}</div>
-          <div aria-hidden className="h-[72px] px-2.5 pt-2 text-[0.66rem] text-white">
+          <div className="min-h-0 flex-1">{media ?? <Img asset={asset} frame={frame} />}</div>
+          <div aria-hidden className="h-[72px] px-2.5 pt-2 text-[0.75rem] text-white">
             <div className="flex items-center gap-2.5">
               <Heart className="size-[15px]" />
               <MessageCircle className="size-[15px]" />
@@ -90,10 +114,32 @@ export function AssetFrame({ asset, product, className, media, frame = asset.fra
         </div>
       );
 
+    case "reel":
+      return (
+        <div className={cn(base, "rounded-[18px] bg-frame-dark ring-1 ring-white/10")} style={{ width }}>
+          {media ?? <Img asset={asset} frame={frame} />}
+          <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end gap-2 bg-gradient-to-t from-black/60 to-transparent px-2.5 pt-10 pb-3 text-white">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 text-[0.75rem] font-semibold">
+                <Avatar size={20} />
+                {shop}
+                <span className="rounded border border-white/50 px-1 text-[0.75rem] leading-[1.4]">Follow</span>
+              </div>
+              <p className="mt-1 truncate text-[0.75rem] text-white/80">{product.name}. Shop the reel</p>
+            </div>
+            <div className="flex flex-col items-center gap-2.5">
+              <Heart className="size-[15px]" />
+              <MessageCircle className="size-[15px]" />
+              <VolumeX className="size-[15px]" />
+            </div>
+          </div>
+        </div>
+      );
+
     case "story":
       return (
         <div className={cn(base, "rounded-[18px] bg-frame-dark ring-1 ring-white/10")} style={{ width }}>
-          {media ?? <Img asset={asset} w={640} />}
+          {media ?? <Img asset={asset} frame={frame} />}
           <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 bg-gradient-to-b from-black/55 to-transparent p-2.5 pb-8">
             <div className="flex gap-1">
               <span className="h-0.5 flex-1 rounded-full bg-white" />
@@ -102,7 +148,7 @@ export function AssetFrame({ asset, product, className, media, frame = asset.fra
               </span>
               <span className="h-0.5 flex-1 rounded-full bg-white/35" />
             </div>
-            <div className="mt-2 flex items-center gap-1.5 text-[0.66rem] font-semibold text-white">
+            <div className="mt-2 flex items-center gap-1.5 text-[0.75rem] font-semibold text-white">
               <Avatar size={20} />
               {shop}
               <span className="font-normal text-white/70">2h</span>
@@ -110,7 +156,7 @@ export function AssetFrame({ asset, product, className, media, frame = asset.fra
           </div>
           <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center bg-gradient-to-t from-black/55 to-transparent pt-8 pb-3 text-white">
             <ChevronUp className="size-4" />
-            <span className="rounded-full bg-white px-3 py-1 text-[0.66rem] font-bold text-frame-ink">Shop now</span>
+            <span className="rounded-full bg-white px-3 py-1 text-[0.75rem] font-bold text-frame-ink">Shop now</span>
           </div>
         </div>
       );
@@ -118,8 +164,8 @@ export function AssetFrame({ asset, product, className, media, frame = asset.fra
     case "listing-card":
       return (
         <div className={cn(base, "flex flex-col rounded-[14px] bg-frame-light text-frame-ink")} style={{ width }}>
-          <div className="aspect-square w-full shrink-0 border-b border-frame-line">{media ?? <Img asset={asset} w={640} className="bg-frame-line object-contain" />}</div>
-          <div aria-hidden className="flex min-h-0 flex-1 flex-col gap-1 px-3 py-2.5 text-[0.7rem] leading-tight">
+          <div className="aspect-square w-full shrink-0 border-b border-frame-line">{media ?? <Img asset={asset} frame={frame} className="bg-frame-line object-contain" />}</div>
+          <div aria-hidden className="flex min-h-0 flex-1 flex-col gap-1 px-3 py-2.5 text-[0.75rem] leading-tight">
             <p className="line-clamp-1 font-medium">{product.name}</p>
             <div className="flex items-center gap-1 text-frame-soft">
               <span className="flex text-marigold">
@@ -141,8 +187,8 @@ export function AssetFrame({ asset, product, className, media, frame = asset.fra
     case "catalog-tile":
       return (
         <div className={cn(base, "flex flex-col rounded-[16px] rounded-bl-[4px] bg-frame-bubble p-1.5 text-white ring-1 ring-white/10")} style={{ width }}>
-          <div className="aspect-square w-full shrink-0 overflow-hidden rounded-[11px]">{media ?? <Img asset={asset} w={640} />}</div>
-          <div aria-hidden className="flex min-h-0 flex-1 flex-col justify-center px-1.5 text-[0.7rem] leading-tight">
+          <div className="aspect-square w-full shrink-0 overflow-hidden rounded-[11px]">{media ?? <Img asset={asset} frame={frame} />}</div>
+          <div aria-hidden className="flex min-h-0 flex-1 flex-col justify-center px-1.5 text-[0.75rem] leading-tight">
             <p className="truncate font-semibold">{product.name}</p>
             <p className="mt-0.5 text-white/70">{product.price}</p>
             <p className="mt-1.5 border-t border-white/10 pt-1.5 text-center font-semibold text-sky-300">View item</p>
@@ -157,16 +203,16 @@ export function AssetFrame({ asset, product, className, media, frame = asset.fra
             <span className="size-2 rounded-full bg-frame-soft/40" />
             <span className="size-2 rounded-full bg-frame-soft/40" />
             <span className="size-2 rounded-full bg-frame-soft/40" />
-            <span className="ml-2 h-[18px] flex-1 truncate rounded-md bg-frame-light px-2 text-[0.62rem] leading-[18px] text-frame-soft">{shop}.in</span>
+            <span className="ml-2 h-[18px] flex-1 truncate rounded-md bg-frame-light px-2 text-[0.75rem] leading-[18px] text-frame-soft">{shop}.in</span>
           </div>
-          <div className="min-h-0 flex-1">{media ?? <Img asset={asset} w={1280} />}</div>
+          <div className="min-h-0 flex-1">{media ?? <Img asset={asset} frame={frame} />}</div>
         </div>
       );
 
     default:
       return (
         <div className={cn(base, "rounded-[14px]")} style={{ width }}>
-          {media ?? <Img asset={asset} w={640} />}
+          {media ?? <Img asset={asset} frame={frame} />}
         </div>
       );
   }

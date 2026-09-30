@@ -11,7 +11,7 @@ const COPY = {
 export function QaBadge({ qa, className }: { qa: Pick<QaResult, "status">; className?: string }) {
   const c = COPY[qa.status];
   return (
-    <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[0.74rem] leading-none font-semibold ring-1 ring-inset", c.cls, className)}>
+    <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[0.75rem] leading-none font-semibold ring-1 ring-inset", c.cls, className)}>
       <c.Icon className="size-3.5" aria-hidden />
       {c.label}
     </span>

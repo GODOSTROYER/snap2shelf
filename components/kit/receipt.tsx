@@ -10,7 +10,7 @@ export const PHOTOSHOOT_INR = 2500;
 
 const inr = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 
-export function Receipt({ cost, mode, assetCount, className }: { cost: CostSummary; mode: GenerationMode; assetCount: number; className?: string }) {
+export function Receipt({ cost, mode, assetCount, replay, className }: { cost: CostSummary; mode: GenerationMode; assetCount: number; replay?: boolean; className?: string }) {
   const saved = cost.bytesOriginal > 0 && cost.bytesDelivered > 0 ? 1 - cost.bytesDelivered / cost.bytesOriginal : 0;
   const rows: { label: string; value: string; note?: string; strong?: boolean }[] = [
     {
@@ -21,6 +21,9 @@ export function Receipt({ cost, mode, assetCount, className }: { cost: CostSumma
     { label: "Saved by reusing a scene", value: `${cost.creditsSavedByReuse} credits`, note: "A scene is generated once, then shared" },
     { label: "Photoshoot you skipped", value: `≈ ${inr(PHOTOSHOOT_INR)}`, note: "Typical one-product studio shoot (estimate)", strong: true },
   ];
+  if (cost.aiVisionTokens > 0) {
+    rows.push({ label: "AI Vision", value: `${cost.aiVisionTokens.toLocaleString("en-IN")} tokens`, note: replay ? "Reading the product and the QA check, on the live run (this replay used none)" : "Reading the product and the QA check" });
+  }
   if (cost.bytesOriginal > 0 && cost.bytesDelivered > 0) {
     rows.push({
       label: "Hero weight",
@@ -28,7 +31,7 @@ export function Receipt({ cost, mode, assetCount, className }: { cost: CostSumma
       note: saved > 0 ? `${Math.round(saved * 100)}% lighter with automatic format and quality` : undefined,
     });
   }
-  if (cost.seconds > 0) rows.push({ label: "Photo to finished kit", value: `${cost.seconds} s` });
+  if (cost.seconds > 0) rows.push({ label: "Photo to finished kit", value: `${cost.seconds} s`, note: replay ? "Measured on the live run of this photo" : undefined });
 
   return (
     <section aria-labelledby="receipt-title" className={cn("rounded-2xl bg-stage p-6 ring-1 ring-line sm:p-7", className)}>

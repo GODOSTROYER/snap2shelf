@@ -75,14 +75,15 @@ export function RangeField({
   );
 }
 
-export function Toggle({ label, hint, checked, onChange }: { label: string; hint?: string; checked: boolean; onChange: (v: boolean) => void }) {
+export function Toggle({ label, hint, checked, onChange, disabled }: { label: string; hint?: string; checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
   return (
     <button
       type="button"
       role="switch"
       aria-checked={checked}
+      disabled={disabled}
       onClick={() => onChange(!checked)}
-      className="flex w-full items-center justify-between gap-4 rounded-xl py-1.5 text-left"
+      className="group/toggle flex w-full items-center justify-between gap-4 rounded-xl py-1.5 text-left disabled:opacity-50"
     >
       <span>
         <span className="block text-sm font-medium text-paper">{label}</span>
@@ -92,7 +93,7 @@ export function Toggle({ label, hint, checked, onChange }: { label: string; hint
         aria-hidden
         className={cn(
           "relative h-6 w-10 shrink-0 rounded-full transition-colors duration-200",
-          checked ? "bg-marigold" : "bg-stage-3",
+          checked ? "bg-marigold" : "bg-stage-3 group-hover/toggle:bg-stage-3/80",
         )}
       >
         <span
@@ -111,14 +112,16 @@ export function Segmented<V extends string>({
   value,
   options,
   onChange,
+  disabled,
 }: {
   label: string;
   value: V;
   options: { value: V; label: string }[];
   onChange: (v: V) => void;
+  disabled?: boolean;
 }) {
   return (
-    <div className="grid gap-2">
+    <div className={cn("grid gap-2", disabled && "opacity-50")}>
       <span className="text-sm font-medium text-paper">{label}</span>
       <div role="radiogroup" aria-label={label} className="grid auto-cols-fr grid-flow-col gap-1 rounded-full bg-stage-2 p-1 ring-1 ring-line ring-inset">
         {options.map((o) => (
@@ -127,6 +130,7 @@ export function Segmented<V extends string>({
             type="button"
             role="radio"
             aria-checked={value === o.value}
+            disabled={disabled}
             onClick={() => onChange(o.value)}
             className={cn(
               "h-8 rounded-full text-sm font-medium transition-colors",
