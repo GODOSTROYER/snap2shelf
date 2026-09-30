@@ -17,6 +17,8 @@ import type {
   SceneDNA,
   Sku,
 } from "./types";
+import type { BriefKit, BuiltUrl, CostSummary, RetouchFix, SceneTier, SceneView } from "./types";
+import type { FestivalSlug } from "./festivals";
 
 export interface ApiError {
   error: string; // human-readable, safe to show
@@ -112,4 +114,101 @@ export interface UsageResponse {
   vision: { remaining: number; limit: number; usable: number };
   liveGeneration: boolean; // false → UI shows showcase + explains why
   session: { unlocked: boolean; generationsLeft: number };
+}
+
+// ================================================================ pipeline v2 (additive)
+// Suggested studio order: capture → analyze → RETOUCH → cutout → BRIEF → scenes (match / generate)
+// → stage + QA → pack → COST meter. Every route answers in < 10 s; long work is start + poll.
+
+// POST /api/products/:sku/retouch  → Q4 auto-retouch; call after analyze and BEFORE cutout.
+// 200 RetouchResponse once done (status "none" when the photo needs nothing: the cutout uses the raw);
+// 202 RetouchPendingResponse (an ApiError with code "pending" + the plan) while Cloudinary derives:
+// poll again after retryAfterMs. Afterwards AnalyzeResponse.fixes reports the same fixes.
+export interface RetouchResponse {
+  sku: Sku;
+  status: "done" | "none";
+  fixes: { applied: RetouchFix[]; retouchedPublicId?: string }; // same shape as AnalyzeResponse.fixes
+  detected: string[]; // AI Vision tags + measured signals, e.g. ["clutter-in-frame", "dim", "small"]
+  notes: string[]; // plain-language decisions, e.g. "Brightened a dim photo with auto-improve."
+  transformation?: string; // the retouch chain (X-ray)
+  xray?: BuiltUrl;
+  beforeUrl?: string; // raw, c_limit 1080x1350, f_auto/q_auto (before/after slider)
+  url?: string; // retouched, same sizing
+  tx: number; // documented transformation estimate of the chain
+  tokens: number; // AI Vision tokens this call spent (0 once planned)
+  ms: number;
+}
+export interface RetouchPendingResponse extends ApiError {
+  planned: RetouchFix[];
+  detected: string[];
+  notes: string[];
+  tokens: number;
+}
+
+// POST /api/brief  → one-line brief → kit settings (AI Vision General on the product photo + rules).
+// Explicit words in the brief win (channels, %, "Hindi"), then the festival preset (lib/festivals.ts),
+// then AI Vision, then the product's own suggested theme. Cached per (sku, brief, festival).
+export interface BriefRequest {
+  sku: Sku;
+  brief: string; // ≤ 300 chars, e.g. "Diwali sale ad, 20% off, Hindi, for WhatsApp + Instagram"
+  festival?: FestivalSlug; // preset chip; overrides a festival named in the text
+}
+export type BriefSource = "brief" | "festival" | "ai" | "product" | "default";
+export interface BriefResponse {
+  sku: Sku;
+  kit: BriefKit; // theme → staging / scenes; offer + swatches → PackRequest.offer / .recolor
+  festival?: FestivalSlug;
+  scenePrompt?: string; // empty-backdrop description for "Generate a new scene" (POST /api/scenes/generate)
+  sources: Record<keyof BriefKit, BriefSource>; // where each field came from (UI can badge "AI")
+  tokens: number;
+  cached: boolean;
+}
+
+// GET /api/scenes/match?theme=diwali&q=brass+diyas&view=eye-level&limit=6  → library ranked by
+// theme, keywords (title/prompt), festival and warmth. Public and cacheable (no session).
+export interface SceneMatch { scene: Scene; score: number; reasons: string[] }
+export interface SceneMatchResponse { matches: SceneMatch[] }
+
+// POST /api/scenes/generate  → C1 on-demand scene with C2 reuse.
+// Reuse first: the prompt-hash public_id already in the library → {reused:true, credits:0} at once
+// (any session). Otherwise [gated]: access cookie + session cap + pool quota floor, like /api/generate;
+// starts a pinned-model job (draft flux-2-flash 1 credit, final gpt-image-2.5-flare 4-5) → poll
+// GET /api/scene-jobs/:job. With `sku`, credits spent / saved are recorded for that product's cost meter.
+export interface SceneGenerateRequest {
+  theme?: string; // SCENE_THEMES slug; alone = that theme's library recipe
+  prompt?: string; // ≤ 300 chars empty-backdrop description (e.g. BriefResponse.scenePrompt)
+  tier: SceneTier;
+  view?: SceneView; // default: the theme's view, else eye-level
+  sku?: Sku;
+}
+export type SceneGenerateResponse =
+  | { reused: true; scene: Scene; credits: 0; creditsSaved: number }
+  | { reused: false; job: string; tier: SceneTier; modelId: string; estimatedCredits: number };
+
+// GET /api/scene-jobs/:job  → poll every 2 s (await each response). When completed the plate is a
+// canonical 1080x1350 library scene with Scene DNA; scene QA rejects plates with products/text/people.
+export interface SceneJobResponse {
+  status: "pending" | "processing" | "completed" | "failed";
+  scene?: Scene; // completed
+  credits?: number;
+  latencyMs?: number;
+  qa?: QaResult; // scene QA verdict (rejected → status "failed")
+  request?: unknown; // generate JSON for X-ray
+  error?: string;
+}
+
+// GET /api/cost/:sku?scene=<scene publicId>  → cost meter for one product's kit.
+// `scene` (optional) = the library scene the kit is staged on; its credits count as saved by reuse.
+export interface CostResponse {
+  sku: Sku;
+  cost: CostSummary; // seconds = recorded server time of the pipeline steps
+  breakdown: {
+    generation: { label: string; credits: number }[];
+    tokens: { label: string; tokens: number }[];
+    transformations: { label: string; tx: number }[];
+    steps: { label: string; ms: number }[];
+  };
+  delivered: { url: string; format: string; bytes: number; from: "hero" | "raw" };
+  wallClockSeconds: number | null; // raw upload → newest hero/pack asset (created_at), null without a hero
+  estimated: true; // transformation counts are estimates from the documented per-effect counts
 }
