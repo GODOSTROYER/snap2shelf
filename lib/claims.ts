@@ -7,11 +7,12 @@
 /** Best live production run, 30 Sep 2026: file selected → ZIP link live (06_steel_bottle.png, desktop, Upload Widget). */
 export const MEASURED_PHOTO_TO_ZIP_S = 36;
 /**
- * Every timed live photo → ZIP run so far, 30 Sep 2026: 36 s (production), 40.9 s,
- * 47.5 s, 48 s (local builds against the same Cloudinary) and 58.3 s (production,
- * a 1.84 MB photo whose upload alone took 23.7 s). Most of the spread is upload time.
+ * Every timed live photo → ZIP run so far, 30 Sep 2026: 34.8 s and 36 s (production),
+ * 40.9 s, 47.5 s, 48 s (local builds against the same Cloudinary) and 58.3 s
+ * (production, a 1.84 MB photo whose upload alone took 23.7 s). Most of the spread
+ * is upload time.
  */
-export const MEASURED_PHOTO_TO_ZIP_RANGE_S = [36, 58] as const;
+export const MEASURED_PHOTO_TO_ZIP_RANGE_S = [35, 58] as const;
 /** Copy form of the headline speed claim: what every measured run met. */
 export const PHOTO_TO_KIT_COPY = "about a minute";
 export const PHOTO_TO_KIT_MEASURED_COPY = `${MEASURED_PHOTO_TO_ZIP_RANGE_S[0]}–${MEASURED_PHOTO_TO_ZIP_RANGE_S[1]} s photo → ZIP in our timed live runs (most of the spread is upload time)`;

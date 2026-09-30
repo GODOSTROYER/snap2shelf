@@ -36,7 +36,7 @@ Every number spoken or captioned below comes from `lib/claims.ts`, `SPIKES.md` o
    - `/present?c=1`: step through every chapter once; the deck preloads each chapter's images.
    - `/shelf/demo-studio`, and paste its link into a WhatsApp chat to yourself once, so WhatsApp has fetched the link preview before you film it.
    - `/video/title` and `/video/outro`.
-3. **Rehearse the live capture once** with the product you will film. A new photo is a new product, so its derivatives can't be pre-warmed: a first `b_gen_fill` takes 6–7 s. Cut dead time in the edit if you need to, but never caption a speed faster than the measured **36 s photo → ZIP**.
+3. **Rehearse the live capture once** with the product you will film. A new photo is a new product, so its derivatives can't be pre-warmed: a first `b_gen_fill` takes 6–7 s. Cut dead time in the edit if you need to, but never caption a speed outside the measured **35–58 s photo → ZIP** range (say "about a minute").
 4. Screen: **1920×1080**, browser zoom **125%**, a clean Chrome profile or incognito window with no extensions, bookmarks bar hidden, notifications off (Windows Focus / macOS Do Not Disturb), and the phone on Do Not Disturb.
 5. **Never show** `.env.local`, a terminal, DevTools, the Vercel or Cloudinary dashboards with keys, or the access code. Type the access code off-camera, or cut around it.
 6. Phone: mirror it (scrcpy / QuickTime) or film it with a second camera from above. Clean the lens. Use a real product on a real table (a steel bottle or a sneaker reads best).
@@ -48,7 +48,7 @@ Every number spoken or captioned below comes from `lib/claims.ts`, `SPIKES.md` o
 |---|---|---|---|---|
 | **0:00–0:10** | **Cold open: the QR capture.** Over-the-shoulder: the laptop shows the QR dialog; a hand points the phone at it and photographs a steel bottle on a kitchen table. | Laptop: `/` → **Snap with your phone** (QR dialog opens). Phone: scan → `/capture` → **Open camera** → take the photo. | "This is a water bottle on my kitchen table. One photo, from my phone." | One phone photo. |
 | **0:10–0:24** | Laptop: the photo lands on its own and the pipeline rail lights up step by step. Optional: type the brief into the brief bar while the rail runs. | No click: the studio opens with the photo. Let **Fix → Cut out → Stage → Light-match → QA → Pack** run. Optional brief: *Diwali sale, 20% off, Hindi and English, for Instagram and WhatsApp*. | "Snap2Shelf reads it, touches up the photo if it needs it, cuts the product out once, and stages it on a festive scene. That's my real bottle, not an AI redraw." | Fix → Cut out → Stage → Light-match → QA → Pack |
-| **0:24–0:40** | **The kit deals out**, card by card, each in its frame: feed post, story, marketplace listing, WhatsApp tile, web banner, colour variants, Hindi + English offer. | Scroll to **Your shelf: N assets** as the cards deal in (the sample bottle has 9 images and a reel). | "Then it deals out the whole shelf: a story, a banner, a marketplace-white main image, a WhatsApp tile, colour variants and a Diwali offer in Hindi and English. Photo to zip takes about a minute: thirty-six to fifty-eight seconds in our timed live runs." | 36 s photo → ZIP, measured on the live site |
+| **0:24–0:40** | **The kit deals out**, card by card, each in its frame: feed post, story, marketplace listing, WhatsApp tile, web banner, colour variants, Hindi + English offer. | Scroll to **Your shelf: N assets** as the cards deal in (the sample bottle has 9 images and a reel). | "Then it deals out the whole shelf: a story, a banner, a marketplace-white main image, a WhatsApp tile, colour variants and a Diwali offer in Hindi and English. Photo to zip takes about a minute: thirty-five to fifty-eight seconds in our timed live runs." | about a minute photo → ZIP (35–58 s in our timed live runs) |
 | **0:40–0:48** | The Kit Reel plays in its 9:16 frame. | Play the reel card. | "Even the video reel is one URL." | A video reel, made by one URL. |
 | **0:48–0:58** | **Readiness Score** under the kit: the gauge fills, the checklist shows pure white background and fill measured on pixels. | Scroll to the Readiness panel. | "It checks the listing like a marketplace would, on the actual pixels: pure white background, the product filling the frame, sharp enough to zoom." | Readiness Score, measured on pixels |
 | **0:58–1:08** | Phone: `/shelf/demo-studio`, **Share on WhatsApp**; in the chat the link preview (a collage of four products and the shop name) unfurls; tap it and the shelf opens. | Phone browser: `snap2shelf.vercel.app/shelf/demo-studio` → **Share on WhatsApp** → send to yourself. | "And every product lands on a shop shelf I can share straight to WhatsApp, with its own preview image." | Share the shelf, not a folder of files. |
@@ -71,7 +71,7 @@ The chapter numbers in the click paths (`?c=6` and so on) assume the 12 chapters
 >
 > Snap2Shelf reads it, touches up the photo if it needs it, cuts the product out once, and stages it on a festive scene. That's my real bottle, not an AI redraw.
 >
-> Then it deals out the whole shelf: a story, a banner, a marketplace-white main image, a WhatsApp tile, colour variants and a Diwali offer in Hindi and English. Photo to zip takes about a minute: thirty-six to fifty-eight seconds in our timed live runs. Even the video reel is one URL.
+> Then it deals out the whole shelf: a story, a banner, a marketplace-white main image, a WhatsApp tile, colour variants and a Diwali offer in Hindi and English. Photo to zip takes about a minute: thirty-five to fifty-eight seconds in our timed live runs. Even the video reel is one URL.
 >
 > It checks the listing like a marketplace would, on the actual pixels: pure white background, the product filling the frame, sharp enough to zoom. And every product lands on a shop shelf I can share straight to WhatsApp, with its own preview image.
 >
@@ -95,7 +95,7 @@ About 430 words, which reads in roughly 2:55 at a relaxed pace.
 
 | Claim | Source |
 |---|---|
-| 36–58 s photo → ZIP across our timed live runs (30 Sep 2026; the spread is mostly upload time) — say "about a minute" | `lib/claims.ts` `MEASURED_PHOTO_TO_ZIP_RANGE_S`, `PHOTO_TO_KIT_MEASURED_COPY` |
+| 35–58 s photo → ZIP across our timed live runs (30 Sep 2026; the spread is mostly upload time) — say "about a minute" | `lib/claims.ts` `MEASURED_PHOTO_TO_ZIP_RANGE_S`, `PHOTO_TO_KIT_MEASURED_COPY` |
 | "Zero new generation credits: the scene is reused from the library" | `lib/claims.ts` `CREDITS_SAVED_COPY` |
 | About ₹2,500 for a basic studio shoot of one product, an estimate (say "by our estimate") | `lib/claims.ts` `PHOTOSHOOT_INR_ESTIMATE`, `PHOTOSHOOT_NOTE` |
 | Sample QA catch: check 1 matched `product-floating` (+ `compositing-artifact`), the approved check is 20 px lower | `data/showcase.json` (`shmessy1` attempts); the replay's wording is built by `lib/showcase.ts` |

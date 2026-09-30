@@ -22,7 +22,7 @@ Entry for **Pixels to Products — Cloudinary AI Hackathon 2026** (HackIndia) ·
 > 2. **X-ray any image:** press **See the URL** on the stage, or the code button (**`</>`**) under any asset on the shelf, to see the one Cloudinary URL that made it, colour-coded and explained.
 > 3. **Open the storefront:** **[/shelf/demo-studio](https://snap2shelf.vercel.app/shelf/demo-studio)** is a shop page built by Collection mode. Press **Share on WhatsApp**; the link preview is a 1200×630 collage made by one transformation URL.
 > 4. **Watch the director's cut:** **[/present](https://snap2shelf.vercel.app/present)** tells the whole story chapter by chapter (→ or Space for the next one, P for autoplay).
-> 5. **Use your own product:** **Upload a photo** in the studio, or press **Snap with your phone** and scan the QR code. Our timed live runs took **36–58 s photo → ZIP** (30 Sep 2026; most of the spread is upload time). Live AI generation (Creative mode and new scenes) needs the access code in our submission form; everything else is open.
+> 5. **Use your own product:** **Upload a photo** in the studio, or press **Snap with your phone** and scan the QR code. Our timed live runs took **35–58 s photo → ZIP** (30 Sep 2026; most of the spread is upload time). Live AI generation (Creative mode and new scenes) needs the access code in our submission form; everything else is open.
 
 <a id="demo-video"></a>
 **Video: coming Sat 3 Oct.** <!-- TODO(video): add YouTube link --> The three-minute walkthrough follows the [director's cut](https://snap2shelf.vercel.app/present), which you can already play chapter by chapter.

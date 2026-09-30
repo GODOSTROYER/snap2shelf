@@ -162,7 +162,7 @@ export interface PresentData {
   xray: { hero: BuiltUrl; extras: { title: string; segment: XraySegment }[] };
   /**
    * The one speed claim (lib/claims), used by every chapter: the measured photo → ZIP range
-   * ("36–58 s"), its headline form ("about a minute") and the full measured sentence.
+   * ("35–58 s"), its headline form ("about a minute") and the full measured sentence.
    * Never a single run's time on its own.
    */
   pipeline: { steps: PipelineStat[]; range: readonly [number, number]; headline: string; claim: string; note: string };
