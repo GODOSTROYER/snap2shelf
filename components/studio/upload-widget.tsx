@@ -2,9 +2,29 @@
 
 import { CldUploadWidget, type CloudinaryUploadWidgetResults } from "next-cloudinary";
 import * as React from "react";
-import { UPLOAD_WIDGET_STYLES } from "@/lib/client/theme";
+import { TOKENS, UPLOAD_WIDGET_STYLES } from "@/lib/client/theme";
 import { rawPublicId, rawTags, UPLOAD_PRESET, type RawInfo } from "@/lib/client/upload";
 import type { Sku } from "@/lib/types";
+
+/**
+ * The widget in the studio's own colours, backdrop included: `frame.background` is the full-screen
+ * scrim behind the modal (Cloudinary's default is a slate blue, #0E2F5B99). Our studio black at 80%.
+ */
+const STYLES = { ...UPLOAD_WIDGET_STYLES, frame: { background: `${TOKENS.studio}CC` } };
+
+/** One photo, in our words (keys: https://widget.cloudinary.com/v2.0/global/text.json). */
+const TEXT = {
+  en: {
+    queue: {
+      title: "Your photo",
+      title_uploading_with_counter: "Uploading your photo…",
+      title_uploading: "Uploading your photo…",
+      mini_title: "Uploaded",
+      mini_title_uploading: "Uploading your photo…",
+      mini_upload_count: "Photo uploaded",
+    },
+  },
+};
 
 function isInfo(x: unknown): x is { public_id: string; width: number; height: number; bytes: number } {
   return !!x && typeof x === "object" && "public_id" in x && "width" in x;
@@ -48,7 +68,8 @@ export function UploadWidget({
         maxFiles: 1,
         maxFileSize: 10_000_000,
         clientAllowedFormats: ["jpg", "jpeg", "png", "webp", "heic", "avif"],
-        styles: UPLOAD_WIDGET_STYLES,
+        styles: STYLES,
+        text: TEXT,
       }}
       onSuccess={onSuccess}
       onQueuesEnd={(_, { widget }) => widget.close()}

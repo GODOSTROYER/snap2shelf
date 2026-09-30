@@ -46,15 +46,11 @@ export function SourcePicker({ onReady }: { onReady: (s: SourceReady) => void })
 
   return (
     <div className="mx-auto grid w-full max-w-[64rem] gap-10 py-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-center lg:gap-16 lg:py-14">
-      <div className={cn(paused && "order-last lg:order-none")}>
+      {/* nothing above the fold moves when the pause is known (it arrives after the first paint): the
+          upload button steps down to secondary in place, and the note lands below the samples */}
+      <div>
         <h1 className="text-[clamp(2.4rem,6vw,4rem)] leading-[0.95] font-extrabold tracking-[-0.035em] [font-variation-settings:'wdth'_86,'opsz'_96]">Add one product photo</h1>
         <p className="mt-4 max-w-[30rem] text-lg text-dim">Any background, any light. A phone photo on your table is perfect. We&apos;ll do the rest in {PHOTO_TO_KIT_COPY}.</p>
-        {paused ? (
-          <p role="status" className="mt-5 max-w-[30rem] rounded-xl bg-marigold/10 px-4 py-3 text-sm text-paper ring-1 ring-marigold/30">
-            <span className="font-semibold text-marigold">Live kits are paused for now</span> to protect the shared Cloudinary quota. Every sample still replays the whole
-            pipeline, step by step.
-          </p>
-        ) : null}
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
           <UploadButton
             sku={sku}
@@ -73,6 +69,12 @@ export function SourcePicker({ onReady }: { onReady: (s: SourceReady) => void })
       </div>
 
       <SamplePicker onPick={(s) => onReady({ sku: s.sku, info: { width: s.product.rawWidth, height: s.product.rawHeight, bytes: s.product.rawBytes }, via: "sample" })} />
+      {paused ? (
+        <p role="status" className="-mt-4 max-w-[30rem] rounded-xl bg-marigold/10 px-4 py-3 text-sm text-paper ring-1 ring-marigold/30 lg:col-start-1 lg:-mt-10">
+          <span className="font-semibold text-marigold">Live kits are paused for now</span> to protect the shared Cloudinary quota. Every sample still replays the whole
+          pipeline, step by step.
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -141,7 +143,7 @@ export function SamplePicker({ onPick, compact, className }: { onPick: (s: Sampl
             <Sparkles className="size-5 text-marigold" aria-hidden />
             No photo handy? Try a sample
           </p>
-          <p className="mt-1 text-sm text-dim">Each one replays a finished live run step by step, in under 20 seconds, with no AI quota used. The sample photos are AI-generated test images.</p>
+          <p className="mt-1 text-sm text-dim">Each one replays a finished live run step by step, in about 20 seconds, with no AI quota used. The sample photos are AI-generated test images.</p>
         </>
       )}
       <ul

@@ -29,7 +29,7 @@ export function DnaToggle({ dna, on, onChange, disabled }: { dna: SceneDNA | nul
         disabled={disabled || !dna}
         onClick={() => onChange(!on)}
         className={cn(
-          "group inline-flex h-9 shrink-0 items-center gap-2.5 rounded-full pr-3.5 pl-1.5 text-[0.82rem] font-semibold ring-1 transition-[background-color,box-shadow,color] duration-200 ring-inset disabled:opacity-45",
+          "group relative inline-flex h-9 shrink-0 items-center after:absolute after:-inset-1 gap-2.5 rounded-full pr-3.5 pl-1.5 text-[0.82rem] font-semibold ring-1 transition-[background-color,box-shadow,color] duration-200 ring-inset disabled:opacity-45",
           on ? "bg-marigold/14 text-marigold-hi ring-marigold/45" : "bg-stage-2 text-paper ring-line-strong hover:bg-stage-3",
         )}
       >

@@ -85,6 +85,9 @@ function lightFrom(dna: SceneDNA) {
 const sigOf = (sceneId: string | null, c: CompositeControls | null, s: PackSettings, hero: KitAsset | null) =>
   JSON.stringify({ sceneId, c: c && quantise(c), s, hero: hero?.url ?? null });
 
+/** The cut-out on the 4:5 stage (transparent padding; the stage draws the checker behind it). */
+const cutoutAt = (publicId: string) => publicUrl(publicId, { w: 1080, h: 1350, crop: "c_mpad,b_rgb:00000000" });
+
 const sourceOf = (s: SampleProduct): SourceReady => ({ sku: s.sku, via: "sample", info: { width: s.product.rawWidth, height: s.product.rawHeight, bytes: s.product.rawBytes } });
 
 interface Failure {
@@ -232,7 +235,8 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
   const [running, setRunning] = React.useState(!!boot);
   const [adjustOpen, setAdjustOpen] = React.useState(false); // a sample's controls, folded away while it replays
   const [creditsUsed, setCreditsUsed] = React.useState(0);
-  const [stageBusy, setStageBusy] = React.useState(false);
+  const [stageBusy, setStageBusy] = React.useState(false); // the newest frame isn't on the stage yet
+  const [stageLoading, setStageLoading] = React.useState(false); // …because it is still downloading
   const [tab, setTab] = React.useState("exact");
   const [copied, setCopied] = React.useState(false);
   const [runId, setRunId] = React.useState(0);
@@ -266,7 +270,7 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
   const rawView = source ? (sample ? beforeAt(sample, 1080) : (retouched ?? publicUrl(rawPublicId(source.sku), { w: 1080, h: 1350, crop: "c_pad,b_auto:border" }))) : null;
   // a sample's photo is already a cached stored asset: no extra tiny derivative for it
   const rawThumb = source && !sample ? publicUrl(rawPublicId(source.sku), { w: 48, h: 60, crop: "c_pad,b_auto:border" }) : null;
-  const cutoutView = product?.cutout ? publicUrl(product.cutout.publicId, { w: 1080, h: 1350, crop: "c_mpad,b_rgb:00000000" }) : null;
+  const cutoutView = product?.cutout ? cutoutAt(product.cutout.publicId) : null;
   const stageSrc = heroOverride ? sizedUrl(heroOverride, 1080) : (sampleShot ?? preview?.url ?? cutoutView ?? rawView);
   const photoWord = sample ? `${SAMPLE_PHOTO_LABEL} (AI-generated test image)` : "Your photo";
   const stageAlt = heroOverride?.alt ?? ((sampleShot || preview) && product && scene ? heroAlt(product, scene) : product?.caption ? `${photoWord}: ${product.caption}` : photoWord);
@@ -274,7 +278,8 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
   const composite = !!scene && !heroOverride && !!(sampleShot || preview);
   // where the product sits on the plate: Scene DNA's labels keep off it
   const productBox = product?.cutout && scene && controls ? geometry(product.cutout, scene.dna, controls, placement) : null;
-  const dnaShown = (dnaOn || dnaFlash) && composite && !!scene;
+  // the replay's flourish draws once the composite is really on the stage (not over the cut-out it replaces)
+  const dnaShown = (dnaOn || (dnaFlash && !stageBusy)) && composite && !!scene;
   const [bx, by, bw, bh] = productBox ? [productBox.px, productBox.py, productBox.pw, productBox.ph] : [0, 0, 0, 0];
   const stageDna = React.useMemo(
     () => (dnaShown && scene ? { dna: scene.dna, key: scene.publicId, shadow: scene.view !== "top-down", product: bw ? { x: bx, y: by, w: bw, h: bh } : null } : null),
@@ -294,7 +299,8 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `preview` is rebuilt every render; its url is its identity
     [heroOverride, sample, sampleShot, replayShot, previewUrl, product, scene, stageAlt, qa],
   );
-  const lightOn = !!scene && !heroOverride && (status.light === "active" || status.qa === "active");
+  // the key light sweeps in while light-matching only: over QA's story its soft-light wash would flatten the plate
+  const lightOn = !!scene && !heroOverride && status.light === "active";
   const lightAz = scene?.dna.light_azimuth ?? 0;
   const stageLight = React.useMemo(() => (lightOn ? { azimuth: lightAz, key: runId } : null), [lightOn, lightAz, runId]);
 
@@ -665,6 +671,9 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
       window.history.replaceState(null, "", `/studio?${replay ? `sample=${src.sku}` : `sku=${src.sku}`}`);
 
       let step: PipelineStepId = "fix";
+      // a replay's first staged frame is a stored image: fetch it now, so it is decoded by the time it shows
+      const firstShot = replayAttempts(replay)?.[0]?.url;
+      if (firstShot) void preloadImage(firstShot, signal).catch(() => {});
       try {
         mark("fix", "active", "AI Vision is reading your photo");
         const a = await atLeast(
@@ -701,7 +710,11 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
         mark("cutout", "active", "Lifting it off the background");
         const c = await atLeast(
           patient(
-            api.cutout(src.sku, signal, (n) => mark("cutout", "active", n > 2 ? "Still cutting out. Detailed edges take a few seconds" : "Lifting it off the background")),
+            api.cutout(src.sku, signal, (n) => mark("cutout", "active", n > 2 ? "Still cutting out. Detailed edges take a few seconds" : "Lifting it off the background")).then((r) => {
+              // a replay knows its cut-out at once: have it decoded before its wipe
+              if (replay && r.data.cutout) void preloadImage(cutoutAt(r.data.cutout.publicId), signal).catch(() => {});
+              return r;
+            }),
             { signal, onSlow: () => mark("cutout", "active", "Still cutting out. Detailed edges take a few seconds"), slowMs: 15_000, maxMs: 90_000 },
           ),
           replay?.pace.cutout ?? 1300,
@@ -718,8 +731,9 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
         const view = VIEW_FOR_PLACEMENT[p.understanding!.placement];
         let list: Scene[];
         if (replay) {
-          // a replay makes no requests: the library snapshot ships with the page
-          await sleep(500, signal);
+          // a replay makes no requests: the library snapshot ships with the page. The pause lets the
+          // cut-out's wipe play and hold its beat before the scene covers it (crossfade-image.tsx)
+          await sleep(1400, signal);
           list = api.curateScenes(SCENE_LIBRARY.filter((s) => s.view === view));
           if (!list.some((s) => s.publicId === replay.scene.publicId)) list = [replay.scene, ...list];
         } else {
@@ -935,7 +949,14 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
 
   const dirty = !!kit && packedSig !== sigOf(sceneId, controls, settings, heroOverride);
   const cutoutReady = status.cutout === "done";
-  const busyLabel = running ? null : stageBusy ? "Rendering" : null;
+  // a frame Cloudinary is still rendering says so (after a beat: a cached frame never flashes the chip)
+  const [slowFrame, setSlowFrame] = React.useState<string | null>(null);
+  React.useEffect(() => {
+    if (!stageLoading || !stageSrc) return;
+    const t = setTimeout(() => setSlowFrame(stageSrc), 600);
+    return () => clearTimeout(t);
+  }, [stageLoading, stageSrc]);
+  const busyLabel = stageLoading && slowFrame === stageSrc ? "Rendering on Cloudinary" : null;
 
   const shareUrl = kit ? `/kit/${kit.sku}` : null;
   const copyShare = async () => {
@@ -1085,7 +1106,7 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
                 </h1>
                 {sample ? (
                   <Tip label="These are the real Cloudinary results from a live run of this sample photo, saved and replayed step by step, so a sample uses no AI quota. Upload your own photo to run every step live.">
-                    <button type="button" className="mt-0.5 inline-flex min-h-8 items-center gap-1.5 rounded-full text-[0.8rem] font-medium text-dim underline decoration-dotted underline-offset-4 hover:text-paper">
+                    <button type="button" className="relative mt-0.5 inline-flex min-h-8 items-center gap-1.5 rounded-full text-[0.8rem] font-medium text-dim underline decoration-dotted underline-offset-4 after:absolute after:-inset-y-1.5 after:inset-x-0 hover:text-paper">
                       <span aria-hidden className="size-1.5 rounded-full bg-marigold" />
                       Sample replay, no quota used
                     </button>
@@ -1101,12 +1122,12 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
                   </Tip>
                 ) : null}
                 {sample ? (
-                  <Button variant="secondary" size="sm" onClick={reset}>
+                  <Button variant="secondary" size="sm" onClick={reset} className="relative after:absolute after:-inset-1 after:-bottom-2">
                     <ImageUp />
                     Use my photo
                   </Button>
                 ) : (
-                  <Button variant="ghost" size="sm" onClick={reset}>
+                  <Button variant="ghost" size="sm" onClick={reset} className="relative after:absolute after:-inset-1 after:-bottom-2">
                     <RotateCcw />
                     New photo
                   </Button>
@@ -1186,6 +1207,7 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
               qa={qa}
               qaStory={qaStory}
               onBusy={setStageBusy}
+              onLoading={setStageLoading}
               busyLabel={busyLabel}
               enter={settle != null ? "settle" : heroOverride ? "focus" : sampleShot || preview ? (running ? "focus" : "soft") : cutoutView ? "wipe" : "focus"}
               settle={settle}

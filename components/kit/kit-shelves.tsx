@@ -46,7 +46,8 @@ export function KitShelves({ kit, deal, onDealt, rendering = [] }: { kit: Kit; d
 
   return (
     <XrayHost>
-      <div ref={root} className="grid gap-4">
+      {/* the X-ray buttons under the cards stay 28 px; their tap area is 44 px */}
+      <div ref={root} className="grid gap-4 [&_[data-tag]_button]:relative [&_[data-tag]_button]:after:absolute [&_[data-tag]_button]:after:-inset-2">
         {rendering.length ? (
           <p role="status" className="mx-4 flex items-center gap-2.5 rounded-xl bg-stage px-4 py-3 text-sm text-dim ring-1 ring-line sm:mx-8 sm:w-fit">
             <span aria-hidden className="size-2 animate-pulse rounded-full bg-marigold" />
@@ -68,15 +69,16 @@ export function KitShelves({ kit, deal, onDealt, rendering = [] }: { kit: Kit; d
 const NAMES: Record<string, string> = { story: "story", banner: "web banner", marketplace: "marketplace image", whatsapp: "catalog tile", offer: "festive offer", feed: "feed post" };
 const formatName = (id: string) => NAMES[id] ?? (id.startsWith("recolor-") ? "a colour variant" : id);
 
-
 /**
- * Deal the cards onto their shelves, then reveal the real cards. Each card's
- * outline (its data-slot) shows while it is in flight, so a shelf is never an
- * empty ledge. Wide screens: the clones fan out over the hero like a hand of
- * cards and are dealt across to their places (a fixed layer, so scrollers can't
- * clip them). Narrow screens: each card drops in from just above its own shelf,
- * inside the shelf's scroller, so nothing ever flies over a heading or a button.
- * Reduced motion: a plain fade.
+ * Deal the cards onto their shelves, then reveal the real cards. While a card
+ * is on its way its outline (its data-slot) shows as a shimmering placeholder,
+ * so a shelf is never an empty ledge and no frame of the deal is blank.
+ * Wide screens: the deck fans open over the hero FIRST, where the viewer is
+ * looking; the page then scrolls to the shelves with the fanned hand held on
+ * screen (a fixed layer, so scrollers can't clip it), and the cards are dealt
+ * across to their places. Narrow screens: each card drops in from just above
+ * its own shelf, inside the shelf's scroller, so nothing ever flies over a
+ * heading or a button. Reduced motion: a plain fade.
  */
 export function dealCards(root: HTMLElement, cards: HTMLElement[], from: () => DOMRect | null) {
   const state = { cancelled: false, layer: null as HTMLElement | null };
@@ -87,7 +89,7 @@ export function dealCards(root: HTMLElement, cards: HTMLElement[], from: () => D
       c.style.opacity = "";
       c.style.removeProperty("transform");
       tagOf(c)?.style.removeProperty("opacity");
-      slotOf(c)?.style.removeProperty("opacity");
+      unslot(c, true);
     });
   };
   const done = flyCards(root, cards, from, state).then(
@@ -103,6 +105,30 @@ export function dealCards(root: HTMLElement, cards: HTMLElement[], from: () => D
 /** Below this width the deal stays on the shelves (short drops, no cross-page flight). */
 const NARROW = 640;
 
+/** A card's outline while it is on its way: the skeleton shimmer, so the shelf reads "arriving", never empty. */
+function slot(c: HTMLElement) {
+  const s = slotOf(c);
+  if (!s) return;
+  s.classList.add("skeleton");
+  s.style.setProperty("transition", "none"); // there at once, not fading in while the page scrolls to it
+  s.style.setProperty("opacity", "1");
+}
+function unslot(c: HTMLElement, now = false) {
+  const s = slotOf(c);
+  if (!s) return;
+  s.style.removeProperty("transition"); // …and fading out under its card as it lands
+  s.style.setProperty("opacity", "0");
+  const clear = () => {
+    s.classList.remove("skeleton");
+    s.style.removeProperty("opacity");
+  };
+  // the shimmer goes once the outline has faded out under its card
+  if (now) clear();
+  else setTimeout(clear, 320);
+}
+
+const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
 async function flyCards(root: HTMLElement, cards: HTMLElement[], from: () => DOMRect | null, state: { cancelled: boolean; layer: HTMLElement | null }) {
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const narrow = window.innerWidth < NARROW;
@@ -110,30 +136,32 @@ async function flyCards(root: HTMLElement, cards: HTMLElement[], from: () => DOM
   cards.forEach((c) => {
     c.style.opacity = "0";
     tagOf(c)?.style.setProperty("opacity", "0"); // shelf-edge tags arrive with their card
-    slotOf(c)?.style.setProperty("opacity", "1");
+    slot(c);
   });
   const land = (c: HTMLElement) => {
     c.style.opacity = "";
-    slotOf(c)?.style.setProperty("opacity", "0");
+    unslot(c);
     const t = tagOf(c);
     if (!t) return;
     t.style.removeProperty("opacity");
     void animate(t, { opacity: [0, 1], y: [-4, 0] }, { duration: 0.35, ease: [0.16, 1, 0.3, 1] });
   };
-  // Load every card's image while we scroll, so no card is dealt face-down.
+  // Load every card's image from the start, so no card is dealt face-down.
   const imgs = cards.flatMap((c) => Array.from(c.querySelectorAll("img")));
   imgs.forEach((i) => (i.loading = "eager"));
-  await Promise.all([
-    bringIntoView(root, reduced),
-    Promise.race([Promise.all(imgs.map((i) => i.decode().catch(() => undefined))), new Promise((r) => setTimeout(r, narrow ? 1400 : 2200))]),
-  ]);
-  if (state.cancelled) return;
+  const decoded = Promise.all(imgs.map((i) => i.decode().catch(() => undefined)));
+  const decodedWithin = (ms: number) => Promise.race([decoded, wait(ms)]);
+
   if (reduced || !cards.length) {
+    await Promise.all([bringIntoView(root, true), decodedWithin(1400)]);
+    if (state.cancelled) return;
     await Promise.all(cards.map((c) => animate(c, { opacity: [0, 1] }, { duration: 0.25 }).then(() => land(c))));
     return;
   }
 
   if (narrow) {
+    await Promise.all([bringIntoView(root, false), decodedWithin(1400)]);
+    if (state.cancelled) return;
     // Each card drops a few px from above its own place and settles on the ledge. The shelf's
     // scroller clips it, so the drop stays inside the shelf; cards off to the right land unseen.
     const at = new Map(cards.map((c) => [c, c.getBoundingClientRect()] as const));
@@ -154,12 +182,25 @@ async function flyCards(root: HTMLElement, cards: HTMLElement[], from: () => DOM
     return;
   }
 
-  // The deck sits where the hero is; if the hero has scrolled away, just above the shelves.
-  const sec = root.getBoundingClientRect();
+  // The deck is the hero, where the viewer is looking right now. If it has scrolled out of
+  // view, the shelves come up first and the deck is held just above them instead.
+  const visible = (r: DOMRect | null): r is DOMRect => !!r && r.bottom > 40 && r.top < window.innerHeight - 40;
   let deck = from();
-  if (!deck || deck.bottom < 40 || deck.top > window.innerHeight - 40) deck = new DOMRect(sec.left + sec.width / 2 - 110, Math.max(24, sec.top - 60), 220, 280);
-  const deckX = deck.left + deck.width / 2;
-  const deckY = deck.top + deck.height / 2;
+  if (visible(deck)) {
+    // a short wait for the faces (nothing moves meanwhile); the rest decode during the fan and the scroll
+    await decodedWithin(1200);
+    if (state.cancelled) return;
+    const again = from();
+    if (visible(again)) deck = again;
+  } else {
+    await Promise.all([bringIntoView(root, false), decodedWithin(1400)]);
+    if (state.cancelled) return;
+    const sec = root.getBoundingClientRect();
+    deck = new DOMRect(sec.left + sec.width / 2 - 110, Math.max(24, sec.top - 60), 220, 280);
+  }
+  const d = deck as DOMRect;
+  const deckX = d.left + d.width / 2;
+  const deckY = d.top + d.height / 2;
 
   const layer = document.createElement("div");
   state.layer = layer;
@@ -176,15 +217,15 @@ async function flyCards(root: HTMLElement, cards: HTMLElement[], from: () => DOM
     ghost.style.setProperty("--h", getComputedStyle(card).getPropertyValue("--h"));
     Object.assign(ghost.style, { position: "fixed", left: `${r.left}px`, top: `${r.top}px`, width: `${r.width}px`, height: `${r.height}px`, margin: "0", opacity: "0", transformOrigin: "50% 115%" });
     layer.appendChild(ghost);
-    card.style.opacity = "0";
     const spread = i - (n - 1) / 2;
     return {
       card,
       ghost,
       i,
+      r,
       dx: deckX - (r.left + r.width / 2),
       dy: deckY - (r.top + r.height / 2),
-      s: Math.min(1, Math.max(0.28, (deck.height * 0.62) / r.height)),
+      s: Math.min(1, Math.max(0.28, (d.height * 0.62) / r.height)),
       fanRot: spread * Math.min(7, 64 / n),
       fanX: spread * 9,
       side: Math.sign(r.left + r.width / 2 - deckX) || 1,
@@ -204,18 +245,32 @@ async function flyCards(root: HTMLElement, cards: HTMLElement[], from: () => DOM
   );
   if (state.cancelled) return;
 
-  // 2. Deal them onto the shelves one by one, tipping in from 3D as they land.
-  const flights = ghosts.map((g) =>
-    animate(
+  // 2. The shelves come up under the hand (the hand stays put: its layer is fixed to the screen).
+  await Promise.all([bringIntoView(root, false), decodedWithin(1600)]);
+  if (state.cancelled) return;
+
+  // 3. Deal them onto the shelves one by one, tipping in from 3D as they land. Each ghost is still
+  //    laid out where its card was before the scroll, so it travels to where the card is now.
+  const flights = ghosts.map((g) => {
+    const at = g.card.getBoundingClientRect();
+    return animate(
       g.ghost,
-      { x: [g.dx + g.fanX, 0], y: [g.dy, 0], scale: [g.s, 1], rotate: [g.fanRot, 0], rotateY: [g.side * 9, 0], rotateX: [10, 0], transformPerspective: [1800, 1800] },
+      {
+        x: [g.dx + g.fanX, at.left - g.r.left],
+        y: [g.dy, at.top - g.r.top],
+        scale: [g.s, 1],
+        rotate: [g.fanRot, 0],
+        rotateY: [g.side * 9, 0],
+        rotateX: [10, 0],
+        transformPerspective: [1800, 1800],
+      },
       { type: "spring", stiffness: 135, damping: 17, mass: 0.9, delay: 0.06 + g.i * 0.075 },
     ).then(() => {
       if (state.cancelled) return;
       land(g.card);
       g.ghost.remove();
-    }),
-  );
+    });
+  });
   await Promise.all(flights);
   layer.remove();
 }
