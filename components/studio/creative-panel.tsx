@@ -1,6 +1,6 @@
 "use client";
 
-import { KeyRound, LockOpen, RefreshCw, Sparkles } from "lucide-react";
+import { KeyRound, LockOpen, PauseCircle, RefreshCw, Sparkles } from "lucide-react";
 import * as React from "react";
 import { CloudImg } from "@/components/cloud-img";
 import { QaBadge } from "@/components/kit/qa-badge";
@@ -34,6 +34,8 @@ interface Take {
 export function CreativePanel({
   sku,
   ready,
+  isSample,
+  active,
   onUseAsHero,
   onCredits,
   onDemo,
@@ -41,12 +43,16 @@ export function CreativePanel({
 }: {
   sku: Sku;
   ready: boolean;
+  isSample?: boolean;
+  active?: boolean; // the tab is showing: check the live quota once
   onUseAsHero: (a: KitAsset) => void;
   onCredits: (n: number) => void;
   onDemo: () => void;
   stageRect?: () => DOMRect | null;
 }) {
   const [unlocked, setUnlocked] = React.useState<{ left: number } | null>(null);
+  const [live, setLive] = React.useState<"checking" | "on" | "paused" | "unknown">("checking");
+  const checked = React.useRef(false);
   const [askCode, setAskCode] = React.useState(false);
   const [model, setModel] = React.useState<ModelId>("nano-banana-2-edit");
   const [prompt, setPrompt] = React.useState("");
@@ -56,6 +62,25 @@ export function CreativePanel({
   const running = takes.some((t) => t.status === "queued" || t.status === "generating");
 
   React.useEffect(() => () => ac.current?.abort(), []);
+
+  // One usage check when the tab first opens: is live generation on, and is this session unlocked?
+  React.useEffect(() => {
+    if (!active || checked.current || isSample) return;
+    checked.current = true;
+    api
+      .usage()
+      .then((u) => {
+        if (u.source === "demo") onDemo();
+        setLive(u.data.liveGeneration ? "on" : "paused");
+        if (u.data.session.unlocked) setUnlocked({ left: u.data.session.generationsLeft });
+      })
+      .catch(() => setLive("unknown"));
+  }, [active, isSample, onDemo]);
+
+  // Samples and paused quota: show the real example takes right away.
+  const autoSamples = isSample || live === "paused";
+  const examples = React.useMemo(() => sampleTakes(), []);
+  const shown = takes.length ? takes : autoSamples ? examples : [];
   React.useEffect(() => {
     if (!running) return;
     const t = setInterval(() => setNow(Date.now()), 500);
@@ -105,19 +130,7 @@ export function CreativePanel({
     fresh.forEach((t) => void runTake(t, ctl.signal));
   };
 
-  const showSamples = () => {
-    setTakes(
-      [CREATIVE_APPROVED, CREATIVE_REJECTED].map((a, i) => ({
-        key: `sample-${i}`,
-        model: i === 0 ? "nano-banana-2-edit" : "flux-2-flash-edit",
-        seed: 7,
-        status: "done",
-        asset: a,
-        startedAt: 0,
-        sample: true,
-      })),
-    );
-  };
+  const showSamples = () => setTakes(sampleTakes());
 
   return (
     <div className="grid gap-6">
@@ -129,7 +142,25 @@ export function CreativePanel({
         </p>
       </div>
 
-      {!unlocked ? (
+      {isSample ? (
+        <div className="grid gap-2 rounded-2xl bg-stage-2 p-4 ring-1 ring-line">
+          <p className="text-sm text-paper">Creative mode reshoots your own photo.</p>
+          <p className="text-sm text-dim">Below are two real takes from a test run, and what the QA check made of them. Upload your photo to try it.</p>
+        </div>
+      ) : live === "paused" ? (
+        <div role="status" className="grid gap-2 rounded-2xl bg-stage-2 p-4 ring-1 ring-line">
+          <p className="flex items-center gap-2 text-sm font-semibold text-paper">
+            <PauseCircle className="size-4 text-marigold" aria-hidden />
+            Live generation is paused
+          </p>
+          <p className="text-sm text-dim">The shared image-generation quota is nearly used up, so new takes are on hold. Here are real takes from an earlier run. Exact mode keeps working as normal.</p>
+        </div>
+      ) : live === "checking" && !unlocked ? (
+        <div className="grid gap-3 rounded-2xl bg-stage-2 p-4 ring-1 ring-line" aria-busy="true">
+          <div className="skeleton h-4 w-3/4 rounded" />
+          <div className="skeleton h-9 w-44 rounded-full" />
+        </div>
+      ) : !unlocked ? (
         <div className="grid gap-3 rounded-2xl bg-stage-2 p-4 ring-1 ring-line">
           <p className="text-sm text-dim">It spends image generation credits, so it needs an access code.</p>
           <div className="flex flex-wrap gap-2">
@@ -137,9 +168,11 @@ export function CreativePanel({
               <KeyRound />
               Enter access code
             </Button>
-            <Button size="sm" variant="ghost" onClick={showSamples}>
-              See sample takes
-            </Button>
+            {shown.length ? null : (
+              <Button size="sm" variant="ghost" onClick={showSamples}>
+                See example takes
+              </Button>
+            )}
           </div>
         </div>
       ) : (
@@ -187,11 +220,11 @@ export function CreativePanel({
         </div>
       )}
 
-      {takes.length ? (
+      {shown.length ? (
         <div className="grid gap-3">
-          {takes[0].sample ? <p className="text-[0.82rem] text-dim">Sample takes of the sneaker. No credits used.</p> : null}
+          {shown[0].sample ? <p className="text-[0.82rem] text-dim">Example takes of a test sneaker, made earlier. No credits used now.</p> : null}
           <ul className="grid grid-cols-2 gap-3">
-            {takes.map((t) => (
+            {shown.map((t) => (
               <TakeTile key={t.key} take={t} now={now} onUse={(a, img) => {
                 flyImage(img, stageRect?.() ?? null);
                 onUseAsHero(a);
@@ -212,6 +245,18 @@ export function CreativePanel({
       />
     </div>
   );
+}
+
+function sampleTakes(): Take[] {
+  return [CREATIVE_APPROVED, CREATIVE_REJECTED].map((a, i) => ({
+    key: `sample-${i}`,
+    model: i === 0 ? "nano-banana-2-edit" : "flux-2-flash-edit",
+    seed: 7,
+    status: "done",
+    asset: a,
+    startedAt: 0,
+    sample: true,
+  }));
 }
 
 function TakeTile({ take, now, onUse, onRetry }: { take: Take; now: number; onUse: (a: KitAsset, img: HTMLImageElement | null) => void; onRetry: () => void }) {
@@ -249,10 +294,12 @@ function TakeTile({ take, now, onUse, onRetry }: { take: Take; now: number; onUs
       ) : null}
       {take.status === "done" && take.asset?.qa?.status === "approved" ? (
         <>
-          <p className="text-[0.78rem] text-dim">{take.asset.qa.reasons[0]}</p>
-          <Button size="sm" variant="secondary" onClick={() => onUse(take.asset!, box.current?.querySelector("img") ?? null)}>
-            Use as hero
-          </Button>
+          <p className="text-[0.78rem] text-dim">{take.asset.qa.reasons[0] ?? "Same product as your photo"}</p>
+          {take.sample ? null : (
+            <Button size="sm" variant="secondary" onClick={() => onUse(take.asset!, box.current?.querySelector("img") ?? null)}>
+              Use as hero
+            </Button>
+          )}
         </>
       ) : null}
       {take.status === "failed" ? (

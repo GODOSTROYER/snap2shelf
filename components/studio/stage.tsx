@@ -1,7 +1,7 @@
 "use client";
 
 /* eslint-disable @next/next/no-img-element -- Cloudinary delivery URL, already sized */
-import { CodeXml, Eye } from "lucide-react";
+import { ArrowRight, CodeXml, Eye, ShieldCheck, Wrench } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import * as React from "react";
 import { QaBadge } from "@/components/kit/qa-badge";
@@ -9,6 +9,13 @@ import { XraySheet } from "@/components/kit/xray-sheet";
 import { cn } from "@/lib/client/util";
 import type { KitAsset, QaResult } from "@/lib/types";
 import { CrossfadeImage, type Enter } from "./crossfade-image";
+
+/** The QA gate's automatic retry, told on the stage: caught → fixed → approved. */
+export interface QaStory {
+  phase: "fixing" | "fixed";
+  caught: string; // the first rejection reason, as the server wrote it
+  fix: string; // what was changed
+}
 
 /**
  * The big 4:5 viewer. Shows whatever the pipeline has so far (raw photo →
@@ -21,6 +28,8 @@ export const Stage = React.forwardRef<
     alt: string;
     placeholder?: string;
     originalSrc?: string | null;
+    originalLabel?: string;
+    qaStory?: QaStory | null;
     scanning?: string | null; // label while a step works on the photo
     qa?: QaResult | null;
     onBusy?: (busy: boolean) => void;
@@ -29,7 +38,7 @@ export const Stage = React.forwardRef<
     enter?: Enter; // how the next image arrives
     light?: { azimuth: number; key: number } | null; // key light sweeping in from the scene's light direction
   }
->(function Stage({ src, alt, placeholder, originalSrc, scanning, qa, onBusy, busyLabel, xray, enter, light }, ref) {
+>(function Stage({ src, alt, placeholder, originalSrc, originalLabel = "Hold to see your photo", qaStory, scanning, qa, onBusy, busyLabel, xray, enter, light }, ref) {
   const [showOriginal, setShowOriginal] = React.useState(false);
   const [xrayOpen, setXrayOpen] = React.useState(false);
   const [failed, setFailed] = React.useState<string | null>(null);
@@ -130,9 +139,40 @@ export const Stage = React.forwardRef<
           className="absolute right-3 bottom-3 inline-flex h-9 items-center gap-2 rounded-full bg-studio/85 px-3.5 text-[0.8rem] font-semibold text-paper backdrop-blur-sm transition-colors select-none hover:bg-studio"
         >
           <Eye className="size-4" aria-hidden />
-          Hold to see your photo
+          {originalLabel}
         </button>
       ) : null}
+
+      <AnimatePresence>
+        {qaStory ? (
+          <motion.div
+            key="qa-story"
+            role="status"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8, transition: { duration: 0.25 } }}
+            transition={{ type: "spring", stiffness: 260, damping: 24 }}
+            className="absolute inset-x-3 bottom-15 rounded-2xl bg-studio/90 p-3.5 text-[0.8rem] leading-snug text-paper shadow-[0_20px_40px_-16px_rgb(0_0_0/0.9)] ring-1 ring-line-strong backdrop-blur-md sm:inset-x-4"
+          >
+            <ol className="flex flex-wrap items-center gap-x-2 gap-y-1 font-semibold">
+              <li className="text-sindoor">QA caught it</li>
+              <li aria-hidden><ArrowRight className="size-3.5 text-faint" /></li>
+              <li className={cn("inline-flex items-center gap-1", qaStory.phase === "fixing" ? "text-marigold" : "text-paper")}>
+                <Wrench className="size-3.5" aria-hidden />
+                {qaStory.phase === "fixing" ? "Fixing" : "Auto-fixed"}
+              </li>
+              <li aria-hidden><ArrowRight className="size-3.5 text-faint" /></li>
+              <li className={cn("inline-flex items-center gap-1", qaStory.phase === "fixed" ? "text-leaf" : "text-faint")}>
+                <ShieldCheck className="size-3.5" aria-hidden />
+                {qaStory.phase === "fixed" ? "Approved" : "Re-checking"}
+              </li>
+            </ol>
+            <p className="mt-1.5 text-dim">
+              {qaStory.caught} We {qaStory.fix}.
+            </p>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 });
