@@ -62,6 +62,32 @@ interface Failure {
   busy?: boolean; // Cloudinary rate-limited or out of quota: offer a finished sample meanwhile
 }
 
+/**
+ * A live step that runs long says so; one that never answers becomes the
+ * "Cloudinary is busy" fallback instead of spinning forever.
+ */
+function patient<T>(p: Promise<T>, o: { signal: AbortSignal; onSlow: () => void; slowMs?: number; maxMs?: number }): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const slow = setTimeout(o.onSlow, o.slowMs ?? 12_000);
+    const stuck = setTimeout(() => reject(new api.ApiFailure(504, { error: "Cloudinary is taking too long to answer.", code: "upstream" })), o.maxMs ?? 55_000);
+    const done = () => {
+      clearTimeout(slow);
+      clearTimeout(stuck);
+    };
+    o.signal.addEventListener("abort", done, { once: true });
+    p.then(
+      (v) => {
+        done();
+        resolve(v);
+      },
+      (e) => {
+        done();
+        reject(e);
+      },
+    );
+  });
+}
+
 /** Rate limits, exhausted quota and upstream hiccups: not the seller's fault, and not worth a red error. */
 const isBusy = (e: unknown) => e instanceof api.ApiFailure && ([420, 429, 502, 503, 504].includes(e.status) || e.body.code === "quota_low") && e.body.code !== "cap_reached";
 
@@ -86,8 +112,9 @@ function planFix(q: QaResult, c: CompositeControls, scene: Scene, scenes: Scene[
     return null;
   }
   if (has("product-floating")) {
-    const down = Math.min(OFFSET_RANGE.max, c.offsetY + OFFSET_RANGE.step);
-    return { scene, controls: { ...c, offsetY: down, contact: true, shadow: true }, note: "set it down onto the surface and added a contact shadow" };
+    // nudged above the surface: put it back on the line Scene DNA found; otherwise sink it a little
+    const down = c.offsetY < 0 ? 0 : Math.min(OFFSET_RANGE.max, c.offsetY + 2 * OFFSET_RANGE.step);
+    return { scene, controls: { ...c, offsetY: down, contact: true, shadow: true }, note: "set it down onto the surface and turned on the contact shadow" };
   }
   if (has("scale-implausible")) {
     const base = defaultControls(placement, scene.dna, p.cutout).scale;
@@ -112,6 +139,8 @@ function presentAsset(a: KitAsset, p: ProductRecord): KitAsset {
 export function Studio({ initialSample, initialSku }: { initialSample?: string; initialSku?: string }) {
   const [source, setSource] = React.useState<SourceReady | null>(null);
   const [linkError, setLinkError] = React.useState<string | null>(null);
+  // a ?sku= link (phone capture, refresh): look for that photo before offering the picker
+  const [awaiting, setAwaiting] = React.useState(() => !!initialSku && SKU_RE.test(initialSku) && !getSample(initialSku) && !getSample(initialSample));
   const [status, setStatus] = React.useState<Status>(IDLE);
   const [notes, setNotes] = React.useState<Partial<Record<PipelineStepId, string>>>({});
   const [failure, setFailure] = React.useState<Failure | null>(null);
@@ -123,6 +152,7 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
   const [heroOverride, setHeroOverride] = React.useState<KitAsset | null>(null);
   const [qa, setQa] = React.useState<QaResult | null>(null);
   const [qaStory, setQaStory] = React.useState<QaStory | null>(null);
+  const [autoFixed, setAutoFixed] = React.useState(false);
   const [kit, setKit] = React.useState<Kit | null>(null);
   const [pendingFormats, setPendingFormats] = React.useState<string[]>([]);
   const [deal, setDeal] = React.useState<DealRequest | null>(null);
@@ -190,6 +220,7 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
       let step: PipelineStepId = "stage";
       setRunId((n) => n + 1);
       setQaStory(null);
+      setAutoFixed(false);
       try {
         mark("stage", "active", hero ? "Using your creative take" : `Placing it on the ${sc.title} scene`);
         await sleep(650, signal);
@@ -213,7 +244,11 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
             return hero.qa;
           }
           const url = hero ? hero.url : buildHero(p, sc, c, { format: "f_jpg,q_90" }).url;
-          const q = await atLeast(api.qa({ sku: src.sku, url, kind: hero ? "creative" : "exact" }, signal), replay?.pace.qa ?? 1000, signal);
+          const q = await atLeast(
+            patient(api.qa({ sku: src.sku, url, kind: hero ? "creative" : "exact" }, signal), { signal, onSlow: () => mark("qa", "active", "Still checking. AI Vision is slower than usual right now") }),
+            replay?.pace.qa ?? 1000,
+            signal,
+          );
           seen(q.source);
           tokens += q.data.tokens;
           return q.data.qa;
@@ -225,7 +260,8 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
         if (verdict.status === "rejected" && !hero) {
           const fix = planFix(verdict, c, sc, args.scenes, p);
           if (fix) {
-            const caught = verdict.reasons[0] ?? "Something looked off";
+            // first sentence of the server's reason, as written
+            const caught = (verdict.reasons[0] ?? "Something looked off.").split(/(?<=\.)\s/)[0];
             setQaStory({ phase: "fixing", caught, fix: fix.note });
             mark("qa", "active", `QA caught it: ${caught} Fixing it automatically…`);
             await sleep(1400, signal);
@@ -241,6 +277,7 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
             setQa(verdict);
             if (verdict.status === "approved") {
               fixed = fix;
+              setAutoFixed(true);
               setQaStory({ phase: "fixed", caught, fix: fix.note });
             } else {
               setQaStory(null);
@@ -263,9 +300,9 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
         const sceneSlug = sc.publicId.split("/").slice(-2).join("-");
         const offer = st.offer.hindi.trim() || st.offer.english.trim() ? { hindi: st.offer.hindi.trim() || undefined, english: st.offer.english.trim() || undefined } : undefined;
         const productBox = hero ? undefined : geometry(p.cutout!, sc.dna, quantise(c), p.understanding?.placement ?? "standing");
-        const started = await api.pack(
-          { sku: src.sku, heroUrl: saveUrl, sceneSlug, offer, recolor: st.swatches, textZone: hero ? undefined : sc.dna.text_zone, productBox },
-          signal,
+        const started = await patient(
+          api.pack({ sku: src.sku, heroUrl: saveUrl, sceneSlug, offer, recolor: st.swatches, textZone: hero ? undefined : sc.dna.text_zone, productBox }, signal),
+          { signal, onSlow: () => mark("pack", "active", "Saving the hero and starting every format") },
         );
         seen(started.source);
         let assets = started.data.assets;
@@ -342,7 +379,7 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
         setDeal((d) => ({ key: (d?.key ?? 0) + 1, from: () => stageRef.current?.getBoundingClientRect() ?? null }));
       } catch (e) {
         if (isAborted(e)) return;
-        mark(step, "failed", isBusy(e) ? "Cloudinary is busy right now" : api.messageFor(e));
+        mark(step, isBusy(e) ? "paused" : "failed", isBusy(e) ? "Paused: Cloudinary is busy right now" : api.messageFor(e));
         setFailure({ step, message: api.messageFor(e), from: "stage", busy: isBusy(e) });
       }
     },
@@ -359,6 +396,7 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
       const t0 = performance.now();
       const replay = getSample(src.sku);
       setSource(src);
+      setAwaiting(false);
       setLinkError(null);
       setStatus(IDLE);
       setNotes({});
@@ -380,7 +418,11 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
       let step: PipelineStepId = "fix";
       try {
         mark("fix", "active", "AI Vision is reading your photo");
-        const a = await atLeast(api.analyze(src.sku, signal), replay?.pace.analyze ?? 1100, signal);
+        const a = await atLeast(
+          patient(api.analyze(src.sku, signal), { signal, onSlow: () => mark("fix", "active", "Still reading. Cloudinary is slower than usual right now") }),
+          replay?.pace.analyze ?? 1100,
+          signal,
+        );
         seen(a.source);
         let p: ProductRecord = {
           sku: src.sku,
@@ -398,7 +440,10 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
         step = "cutout";
         mark("cutout", "active", "Lifting it off the background");
         const c = await atLeast(
-          api.cutout(src.sku, signal, (n) => mark("cutout", "active", n > 2 ? "Still cutting out. Detailed edges take a few seconds" : "Lifting it off the background")),
+          patient(
+            api.cutout(src.sku, signal, (n) => mark("cutout", "active", n > 2 ? "Still cutting out. Detailed edges take a few seconds" : "Lifting it off the background")),
+            { signal, onSlow: () => mark("cutout", "active", "Still cutting out. Detailed edges take a few seconds"), slowMs: 15_000, maxMs: 90_000 },
+          ),
           replay?.pace.cutout ?? 1300,
           signal,
         );
@@ -433,7 +478,7 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
         await finish({ src, product: p, scene: pick, scenes: list, controls: ctl, settings: st, hero: null, tokens: a.data.tokens, t0, signal });
       } catch (e) {
         if (isAborted(e)) return;
-        mark(step, "failed", isBusy(e) ? "Cloudinary is busy right now" : api.messageFor(e));
+        mark(step, isBusy(e) ? "paused" : "failed", isBusy(e) ? "Paused: Cloudinary is busy right now" : api.messageFor(e));
         setFailure({ step, message: api.messageFor(e), from: "fix", busy: isBusy(e) });
       } finally {
         if (!signal.aborted) setRunning(false);
@@ -537,13 +582,22 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
       const info = now ?? (await waitForRaw(initialSku, ac.signal));
       clearTimeout(giveUp);
       await start({ sku: initialSku, via: "phone", info });
-    })().catch(() => setLinkError("We couldn't find the photo for that link. It may still be uploading. Try again, or add a photo below."));
+    })()
+      .catch(() => setLinkError("We couldn't find the photo for that link. It may still be uploading. Try again, or add a photo below."))
+      .finally(() => setAwaiting(false));
     return () => {
       clearTimeout(giveUp);
     };
   }, [initialSample, initialSku, start]);
 
   React.useEffect(() => () => abortRef.current?.abort(), []);
+
+  // the "caught, fixed, approved" card has told its story once the kit is dealt; the rail keeps the wrench
+  React.useEffect(() => {
+    if (qaStory?.phase !== "fixed" || status.pack !== "done") return;
+    const t = setTimeout(() => setQaStory(null), 8000);
+    return () => clearTimeout(t);
+  }, [qaStory?.phase, status.pack]);
 
   const dirty = !!kit && packedSig !== sigOf(sceneId, controls, settings, heroOverride);
   const cutoutReady = status.cutout === "done";
@@ -560,6 +614,24 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
       setCopied(false);
     }
   };
+
+  if (!source && awaiting) {
+    return (
+      <div role="status" className="mx-auto grid min-h-[60dvh] max-w-md place-items-center px-4 text-center">
+        <div className="grid justify-items-center gap-4">
+          <span className="relative flex size-3">
+            <span className="absolute inline-flex size-full animate-ping rounded-full bg-marigold opacity-60" />
+            <span className="relative inline-flex size-3 rounded-full bg-marigold" />
+          </span>
+          <p className="font-display text-2xl font-bold tracking-[-0.02em]">Looking for your photo</p>
+          <p className="text-dim">It appears here the moment it finishes uploading.</p>
+          <Button variant="ghost" size="sm" onClick={() => setAwaiting(false)}>
+            Add a different photo
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (!source) {
     return (
@@ -621,7 +693,7 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
             </div>
 
             <div className="mt-4">
-              <PipelineRail status={status} notes={notes} fixed={qaStory?.phase === "fixed"} />
+              <PipelineRail status={status} notes={notes} fixed={autoFixed} />
             </div>
 
             {failure?.busy ? (
@@ -710,6 +782,8 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
                   onScene={(s) => {
                     setSceneId(s.publicId);
                     setHeroOverride(null);
+                    setQa(null); // the new composite hasn't been checked yet
+                    setQaStory(null);
                     if (product?.understanding)
                       setControls((c) => {
                         const d = defaultControls(product.understanding!.placement, s.dna, product.cutout);
@@ -720,6 +794,8 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
                   onControls={(c) => {
                     setHeroOverride(null);
                     setControls(c);
+                    setQa(null);
+                    setQaStory(null);
                   }}
                   onReset={() =>
                     scene && product?.understanding && setControls(sample && scene.publicId === sample.scene.publicId ? sample.controls : quantise(defaultControls(product.understanding.placement, scene.dna, product.cutout)))

@@ -7,7 +7,7 @@ import { CloudImg } from "@/components/cloud-img";
 import { PhoneButton } from "@/components/phone/phone-button";
 import { Button } from "@/components/ui/button";
 import { UPLOAD_WIDGET_STYLES } from "@/lib/client/theme";
-import { rawPublicId, UPLOAD_PRESET, type RawInfo } from "@/lib/client/upload";
+import { rawPublicId, rawTags, UPLOAD_PRESET, type RawInfo } from "@/lib/client/upload";
 import { newSku } from "@/lib/client/util";
 import { heroAt, rawAt, SAMPLES } from "@/lib/showcase";
 import type { Sku } from "@/lib/types";
@@ -43,6 +43,8 @@ export function SourcePicker({ onReady }: { onReady: (s: SourceReady) => void })
             uploadPreset={UPLOAD_PRESET}
             options={{
               publicId: rawPublicId(sku),
+              tags: rawTags(sku).split(","),
+              context: { origin: "upload" },
               sources: ["local", "camera", "url"],
               multiple: false,
               maxFiles: 1,

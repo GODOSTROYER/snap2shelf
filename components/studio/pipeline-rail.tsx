@@ -1,11 +1,11 @@
 "use client";
 
-import { Check, Frame, PackageCheck, Scissors, ShieldCheck, SunMedium, WandSparkles, Wrench, X } from "lucide-react";
+import { Check, Frame, PackageCheck, Pause, Scissors, ShieldCheck, SunMedium, WandSparkles, Wrench, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { cn } from "@/lib/client/util";
 import { PIPELINE_STEPS, type PipelineStepId } from "@/lib/types";
 
-export type StepStatus = "waiting" | "active" | "done" | "failed";
+export type StepStatus = "waiting" | "active" | "done" | "failed" | "paused";
 
 const ICONS: Record<PipelineStepId, typeof Check> = {
   fix: WandSparkles,
@@ -23,11 +23,11 @@ const ICONS: Record<PipelineStepId, typeof Check> = {
  */
 export function PipelineRail({ status, notes, fixed }: { status: Record<PipelineStepId, StepStatus>; notes: Partial<Record<PipelineStepId, string>>; fixed?: boolean }) {
   const doneCount = PIPELINE_STEPS.filter((s) => status[s.id] === "done").length;
-  const active = PIPELINE_STEPS.find((s) => status[s.id] === "active" || status[s.id] === "failed");
+  const active = PIPELINE_STEPS.find((s) => status[s.id] === "active" || status[s.id] === "failed" || status[s.id] === "paused");
   const progress = Math.min(1, (doneCount + (active && status[active.id] === "active" ? 0.5 : 0)) / (PIPELINE_STEPS.length - 1));
   const allDone = doneCount === PIPELINE_STEPS.length;
   const note = active ? notes[active.id] : allDone ? (notes.pack ?? "Kit ready") : "Waiting for a photo";
-  const noteTone = active && status[active.id] === "failed" ? "text-sindoor" : allDone ? "text-paper" : "text-dim";
+  const noteTone = active && status[active.id] === "failed" ? "text-sindoor" : active && status[active.id] === "paused" ? "text-marigold" : allDone ? "text-paper" : "text-dim";
 
   return (
     <div className={cn("relative overflow-hidden rounded-2xl bg-stage/70 px-3 py-3 ring-1 transition-[box-shadow] duration-700 sm:px-5 sm:py-4", allDone ? "ring-marigold/35 shadow-[0_0_40px_-12px_rgb(245_165_36/0.45)]" : "ring-line")}>
@@ -49,7 +49,7 @@ export function PipelineRail({ status, notes, fixed }: { status: Record<Pipeline
         </div>
         {PIPELINE_STEPS.map((s) => {
           const st = status[s.id];
-          const Icon = st === "done" ? (s.id === "qa" && fixed ? Wrench : Check) : st === "failed" ? X : ICONS[s.id];
+          const Icon = st === "done" ? (s.id === "qa" && fixed ? Wrench : Check) : st === "failed" ? X : st === "paused" ? Pause : ICONS[s.id];
           return (
             <li key={s.id} className="relative flex flex-col items-center gap-2 text-center" aria-current={st === "active" ? "step" : undefined}>
               <motion.span
@@ -62,6 +62,7 @@ export function PipelineRail({ status, notes, fixed }: { status: Record<Pipeline
                   st === "active" && "animate-glow bg-marigold text-marigold-ink ring-marigold",
                   st === "done" && "bg-paper text-studio ring-paper",
                   st === "failed" && "bg-sindoor text-studio ring-sindoor",
+                  st === "paused" && "bg-stage-2 text-marigold ring-marigold/60",
                 )}
               >
                 <AnimatePresence mode="popLayout" initial={false}>
@@ -88,7 +89,7 @@ export function PipelineRail({ status, notes, fixed }: { status: Record<Pipeline
               </motion.span>
               <span className={cn("text-[0.75rem] leading-tight font-semibold transition-colors duration-300 sm:text-[0.78rem]", st === "waiting" ? "text-faint" : "text-paper")}>
                 {s.label}
-                <span className="sr-only">: {st === "waiting" ? "not started" : st === "active" ? "in progress" : st === "done" ? "done" : "failed"}</span>
+                <span className="sr-only">: {st === "waiting" ? "not started" : st === "active" ? "in progress" : st === "done" ? "done" : st === "paused" ? "paused" : "failed"}</span>
               </span>
             </li>
           );
