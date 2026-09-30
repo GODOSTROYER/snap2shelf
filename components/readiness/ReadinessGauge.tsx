@@ -54,6 +54,9 @@ const C = 2 * Math.PI * R;
 /** The ring is a 270° arc (open at the bottom), like a dial. */
 const ARC = 0.75;
 
+/** The baseline photo as a sentence subject: "Your photo", "The sample photo". */
+const photoSubject = (label: string) => (/^your\b/i.test(label) ? label : `The ${label.charAt(0).toLowerCase()}${label.slice(1)}`);
+
 /** Counts up to `target` once `run` is true (the gauge is on screen). */
 function useCountUp(target: number, reduce: boolean | null, run: boolean): number {
   const [n, setN] = useState(reduce ? target : 0);
@@ -200,7 +203,7 @@ export function ReadinessGauge({
                 <p className={cn("tabular font-display text-2xl font-bold", GRADE_TEXT[report.grade])}>{report.score}</p>
               </div>
               <span className="sr-only">
-                The {photoLabel.toLowerCase()} scores {baseline.score}; the Snap2Shelf marketplace image scores {report.score}.
+                {photoSubject(photoLabel)} scores {baseline.score}; the Snap2Shelf marketplace image scores {report.score}.
               </span>
             </div>
           )}

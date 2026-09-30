@@ -50,7 +50,8 @@ export function XrayButton({ asset }: { asset: KitAsset }) {
         onFocus={warm}
         aria-label={`X-ray: how ${asset.label} is made`}
         aria-describedby={tipId}
-        className="peer grid size-7 place-items-center rounded-md bg-stage-2 text-dim ring-1 ring-line-strong transition-colors ring-inset hover:bg-stage-3 hover:text-marigold"
+        // drawn at 28 px; the invisible ::before grows the touch target to 44 px (WCAG 2.5.5) without changing the look
+        className="peer relative grid size-7 place-items-center rounded-md bg-stage-2 text-dim ring-1 ring-line-strong transition-colors ring-inset before:absolute before:-inset-2 before:content-[''] hover:bg-stage-3 hover:text-marigold"
       >
         <CodeXml className="size-4" />
       </button>

@@ -4,7 +4,8 @@ import dynamic from "next/dynamic";
 import * as React from "react";
 import type { CostReceiptProps } from "@/components/features/cost-receipt";
 import type { ReadinessGaugeProps } from "@/components/readiness/ReadinessGauge";
-import { cn } from "@/lib/client/util";
+// clsx rather than util's cn: nothing here conflicts, and tailwind-merge would ride into /kit's first-load JS
+import { clsx as cn } from "clsx";
 
 // Below the fold on /kit/<sku>: their code (and motion) loads only as they come near.
 const CostReceipt = dynamic(() => import("@/components/features/cost-receipt").then((m) => m.CostReceipt), { ssr: false });
