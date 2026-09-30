@@ -1,32 +1,184 @@
 @import "tailwindcss";
 
-:root {
-  --studio: #0e0c0a;
-  --ink: #f4efe7;
-  --muted: #a89f92;
-  --marigold: #f5a524;
-  color-scheme: dark;
+/*
+ * Snap2Shelf studio tokens.
+ * A darkened photo studio under a warm key light; marigold is the one accent
+ * (it is literally the garland colour in the Diwali scene plates).
+ */
+@theme {
+  --color-studio: #15110d;
+  --color-stage: #1d1712;
+  --color-stage-2: #282019;
+  --color-stage-3: #362b21;
+  --color-paper: #f5ede1;
+  --color-dim: #b9ac98;
+  --color-faint: #93866f;
+  --color-line: rgb(245 237 225 / 0.1);
+  --color-line-strong: rgb(245 237 225 / 0.2);
+
+  --color-marigold: #f5a524;
+  --color-marigold-hi: #ffc35e;
+  --color-marigold-ink: #241500;
+  --color-sindoor: #f26a52;
+  --color-leaf: #97d48d;
+
+  --color-ledge-top: #5a4632;
+  --color-ledge: #2e2319;
+  --color-ledge-low: #1a140f;
+  --color-checker-a: #2b241d;
+  --color-checker-b: #3a3128;
+
+  /* inside the device frames (a picture of someone else's screen, not our UI) */
+  --color-frame-light: #ffffff;
+  --color-frame-ink: #16130f;
+  --color-frame-soft: #6f6a63;
+  --color-frame-line: #e8e3dc;
+  --color-frame-dark: #0f0d0b;
+  --color-frame-bubble: #221d18;
+
+  /* X-ray segment kinds */
+  --color-x-crop: #86bdff;
+  --color-x-layer: #f5a524;
+  --color-x-placement: #c9b0ff;
+  --color-x-shadow: #b7bfcb;
+  --color-x-reflection: #82ded2;
+  --color-x-effect: #f59bc2;
+  --color-x-gen: #ff8a6b;
+  --color-x-text: #ffd875;
+  --color-x-format: #97d48d;
+  --color-x-asset: #eadfce;
+  --color-x-video: #c1e86a;
+
+  --font-display: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-hanken), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, "Cascadia Mono", monospace;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+
+  --animate-shimmer: shimmer 1.6s var(--ease-out-quart) infinite;
+  --animate-glow: glow 1.8s ease-in-out infinite;
+  --animate-sweep: sweep 2.2s var(--ease-out-quart) infinite;
+
+  @keyframes shimmer {
+    from { background-position: 150% 0; }
+    to { background-position: -50% 0; }
+  }
+  @keyframes glow {
+    0%, 100% { box-shadow: 0 0 0 0 rgb(245 165 36 / 0.45); }
+    50% { box-shadow: 0 0 0 8px rgb(245 165 36 / 0); }
+  }
+  @keyframes sweep {
+    from { transform: translateY(-100%); }
+    to { transform: translateY(100%); }
+  }
 }
 
-body {
-  margin: 0;
-  min-height: 100vh;
-  background: var(--studio);
-  color: var(--ink);
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  -webkit-font-smoothing: antialiased;
+@layer base {
+  html {
+    background: var(--color-studio);
+    color: var(--color-paper);
+    color-scheme: dark;
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+    accent-color: var(--color-marigold);
+    caret-color: var(--color-marigold);
+    scrollbar-color: var(--color-stage-3) transparent;
+  }
+
+  body {
+    min-height: 100dvh;
+    background:
+      radial-gradient(ellipse 70% 42rem at 50% -8rem, rgb(245 165 36 / 0.075), transparent 70%),
+      var(--color-studio);
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    background: var(--color-marigold);
+    color: var(--color-marigold-ink);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-marigold);
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    text-wrap: balance;
+  }
+
+  p { text-wrap: pretty; }
+
+  a { text-underline-offset: 0.22em; text-decoration-thickness: 1px; }
+
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-stage-3);
+    border-radius: 999px;
+    border: 3px solid transparent;
+    background-clip: padding-box;
+  }
+
+  input::placeholder, textarea::placeholder { color: var(--color-faint); }
 }
 
-.hello {
-  min-height: 100vh;
-  display: grid;
-  place-content: center;
-  gap: 1rem;
-  padding: 1.5rem 1rem;
-  max-width: 44rem;
-  margin: 0 auto;
+@layer components {
+  /* the lit wooden edge a shelf row sits on */
+  .shelf-ledge {
+    height: 14px;
+    border-radius: 3px;
+    background: linear-gradient(to bottom, var(--color-ledge-top) 0, var(--color-ledge) 3px, var(--color-ledge-low) 100%);
+    box-shadow: 0 22px 34px -14px rgb(0 0 0 / 0.85), inset 0 1px 0 rgb(255 214 150 / 0.22);
+    pointer-events: none;
+  }
+
+  .shelf-scroller {
+    mask-image: linear-gradient(to right, transparent 0, #000 1rem, #000 calc(100% - 2.5rem), transparent 100%);
+  }
+
+  .skeleton {
+    background: linear-gradient(100deg, var(--color-stage-2) 30%, var(--color-stage-3) 50%, var(--color-stage-2) 70%);
+    background-size: 200% 100%;
+    animation: var(--animate-shimmer);
+  }
+
+  /* transparency checker, as every photo editor draws it */
+  .checker {
+    background-color: var(--color-checker-a);
+    background-image:
+      linear-gradient(45deg, var(--color-checker-b) 25%, transparent 25%),
+      linear-gradient(-45deg, var(--color-checker-b) 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, var(--color-checker-b) 75%),
+      linear-gradient(-45deg, transparent 75%, var(--color-checker-b) 75%);
+    background-size: 22px 22px;
+    background-position: 0 0, 0 11px, 11px -11px, -11px 0;
+  }
+
+  .no-scrollbar { scrollbar-width: none; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+
+  .tabular { font-variant-numeric: tabular-nums; }
 }
-.hello h1 { font-size: clamp(3rem, 12vw, 6rem); line-height: 1; margin: 0; letter-spacing: -0.03em; }
-.eyebrow { color: var(--marigold); font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase; margin: 0; }
-.tagline { font-size: clamp(1.1rem, 3.5vw, 1.4rem); margin: 0; }
-.status { color: var(--muted); margin: 0; }
+
+@keyframes fade-in { from { opacity: 0; } }
+@keyframes fade-out { to { opacity: 0; } }
+@keyframes sheet-up { from { transform: translateY(100%); } }
+@keyframes sheet-left { from { transform: translateX(calc(100% + 1rem)); } }
+@keyframes pop-in { from { opacity: 0; transform: scale(0.96); } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
