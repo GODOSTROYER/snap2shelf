@@ -6,7 +6,7 @@
 import * as React from "react";
 import { xrayColor } from "@/lib/client/kit-view";
 import { cn } from "@/lib/client/util";
-import { XRAY_KINDS, xrayLegend } from "@/lib/transform/xray";
+import { segmentLabel, XRAY_KINDS, xrayLegend } from "@/lib/transform/xray";
 import type { BuiltUrl, XraySegment } from "@/lib/types";
 
 export function XrayUrl({ built, className }: { built: BuiltUrl; className?: string }) {
@@ -18,7 +18,7 @@ export function XrayUrl({ built, className }: { built: BuiltUrl; className?: str
       {built.segments.map((s, i) => (
         <React.Fragment key={i}>
           {i > 0 ? <span className="text-faint">/</span> : null}
-          <span style={{ color: xrayColor(s.kind) }} title={s.label}>
+          <span style={{ color: xrayColor(s.kind) }} title={segmentLabel(s)}>
             {s.text}
           </span>
         </React.Fragment>
@@ -48,7 +48,7 @@ export function XraySteps({ segments, withCode, className }: { segments: XraySeg
       {segments.map((s, i) => {
         const legend = XRAY_KINDS[s.kind].legend;
         // a plain stored asset's label is its legend ("Source asset"): say it once
-        const label = same(s.label, legend) ? null : s.label;
+        const label = same(s.label, legend) ? null : segmentLabel(s);
         return (
         <li key={i} className="grid grid-cols-[auto_1fr] gap-x-3">
           <span aria-hidden className="mt-[0.45em] size-2.5 rounded-full" style={{ background: xrayColor(s.kind) }} />

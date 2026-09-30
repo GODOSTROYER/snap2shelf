@@ -1,10 +1,10 @@
 "use client";
 
 import { ChevronDown } from "lucide-react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion, useInView, useReducedMotion } from "motion/react";
 import * as React from "react";
 import type { CostResponse } from "@/lib/api-contract";
-import { PHOTOSHOOT_INR_ESTIMATE, PHOTOSHOOT_NOTE } from "@/lib/claims";
+import { heroWeightConditions, MEASURED_HERO_WEIGHT, PHOTOSHOOT_INR_ESTIMATE, PHOTOSHOOT_NOTE } from "@/lib/claims";
 import { BUSY_RETRIES, featureMessage, featuresClient, formatBytes, formatLabel, isBusy, type FeaturesClient } from "@/lib/client/features";
 import { cn, isAborted, sleep } from "@/lib/client/util";
 import type { Sku } from "@/lib/types";
@@ -22,8 +22,10 @@ export interface CostReceiptProps {
   /** A ledger already in hand (a sample's saved run, a server render): printed without a request. */
   initial?: CostResponse;
   /**
-   * A saved sample's receipt: the note under its processing time (what that run
-   * did). No end-to-end line: the seed script's own upload isn't a seller's.
+   * A saved sample's receipt: the note under its processing time (lib/claims.ts
+   * sampleTimeNote: the live end-to-end number, then what this sample's run did).
+   * No end-to-end line of its own: the seed script's upload isn't a seller's.
+   * Its hero weight is the canonical measurement (MEASURED_HERO_WEIGHT).
    */
   replay?: string;
   className?: string;
@@ -83,14 +85,18 @@ export function CostReceipt({ sku, scene, refreshKey, photoshootInr = PHOTOSHOOT
     setAttempt((n) => n + 1);
   };
 
+  // the paper feeds and the numbers count only once the receipt is on screen
+  const ref = React.useRef<HTMLElement>(null);
+  const seen = useInView(ref, { once: true, amount: 0.2 });
+
   return (
-    <section aria-label="What this kit cost" className={cn("mx-auto w-full max-w-[26rem]", className)}>
+    <section ref={ref} aria-label="What this kit cost" className={cn("mx-auto w-full max-w-[26rem]", className)}>
       {/* the printer's slot */}
       <div aria-hidden className="relative z-10 mx-0 h-3.5 rounded-full bg-[color-mix(in_srgb,var(--color-studio)_40%,black)] shadow-[inset_0_2px_4px_rgb(0_0_0/0.9),0_1px_0_rgb(245_237_225/0.08)]" />
       <div className="-mt-2 overflow-hidden px-2.5 pt-1.5 pb-8">
         <AnimatePresence mode="wait" initial={false}>
           {state.kind === "ready" ? (
-            <Printed key={`ready-${attempt}-${String(refreshKey ?? "")}`} data={state.data} photoshootInr={photoshootInr} replay={replay} />
+            <Printed key={`ready-${attempt}-${String(refreshKey ?? "")}`} data={state.data} photoshootInr={photoshootInr} replay={replay} seen={seen} />
           ) : state.kind === "error" ? (
             <motion.div key="error" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="pt-3">
               <Notice
@@ -130,16 +136,21 @@ function Printing({ busyUntil }: { busyUntil?: number }) {
   );
 }
 
-function Printed({ data, photoshootInr, replay }: { data: CostResponse; photoshootInr: number; replay?: string }) {
+function Printed({ data, photoshootInr, replay, seen = true }: { data: CostResponse; photoshootInr: number; replay?: string; seen?: boolean }) {
   const reduce = useReducedMotion();
   const [open, setOpen] = React.useState(false);
   const itemsId = React.useId();
   const c = data.cost;
   const at = (i: number) => (reduce ? 0 : PRINT_MS * 0.35 + i * 140);
-  const orig = c.bytesOriginal;
-  const deliv = data.delivered.bytes || c.bytesDelivered;
+  // a saved sample's hero weight is the canonical measurement (lib/claims.ts), never a
+  // browser-side HEAD whose Accept header can negotiate a different format
+  const measured = replay ? MEASURED_HERO_WEIGHT[data.sku] : undefined;
+  const orig = measured?.original ?? c.bytesOriginal;
+  const deliv = measured?.delivered ?? (data.delivered.bytes || c.bytesDelivered);
+  const format = measured?.format ?? data.delivered.format;
   const lighter = orig > 0 && deliv > 0 ? Math.max(0, 1 - deliv / orig) : 0;
-  const fmt = data.delivered.format ? formatLabel(data.delivered.format) : "";
+  const fmt = format ? formatLabel(format) : "";
+  const fromHero = !!measured || data.delivered.from === "hero";
   const wall = data.wallClockSeconds;
   const date = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 
@@ -157,7 +168,7 @@ function Printed({ data, photoshootInr, replay }: { data: CostResponse; photosho
   return (
     <motion.div
       initial={reduce ? false : { y: "-100%" }}
-      animate={{ y: 0 }}
+      animate={seen || reduce ? { y: 0 } : { y: "-100%" }}
       exit={{ opacity: 0, transition: { duration: 0.15 } }}
       transition={{ duration: PRINT_MS / 1000, ease: [0.22, 1, 0.36, 1] }}
     >
@@ -179,7 +190,7 @@ function Printed({ data, photoshootInr, replay }: { data: CostResponse; photosho
                   <span className="shrink-0">{l.label}</span>
                 </dt>
                 <dd className={cn("shrink-0 font-semibold", l.tone === "saved" && l.value > 0 && "text-[color-mix(in_srgb,var(--color-leaf)_45%,var(--color-studio))]")}>
-                  <CountUp value={l.value} format={l.unit} delay={at(i)} duration={900} />
+                  <CountUp value={l.value} format={l.unit} delay={at(i)} duration={900} start={seen} from={0} />
                 </dd>
                 {l.note ? <dd className="basis-full text-[0.7rem] text-studio/60">{l.note}</dd> : null}
               </div>
@@ -191,24 +202,26 @@ function Printed({ data, photoshootInr, replay }: { data: CostResponse; photosho
               <Rule />
               <div>
                 <div className="flex items-baseline justify-between gap-3">
-                  <p>{data.delivered.from === "hero" ? "Hero weight" : "Photo weight"}</p>
+                  <p>{fromHero ? "Hero weight" : "Photo weight"}</p>
                   <p className="text-[0.72rem] text-studio/65">{Math.round(lighter * 100)}% lighter</p>
                 </div>
                 <p className="mt-1 flex flex-wrap items-baseline gap-x-2 font-display text-[1.25rem] leading-tight font-bold tracking-[-0.01em]">
                   <span className="tabular">{formatBytes(orig)}</span>
                   <span className="text-studio/40">to</span>
-                  <CountUp value={deliv} from={orig} format={formatBytes} delay={at(lines.length) + 150} duration={1600} />
+                  <CountUp value={deliv} from={orig} format={formatBytes} delay={at(lines.length) + 150} duration={1600} start={seen} />
                   {fmt ? <span className="rounded bg-studio px-1.5 py-0.5 font-mono text-[0.68rem] font-semibold text-paper">{fmt}</span> : null}
                 </p>
                 <div aria-hidden className="mt-2.5 h-2 overflow-hidden rounded-full bg-studio/10">
                   <motion.div
                     className="h-full rounded-full bg-studio"
                     initial={reduce ? false : { width: "100%" }}
-                    animate={{ width: `${Math.max(1.5, (1 - lighter) * 100)}%` }}
+                    animate={{ width: seen || reduce ? `${Math.max(1.5, (1 - lighter) * 100)}%` : "100%" }}
                     transition={{ duration: 1.6, delay: (at(lines.length) + 150) / 1000, ease: [0.16, 1, 0.3, 1] }}
                   />
                 </div>
-                <p className="mt-1.5 text-[0.7rem] text-studio/60">Original upload vs what a browser downloads (f_auto, q_auto).</p>
+                <p className="mt-1.5 text-[0.7rem] text-studio/60">
+                  {fromHero ? `The photo as uploaded vs ${heroWeightConditions(format)}, as a browser downloads it.` : "The photo as uploaded vs what a browser downloads (f_auto,q_auto)."}
+                </p>
               </div>
             </>
           ) : null}
@@ -220,7 +233,7 @@ function Printed({ data, photoshootInr, replay }: { data: CostResponse; photosho
               <p className="text-[0.7rem] text-studio/60">{PHOTOSHOOT_NOTE}</p>
             </div>
             <p className="font-display text-[1.9rem] leading-none font-bold tracking-[-0.02em] whitespace-nowrap">
-              ≈ <CountUp value={photoshootInr} format={inr} delay={at(lines.length + 2)} duration={1300} />
+              ≈ <CountUp value={photoshootInr} format={inr} delay={at(lines.length + 2)} duration={1300} start={seen} />
             </p>
           </div>
           {photoToKit ? (

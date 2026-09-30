@@ -114,6 +114,58 @@ test("harmonise is subtle and uses e_tint colours without an rgb: prefix", () =>
   assert.ok(!off.transformation.includes("e_tint") && !off.transformation.includes("e_screen"));
 });
 
+test("contact shadow: soft (o_40, e_blur:300) and narrower than the product's base", () => {
+  for (const [dna, cutout] of [
+    [DNA, BOTTLE],
+    [GLOSSY, SHOE],
+  ] as const) {
+    const c = defaultControls("standing", dna, cutout);
+    const b = build(c, dna, cutout);
+    const g = geometry(cutout, dna, quantise(c), "standing");
+    const contact = b.segments.find((s) => s.label.startsWith("Contact shadow"))!;
+    assert.ok(contact, "a standing product gets a contact shadow");
+    assert.match(contact.text, /\/e_blur:300\/o_40\/e_multiply,/);
+    assert.ok(!/o_60|o_90|e_blur:200\//.test(contact.text), "no hard dark pill");
+    const w = Number(/c_scale,w_(\d+),h_\d+\/co_rgb/.exec(contact.text)![1]);
+    assert.ok(w < g.pw * 0.9, `contact line ${w}px is narrower than the ${g.pw}px product`);
+    // centred under the product, padded so the wider blur is never clipped
+    const pad = /c_mpad,w_(\d+),h_(\d+)/.exec(contact.text)!.slice(1).map(Number);
+    const x = Number(/g_north_west,x_(-?\d+),y_-?\d+$/.exec(contact.text)![1]);
+    assert.equal(Math.round(x + pad[0] / 2), Math.round(g.px + g.pw / 2));
+    assert.ok(pad[0] - w >= 48);
+  }
+});
+
+test("x-ray: the product layer is 'the product from the photo'; saved kits read the same", async () => {
+  const { segmentLabel, PRODUCT_LAYER_LABEL } = await import("../lib/transform/xray.ts");
+  const layer = build(defaultControls("standing", DNA, BOTTLE)).segments.find((s) => s.kind === "layer")!;
+  assert.ok(layer.label.startsWith(PRODUCT_LAYER_LABEL), layer.label);
+  assert.ok(!/your real product/i.test(layer.label));
+  assert.ok(!build({ ...defaultControls("standing", DNA, BOTTLE), harmonise: false }).segments.some((s) => /Your real product/.test(s.label)));
+  // a kit saved before the rename (data/showcase.json) shows today's wording
+  assert.equal(
+    segmentLabel({ label: "Your real product, placed where Scene DNA says the surface is, with a subtle warm light-match" }),
+    "The product from the photo, placed where Scene DNA says the surface is, with a subtle warm light-match",
+  );
+  assert.equal(segmentLabel({ label: "Scene plate from the shared library" }), "Scene plate from the shared library");
+  assert.ok(!/^your/i.test(XRAY_KINDS.layer.legend));
+});
+
+test("x-ray: fallback swatches are the site's colour tokens", async () => {
+  const { readFileSync } = await import("node:fs");
+  const css = readFileSync(new URL("../app/globals.css", import.meta.url), "utf8");
+  for (const [kind, k] of Object.entries(XRAY_KINDS)) {
+    const m = new RegExp(`${k.token}:\\s*(#[0-9a-f]{6})`, "i").exec(css);
+    assert.ok(m, `${k.token} is defined in globals.css`);
+    assert.equal(m![1].toLowerCase(), k.swatch.toLowerCase(), `${kind} swatch matches its token`);
+  }
+  // the palette the critique settled on
+  assert.deepEqual(
+    { layer: XRAY_KINDS.layer.swatch, shadow: XRAY_KINDS.shadow.swatch, effect: XRAY_KINDS.effect.swatch, crop: XRAY_KINDS.crop.swatch, reflection: XRAY_KINDS.reflection.swatch, format: XRAY_KINDS.format.swatch, asset: XRAY_KINDS.asset.swatch },
+    { layer: "#f5a524", shadow: "#b8a3ff", effect: "#f59bc2", crop: "#86bdff", reflection: "#82ded2", format: "#97d48d", asset: "#eadfce" },
+  );
+});
+
 test("layerId turns folders into colons", () => {
   assert.equal(layerId("snap2shelf/products/x/cutout"), "snap2shelf:products:x:cutout");
 });

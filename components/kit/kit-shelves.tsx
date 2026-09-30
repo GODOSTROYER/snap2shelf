@@ -1,16 +1,12 @@
 "use client";
 
-import { CodeXml } from "lucide-react";
 import { animate } from "motion/react";
 import * as React from "react";
-import { AssetFrame } from "@/components/frames/asset-frame";
-import { Tip } from "@/components/ui/controls";
-import { frameProduct, shelvesFor, type ShelfItem } from "@/lib/client/kit-view";
-import type { Kit, KitAsset } from "@/lib/types";
-import { QaBadge } from "./qa-badge";
-import { ReelVideo } from "./reel-video";
-import { Shelf, ShelfTag } from "./shelf";
-import { XraySheet } from "./xray-sheet";
+import { frameProduct, shelvesFor } from "@/lib/client/kit-view";
+import type { Kit } from "@/lib/types";
+import { KitCard } from "./kit-card";
+import { Shelf } from "./shelf";
+import { XrayHost } from "./xray-button";
 
 export interface DealRequest {
   key: number; // bump to deal again
@@ -23,7 +19,6 @@ export interface DealRequest {
  * the shelves, and the reel starts once they've landed.
  */
 export function KitShelves({ kit, deal, onDealt, rendering = [] }: { kit: Kit; deal?: DealRequest | null; onDealt?: () => void; rendering?: string[] }) {
-  const [xray, setXray] = React.useState<KitAsset | null>(null);
   const [reelReady, setReelReady] = React.useState(!deal);
   const root = React.useRef<HTMLDivElement>(null);
   const groups = React.useMemo(() => shelvesFor(kit), [kit]);
@@ -50,71 +45,50 @@ export function KitShelves({ kit, deal, onDealt, rendering = [] }: { kit: Kit; d
   }, [dealKey, dealFrom]);
 
   return (
-    <div ref={root} className="grid gap-4">
-      {rendering.length ? (
-        <p role="status" className="mx-4 flex items-center gap-2.5 rounded-xl bg-stage px-4 py-3 text-sm text-dim ring-1 ring-line sm:mx-8 sm:w-fit">
-          <span aria-hidden className="size-2 animate-pulse rounded-full bg-marigold" />
-          Still rendering: {rendering.map(formatName).join(", ")}. They land on the shelf as soon as Cloudinary finishes.
-        </p>
-      ) : null}
-      {groups.map((g) => (
-        <Shelf key={g.id} title={g.title}>
-          {g.items.map((item) => (
-            <li key={item.key} className="flex shrink-0 snap-start flex-col items-start">
-              <Card item={item} product={product} reelReady={reelReady} onXray={setXray} />
-            </li>
-          ))}
-        </Shelf>
-      ))}
-      <XraySheet asset={xray} onOpenChange={(o) => !o && setXray(null)} />
-    </div>
+    <XrayHost>
+      <div ref={root} className="grid gap-4">
+        {rendering.length ? (
+          <p role="status" className="mx-4 flex items-center gap-2.5 rounded-xl bg-stage px-4 py-3 text-sm text-dim ring-1 ring-line sm:mx-8 sm:w-fit">
+            <span aria-hidden className="size-2 animate-pulse rounded-full bg-marigold" />
+            Still rendering: {rendering.map(formatName).join(", ")}. They land on the shelf as soon as Cloudinary finishes.
+          </p>
+        ) : null}
+        {groups.map((g) => (
+          <Shelf key={g.id} title={g.title}>
+            {g.items.map((item) => (
+              <KitCard key={item.key} item={item} product={product} reelReady={reelReady} />
+            ))}
+          </Shelf>
+        ))}
+      </div>
+    </XrayHost>
   );
 }
 
 const NAMES: Record<string, string> = { story: "story", banner: "web banner", marketplace: "marketplace image", whatsapp: "catalog tile", offer: "festive offer", feed: "feed post" };
 const formatName = (id: string) => NAMES[id] ?? (id.startsWith("recolor-") ? "a colour variant" : id);
 
-function Card({ item, product, reelReady, onXray }: { item: ShelfItem; product: ReturnType<typeof frameProduct>; reelReady: boolean; onXray: (a: KitAsset) => void }) {
-  const a = item.asset;
-  return (
-    <>
-      <div data-card className="lift rounded-2xl shadow-[0_18px_28px_-16px_rgb(0_0_0/0.9)]">
-        <AssetFrame
-          asset={a}
-          product={product}
-          frame={item.kind === "reel" ? "reel" : undefined}
-          media={item.kind === "reel" ? <ReelVideo src={item.src} poster={item.poster} label={a.alt} ready={reelReady} /> : undefined}
-        />
-      </div>
-      <ShelfTag asset={a}>
-        <Tip label="See the Cloudinary URL behind this">
-          <button
-            type="button"
-            onClick={() => onXray(a)}
-            aria-label={`X-ray: how ${a.label} is made`}
-            className="grid size-7 place-items-center rounded-md bg-stage-2 text-dim ring-1 ring-line-strong transition-colors ring-inset hover:bg-stage-3 hover:text-marigold"
-          >
-            <CodeXml className="size-4" />
-          </button>
-        </Tip>
-        {a.qa && a.id.startsWith("creative") ? <QaBadge qa={a.qa} /> : null}
-      </ShelfTag>
-    </>
-  );
-}
 
 /**
- * Deal: clone each card into a fixed layer (so shelf scrollers can't clip it),
- * fan the clones out over the hero like a hand of cards, then deal each one to
- * its place on the shelf and reveal the real card underneath.
+ * Deal the cards onto their shelves, then reveal the real cards. Each card's
+ * outline (its data-slot) shows while it is in flight, so a shelf is never an
+ * empty ledge. Wide screens: the clones fan out over the hero like a hand of
+ * cards and are dealt across to their places (a fixed layer, so scrollers can't
+ * clip them). Narrow screens: each card drops in from just above its own shelf,
+ * inside the shelf's scroller, so nothing ever flies over a heading or a button.
+ * Reduced motion: a plain fade.
  */
-function dealCards(root: HTMLElement, cards: HTMLElement[], from: () => DOMRect | null) {
+export function dealCards(root: HTMLElement, cards: HTMLElement[], from: () => DOMRect | null) {
   const state = { cancelled: false, layer: null as HTMLElement | null };
   const cancel = () => {
     state.cancelled = true;
     state.layer?.remove();
-    cards.forEach((c) => (c.style.opacity = ""));
-    cards.forEach((c) => tagOf(c)?.style.removeProperty("opacity"));
+    cards.forEach((c) => {
+      c.style.opacity = "";
+      c.style.removeProperty("transform");
+      tagOf(c)?.style.removeProperty("opacity");
+      slotOf(c)?.style.removeProperty("opacity");
+    });
   };
   const done = flyCards(root, cards, from, state).then(
     () => !state.cancelled,
@@ -126,12 +100,21 @@ function dealCards(root: HTMLElement, cards: HTMLElement[], from: () => DOMRect 
   return { done, cancel };
 }
 
+/** Below this width the deal stays on the shelves (short drops, no cross-page flight). */
+const NARROW = 640;
+
 async function flyCards(root: HTMLElement, cards: HTMLElement[], from: () => DOMRect | null, state: { cancelled: boolean; layer: HTMLElement | null }) {
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  cards.forEach((c) => (c.style.opacity = "0"));
-  // shelf-edge tags arrive with their card
-  cards.forEach((c) => tagOf(c)?.style.setProperty("opacity", "0"));
-  const showTag = (c: HTMLElement) => {
+  const narrow = window.innerWidth < NARROW;
+  // before the first paint: every card hidden, its outline on the shelf instead
+  cards.forEach((c) => {
+    c.style.opacity = "0";
+    tagOf(c)?.style.setProperty("opacity", "0"); // shelf-edge tags arrive with their card
+    slotOf(c)?.style.setProperty("opacity", "1");
+  });
+  const land = (c: HTMLElement) => {
+    c.style.opacity = "";
+    slotOf(c)?.style.setProperty("opacity", "0");
     const t = tagOf(c);
     if (!t) return;
     t.style.removeProperty("opacity");
@@ -142,20 +125,35 @@ async function flyCards(root: HTMLElement, cards: HTMLElement[], from: () => DOM
   imgs.forEach((i) => (i.loading = "eager"));
   await Promise.all([
     bringIntoView(root, reduced),
-    Promise.race([Promise.all(imgs.map((i) => i.decode().catch(() => undefined))), new Promise((r) => setTimeout(r, 2200))]),
+    Promise.race([Promise.all(imgs.map((i) => i.decode().catch(() => undefined))), new Promise((r) => setTimeout(r, narrow ? 1400 : 2200))]),
   ]);
   if (state.cancelled) return;
   if (reduced || !cards.length) {
+    await Promise.all(cards.map((c) => animate(c, { opacity: [0, 1] }, { duration: 0.25 }).then(() => land(c))));
+    return;
+  }
+
+  if (narrow) {
+    // Each card drops a few px from above its own place and settles on the ledge. The shelf's
+    // scroller clips it, so the drop stays inside the shelf; cards off to the right land unseen.
+    const at = new Map(cards.map((c) => [c, c.getBoundingClientRect()] as const));
+    const order = [...cards].sort((a, b) => at.get(a)!.top - at.get(b)!.top || at.get(a)!.left - at.get(b)!.left);
+    let k = 0;
     await Promise.all(
-      cards.map((c) =>
-        animate(c, { opacity: [0, 1] }, { duration: 0.25 }).then(() => {
-          c.style.opacity = "";
-          showTag(c);
-        }),
-      ),
+      order.map((c) => {
+        const r = at.get(c)!;
+        const onScreen = r.right > 0 && r.left < window.innerWidth && r.bottom > 0 && r.top < window.innerHeight;
+        const delay = 0.05 + (onScreen ? k++ : k) * 0.09;
+        return animate(c, { opacity: [0, 1], y: [-26, 0], rotate: [-2.5, 0], scale: [0.96, 1] }, { type: "spring", stiffness: 260, damping: 20, mass: 0.8, delay }).then(() => {
+          if (state.cancelled) return;
+          c.style.removeProperty("transform");
+          land(c);
+        });
+      }),
     );
     return;
   }
+
   // The deck sits where the hero is; if the hero has scrolled away, just above the shelves.
   const sec = root.getBoundingClientRect();
   let deck = from();
@@ -214,8 +212,7 @@ async function flyCards(root: HTMLElement, cards: HTMLElement[], from: () => DOM
       { type: "spring", stiffness: 135, damping: 17, mass: 0.9, delay: 0.06 + g.i * 0.075 },
     ).then(() => {
       if (state.cancelled) return;
-      g.card.style.opacity = "";
-      showTag(g.card);
+      land(g.card);
       g.ghost.remove();
     }),
   );
@@ -224,6 +221,7 @@ async function flyCards(root: HTMLElement, cards: HTMLElement[], from: () => DOM
 }
 
 const tagOf = (card: HTMLElement) => card.parentElement?.querySelector<HTMLElement>("[data-tag]") ?? null;
+const slotOf = (card: HTMLElement) => card.parentElement?.querySelector<HTMLElement>("[data-slot]") ?? null;
 
 /** Scroll the shelves to the top of the viewport (if they aren't already) and wait for it to settle. */
 function bringIntoView(el: HTMLElement, reduced: boolean) {

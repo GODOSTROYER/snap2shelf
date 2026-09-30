@@ -7,14 +7,17 @@ import { cn, sleep } from "@/lib/client/util";
 type Phase = "idle" | "rendering" | "ready" | "failed";
 
 /**
- * The Kit Reel. Downloads nothing until it is on screen (and `ready`), then
- * makes sure Cloudinary has finished rendering it (a fresh reel takes a few
- * seconds the first time) before playing it muted and looped. Reduced-motion
+ * The Kit Reel. Until it plays, it is only its poster: a lazy image (a video's
+ * poster attribute downloads eagerly, even far below the fold) and a video
+ * element with no source (preload="none"). Once it is on screen (and `ready`)
+ * it makes sure Cloudinary has finished rendering the reel (a fresh reel takes
+ * a few seconds the first time), then plays it muted and looped. Reduced-motion
  * users get the poster and a play button.
  */
 export function ReelVideo({ src, poster, label, ready = true, className }: { src: string; poster: string; label: string; ready?: boolean; className?: string }) {
   const ref = React.useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = React.useState(false);
+  const [framed, setFramed] = React.useState(false); // the video has a frame to show: the poster image can go
   const [phase, setPhase] = React.useState<Phase>("idle");
   const [waited, setWaited] = React.useState(0);
   const wantPlay = React.useRef(false);
@@ -51,6 +54,7 @@ export function ReelVideo({ src, poster, label, ready = true, className }: { src
     setSeen(src);
     setPhase("idle");
     setWaited(0);
+    setFramed(false);
   }
 
   React.useEffect(() => {
@@ -98,17 +102,21 @@ export function ReelVideo({ src, poster, label, ready = true, className }: { src
     <div className={cn("group relative size-full bg-stage-2", className)}>
       <video
         ref={ref}
-        poster={poster}
         muted
         loop
         playsInline
         preload="none"
         aria-label={label}
         onPlay={() => setPlaying(true)}
+        onPlaying={() => setFramed(true)}
         onPause={() => setPlaying(false)}
         onError={() => ref.current?.getAttribute("src") && setPhase("failed")}
         className="size-full object-cover"
       />
+      {framed ? null : (
+        // eslint-disable-next-line @next/next/no-img-element -- a Cloudinary poster frame (fixed width), lazy like every other card image
+        <img src={poster} alt="" aria-hidden loading="lazy" decoding="async" className="pointer-events-none absolute inset-0 size-full object-cover" />
+      )}
       {phase === "rendering" ? (
         <p role="status" className="absolute inset-x-3 bottom-16 flex items-center justify-center gap-2 rounded-lg bg-black/70 px-2 py-1.5 text-center text-[0.75rem] font-semibold text-white backdrop-blur-sm">
           <span aria-hidden className="size-1.5 animate-pulse rounded-full bg-marigold" />

@@ -14,7 +14,7 @@ import { getShelf, lqipDataUri, shelfOg } from "@/lib/shelf/server";
 import { absoluteUrl, siteUrl } from "@/lib/shelf/site";
 import { checkShop, shelfPath, whatsappShareUrl } from "@/lib/shelf/slug";
 import type { Shelf, ShelfItem } from "@/lib/shelf/types";
-import { DEMO_SHELF } from "@/lib/claims";
+import { DEMO_SHELF, FIDELITY_CLAIM, TAGLINE } from "@/lib/claims";
 import { productName } from "@/lib/showcase";
 import { SCENE_THEMES } from "@/lib/types";
 
@@ -100,13 +100,8 @@ export default async function ShelfPage({ params }: Params) {
       </a>
 
       <header className="mx-auto max-w-6xl px-4 pt-5 sm:px-8 sm:pt-8">
-        <nav className="flex items-center justify-between" aria-label="Snap2Shelf">
-          <Link
-            href="/"
-            className="rounded-md font-[family-name:var(--font-shelf-display)] text-lg font-semibold tracking-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f5a524]"
-          >
-            Snap<span className="text-[#f5a524]">2</span>Shelf
-          </Link>
+        {/* the shop's own page: no Snap2Shelf wordmark up here, the footer credits it */}
+        <div className="flex items-center justify-end">
           <span className="inline-flex items-center gap-2 rounded-full border border-[#f4efe7]/12 bg-[#f4efe7]/[0.04] px-3 py-1.5 text-xs font-medium text-[#a89f92]">
             <span className="relative flex h-2 w-2" aria-hidden>
               <span className="absolute inline-flex h-full w-full rounded-full bg-[#f5a524] opacity-70 motion-safe:animate-ping" />
@@ -114,7 +109,7 @@ export default async function ShelfPage({ params }: Params) {
             </span>
             Live shelf
           </span>
-        </nav>
+        </div>
 
         <div className="mt-12 grid gap-8 sm:mt-20 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end lg:gap-12">
           <Reveal>
@@ -154,12 +149,12 @@ export default async function ShelfPage({ params }: Params) {
             <Link href="/" className="font-medium text-[#f4efe7] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f5a524]">
               Snap2Shelf
             </Link>{" "}
-            · One photo. A whole shelf.
+            · {TAGLINE}
           </span>
           <span className="text-[#a89f92]/70">
             {shop === DEMO_SHELF.slug
-              ? "Sample products from AI-generated test photos · the product pixels are never redrawn; AI builds only the stage."
-              : "Product pixels come from the seller's own photo; only the stage is AI."}
+              ? `Sample products from AI-generated test photos. ${FIDELITY_CLAIM}`
+              : FIDELITY_CLAIM}
           </span>
         </p>
       </footer>

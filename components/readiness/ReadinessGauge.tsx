@@ -1,8 +1,8 @@
 "use client";
 
 import { ArrowRight, Check, CircleHelp, ExternalLink, LoaderCircle, Minus, Wand2, X } from "lucide-react";
-import { animate, motion, useMotionValue, useReducedMotion, useTransform, type Variants } from "motion/react";
-import { useEffect, useId, useState } from "react";
+import { animate, motion, useInView, useMotionValue, useReducedMotion, useTransform, type Variants } from "motion/react";
+import { useEffect, useId, useRef, useState } from "react";
 import { cn } from "@/lib/client/util";
 import { GRADE_LABEL, type CheckStatus, type Grade, type ReadinessCheck, type ReadinessReport } from "@/lib/readiness";
 
@@ -54,17 +54,18 @@ const C = 2 * Math.PI * R;
 /** The ring is a 270° arc (open at the bottom), like a dial. */
 const ARC = 0.75;
 
-function useCountUp(target: number, reduce: boolean | null): number {
+/** Counts up to `target` once `run` is true (the gauge is on screen). */
+function useCountUp(target: number, reduce: boolean | null, run: boolean): number {
   const [n, setN] = useState(reduce ? target : 0);
   useEffect(() => {
-    if (reduce) return;
+    if (reduce || !run) return;
     const controls = animate(0, target, { type: "spring", stiffness: 60, damping: 18, onUpdate: (v) => setN(Math.round(v)) });
     return () => controls.stop();
-  }, [target, reduce]);
+  }, [target, reduce, run]);
   return reduce ? target : n;
 }
 
-function Dial({ score, reduce }: { score: number; reduce: boolean | null }) {
+function Dial({ score, reduce, run }: { score: number; reduce: boolean | null; run: boolean }) {
   const gid = useId().replace(/:/g, "");
   const progress = useMotionValue(reduce ? score : 0);
   useEffect(() => {
@@ -72,11 +73,12 @@ function Dial({ score, reduce }: { score: number; reduce: boolean | null }) {
       progress.set(score);
       return;
     }
+    if (!run) return;
     const c = animate(progress, score, { type: "spring", stiffness: 55, damping: 16 });
     return () => c.stop();
-  }, [score, reduce, progress]);
+  }, [score, reduce, progress, run]);
   const dash = useTransform(progress, (v) => `${(C * ARC * Math.max(0, Math.min(100, v))) / 100} ${C}`);
-  const shown = useCountUp(score, reduce);
+  const shown = useCountUp(score, reduce, run);
 
   return (
     <div className="relative mx-auto size-[184px] shrink-0">
@@ -164,6 +166,9 @@ export function ReadinessGauge({
   className = "",
 }: ReadinessGaugeProps) {
   const reduce = useReducedMotion();
+  // the dial fills and the checks arrive once the gauge is on screen, not while it's below the fold
+  const ref = useRef<HTMLElement>(null);
+  const seen = useInView(ref, { once: true, amount: 0.25 });
   const list: Variants = { hidden: {}, show: { transition: { staggerChildren: reduce ? 0 : 0.06, delayChildren: reduce ? 0 : 0.25 } } };
   const row: Variants = reduce
     ? { hidden: { opacity: 1 }, show: { opacity: 1 } }
@@ -173,11 +178,11 @@ export function ReadinessGauge({
   const baseline = showBaseline ? report.baseline : undefined;
 
   return (
-    <section aria-label={title} className={cn("rounded-[22px] bg-stage p-5 text-paper shadow-[0_30px_60px_-30px_rgb(0_0_0/0.9)] ring-1 ring-line sm:p-7", className)}>
+    <section ref={ref} aria-label={title} className={cn("rounded-[22px] bg-stage p-5 text-paper shadow-[0_30px_60px_-30px_rgb(0_0_0/0.9)] ring-1 ring-line sm:p-7", className)}>
       <div className="grid gap-7 md:grid-cols-[auto_minmax(0,1fr)] md:gap-10">
         <div className="flex flex-col items-center">
           <div role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={report.score} aria-valuetext={`${report.score} out of 100, ${GRADE_LABEL[report.grade]}`} aria-label={title}>
-            <Dial score={report.score} reduce={reduce} />
+            <Dial score={report.score} reduce={reduce} run={seen} />
           </div>
           <span className={cn("-mt-4 rounded-full px-3 py-1 text-[0.75rem] font-semibold", GRADE_TONE[report.grade])}>{GRADE_LABEL[report.grade]}</span>
           <p className="mt-3 text-center text-[0.82rem] text-dim">
@@ -204,7 +209,7 @@ export function ReadinessGauge({
         <div className="min-w-0">
           <h3 className="font-display text-xl font-bold tracking-[-0.02em] sm:text-2xl">{title}</h3>
           <p className="mt-1 text-sm text-dim">{subtitle}</p>
-          <motion.ul variants={list} initial="hidden" animate="show" className="mt-5 divide-y divide-line">
+          <motion.ul variants={list} initial="hidden" animate={seen || reduce ? "show" : "hidden"} className="mt-5 divide-y divide-line">
             {report.checks.map((c) => {
               const s = STATUS[c.status];
               return (

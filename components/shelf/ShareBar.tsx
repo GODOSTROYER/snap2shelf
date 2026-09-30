@@ -58,7 +58,8 @@ export function ShareBar({ shareUrl, title, message, className = "" }: ShareBarP
   const canShare = useCanNativeShare();
   const reduce = useReducedMotion();
   const [copied, setCopied] = useState(false);
-  const tap = reduce ? undefined : { scale: 0.97 };
+  // always a whileTap object (motion adds tabindex for it), so server and client markup match under reduced motion
+  const tap = reduce ? {} : { scale: 0.97 };
 
   const onCopy = async () => {
     if (await copyText(url)) {
