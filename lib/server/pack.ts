@@ -9,6 +9,7 @@ import { deliveryBase, deliveryUrl, mainAuth, mainCloud, probe, removeTag, uploa
 import { loadProduct, updateProduct, type PackDone, type ProductFacts } from "./facts";
 import { notFound } from "./http";
 import { pinJpeg } from "./guard";
+import { offloadPackFormat } from "./offload";
 import { isRawlessSample, prebuiltPackFor, prebuiltPackStatus } from "./prebuilt";
 import { cutoutId, getCutout, skuTag } from "./products";
 
@@ -33,7 +34,10 @@ import { cutoutId, getCutout, skuTag } from "./products";
  *  - "feed" is the hero itself: it is copied from the stored hero (no derivation)
  *    instead of re-encoding it through f_jpg,q_auto;
  *  - a format whose recipe didn't change is never re-rendered (before, only the
- *    hero was compared, so an edited offer line kept the old text in the ZIP).
+ *    hero was compared, so an edited offer line kept the old text in the ZIP);
+ *  - with S2S_OFFLOAD_POOL=1, generative formats (gen fill, recolor) render on a
+ *    key-pool account and main only stores the result (lib/server/offload.ts).
+ *    The ZIP is built by tag from the stored assets, so it never re-derives them.
  */
 
 export const packPrefix = (sku: Sku) => productId(sku, "pack/");
@@ -160,6 +164,22 @@ async function materialise(
       const pid = packId(sku, asset.id);
       const have = done[asset.id];
       if (have) return [finishedAsset(asset, pid, have.v), "done"];
+      const save = async (src: string, pooled = false): Promise<[KitAsset, Outcome]> => {
+        const up = await uploadToMain(src, {
+          public_id: pid,
+          overwrite: true,
+          invalidate: true,
+          tags: [...packTags(sku), skuTag(sku)],
+          context: { hero, format: asset.format, label: asset.label },
+        });
+        fresh[asset.id] = { v: up.version, at: Date.now(), h: recipeHash(asset.url), ...(pooled ? { o: 1 as const } : {}) };
+        return [finishedAsset(asset, up.publicId, up.version), "done"];
+      };
+      // ── [offload] S2S_OFFLOAD_POOL=1: generative formats render on a key-pool account and are stored
+      //    here as plain assets (lib/server/offload.ts). null → main renders it below, as before.
+      const pooled = await offloadPackFormat({ asset, hero, deadline, save: (src) => save(src, true) });
+      if (pooled) return pooled === "pending" ? [asset, "pending"] : pooled;
+
       const src = materialiseSource(asset, hero);
       const left = deadline - Date.now();
       if (left < 1500) return [asset, "pending"];
@@ -170,15 +190,7 @@ async function materialise(
         console.error(`[pack] ${asset.id}: HTTP ${p.status} ${p.error ?? ""}`.slice(0, 200));
         return [asset, "failed"];
       }
-      const up = await uploadToMain(src, {
-        public_id: pid,
-        overwrite: true,
-        invalidate: true,
-        tags: [...packTags(sku), skuTag(sku)],
-        context: { hero, format: asset.format, label: asset.label },
-      });
-      fresh[asset.id] = { v: up.version, at: Date.now(), h: recipeHash(asset.url) };
-      return [finishedAsset(asset, up.publicId, up.version), "done"];
+      return save(src);
     }),
   );
 

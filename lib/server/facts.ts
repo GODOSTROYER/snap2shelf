@@ -61,6 +61,7 @@ export interface AssetFacts {
   bytes?: number;
   at: number; // saved at (ms)
   ctx?: Ctx; // the asset's own context (creative: model, credits, qa_*; cutout: ms, source)
+  o?: 1; // rendered on a key-pool account, stored here (lib/server/offload.ts)
 }
 
 /** A materialised pack format: version for the delivery URL, h = hash of the recipe it was made from. */
@@ -68,6 +69,7 @@ export interface PackDone {
   v: number;
   at: number;
   h?: string; // absent for packs migrated from before facts existed
+  o?: 1; // rendered on a key-pool account, stored here (lib/server/offload.ts)
 }
 
 export interface ProductFacts {
