@@ -48,7 +48,7 @@ export function SiteHeader({ current, children }: { current: Section; children?:
     <>
       <a
         href="#main"
-        className="sr-only z-50 rounded-full bg-marigold px-4 py-2.5 text-sm font-semibold text-marigold-ink focus-visible:not-sr-only focus-visible:fixed focus-visible:top-3 focus-visible:left-3"
+        className="sr-only z-50 items-center rounded-full bg-marigold px-4 py-2.5 text-sm font-semibold text-marigold-ink focus-visible:not-sr-only focus-visible:fixed focus-visible:top-3 focus-visible:left-3 focus-visible:inline-flex focus-visible:min-h-11"
       >
         Skip to content
       </a>

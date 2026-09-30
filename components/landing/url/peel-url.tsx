@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @next/next/no-img-element -- Cloudinary delivery URLs at one fixed width, cross-faded by hand */
 
 import { ArrowUpRight, RotateCcw } from "lucide-react";
 import * as React from "react";
@@ -70,6 +71,9 @@ function subscribeReduce(cb: () => void) {
 }
 const readReduce = () => window.matchMedia(REDUCE_QUERY).matches;
 
+/** Below Tailwind's md: the one-column layout with the sticky picture. */
+const PHONE_QUERY = "(max-width: 47.98rem)";
+
 /**
  * The landing's URL section: the hero's one delivery URL, colour-coded, with
  * the picture it renders beside it. Each colour is a toggle that peels its
@@ -92,6 +96,8 @@ export function PeelUrl({ built, note, alt }: { built: BuiltUrl; note?: React.Re
   const [info, setInfo] = React.useState<ReadonlyMap<string, Delivered>>(() => new Map());
   const req = React.useRef(0);
   const timer = React.useRef<ReturnType<typeof setTimeout>>(undefined);
+  const codeRef = React.useRef<HTMLParagraphElement>(null);
+  const viewerRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => () => clearTimeout(timer.current), []);
 
@@ -150,6 +156,36 @@ export function PeelUrl({ built, note, alt }: { built: BuiltUrl; note?: React.Re
     if (next.has(kind)) next.delete(kind);
     else next.add(kind);
     apply(next, { kind, on: !next.has(kind) });
+    revealOnPhone(kind);
+  }
+
+  /**
+   * Phones: the code is folded to six lines and scrolls under the sticky picture. After a toggle,
+   * make sure some of the text it changed is on screen: unfold the code when all of it sits below
+   * the fold, then (after that render) scroll just enough to bring it out from under the picture.
+   * Striking text never moves it, so where it sits can be read before the render.
+   */
+  function revealOnPhone(kind: Kind) {
+    const code = codeRef.current;
+    if (!code || !window.matchMedia(PHONE_QUERY).matches) return;
+    const pieces = () => Array.from(code.querySelectorAll<HTMLElement>(`[data-k~="${kind}"]`));
+    if (!pieces().length) return;
+    if (!expanded && code.scrollHeight > code.clientHeight + 1) {
+      const fade = 2.6 * parseFloat(getComputedStyle(code).fontSize); // the fading last line
+      const fold = code.getBoundingClientRect().top + code.clientHeight - fade;
+      if (pieces().every((p) => p.getBoundingClientRect().top > fold)) setExpanded(true);
+    }
+    requestAnimationFrame(() => {
+      const viewer = viewerRef.current?.getBoundingClientRect();
+      const all = pieces();
+      const seen = all.some((p) => {
+        const r = p.getBoundingClientRect();
+        return r.bottom > (viewer?.bottom ?? 0) + 8 && r.top < window.innerHeight - 8;
+      });
+      if (seen || !all.length) return;
+      // once scrolled, the picture is stuck at the top: land the text just under it
+      window.scrollBy({ top: all[0].getBoundingClientRect().top - ((viewer?.height ?? 0) + 20), behavior: reduce ? "auto" : "smooth" });
+    });
   }
 
   // With format peeled: how much heavier is the source format than f_auto,q_auto's pick?
@@ -172,76 +208,97 @@ export function PeelUrl({ built, note, alt }: { built: BuiltUrl; note?: React.Re
   const missing = peelable.filter((g) => shown.has(g.kind)).map((g) => g.legend.toLowerCase());
   const altText = `${alt ?? "The staged product this URL renders"}${missing.length ? `, with ${listOf(missing)} taken out of the URL` : ""}`;
 
-  return (
-    <div className="grid gap-x-12 gap-y-6 md:grid-cols-[minmax(0,19rem)_minmax(0,1fr)] lg:grid-cols-[minmax(0,min(26rem,calc((100svh-6rem)*0.8)))_minmax(0,1fr)] xl:gap-x-16">
-      {/* The picture stays beside the long code and its walk-through on wide screens. */}
-      <figure className="grid content-start gap-2.5 md:sticky md:top-6 md:self-start">
-        <div className="relative aspect-[4/5] overflow-hidden rounded-2xl bg-stage-2 ring-1 ring-line">
-          {frames.map((f) => {
-            const front = f.id === top.id;
-            return (
-              <img
-                key={f.id}
-                src={f.src}
-                alt={front ? altText : ""}
-                aria-hidden={front ? undefined : true}
-                width={PEEL_WIDTH}
-                height={PEEL_HEIGHT}
-                loading={f.id === 0 ? "lazy" : "eager"}
-                decoding={f.id === 0 ? "async" : "sync"}
-                crossOrigin="anonymous"
-                onAnimationEnd={() => {
-                  if (front) setFrames((fs) => (fs.length > 1 && fs[fs.length - 1].id === f.id ? fs.slice(-1) : fs));
-                }}
-                style={f.id === 0 || reduce ? undefined : { animation: "fade-in 0.5s cubic-bezier(0.25, 1, 0.5, 1) both" }}
-                className="absolute inset-0 size-full object-cover"
-              />
-            );
-          })}
-          {pending ? (
-            <span
-              aria-hidden
-              style={reduce ? undefined : { animation: "fade-in 0.2s ease-out 0.15s both" }}
-              className="absolute top-3 left-3 inline-flex items-center gap-2 rounded-full bg-studio/80 px-3 py-1.5 text-[0.75rem] leading-none font-semibold text-paper ring-1 ring-line-strong backdrop-blur-sm"
-            >
-              <span className="size-3 animate-spin rounded-full border-[1.5px] border-marigold border-t-transparent" />
-              Rendering on Cloudinary
-            </span>
-          ) : null}
-        </div>
-        <figcaption className="flex items-start justify-between gap-4 text-[0.8rem] leading-snug">
-          <span role="status" aria-live="polite" className={cn("min-h-[2lh] text-dim", said && "error" in said && "text-sindoor")}>
-            {caption}
-          </span>
-          {topInfo ? (
-            <span className="shrink-0 pt-px font-mono text-[0.72rem] text-faint tabular" title="As Cloudinary delivered it">
-              {[topInfo.format, topInfo.bytes ? kb(topInfo.bytes) : null].filter(Boolean).join(" · ")}
-            </span>
-          ) : null}
-        </figcaption>
-      </figure>
+  const resetButton = (
+    <button
+      type="button"
+      onClick={() => apply(NONE, { reset: true })}
+      className={cn(
+        "inline-flex min-h-11 items-center gap-1.5 rounded-full px-1 text-[0.85rem] font-semibold text-dim transition-colors hover:text-paper",
+        // keeps its place while hidden: the chips never reflow under a thumb
+        !off.size && "invisible",
+      )}
+    >
+      <RotateCcw aria-hidden className="size-3.5" />
+      Put it all back
+    </button>
+  );
 
-      <div className="grid min-w-0 content-start gap-4">
-        <div className="mb-2 grid gap-3">
-          <div className="flex items-baseline justify-between gap-4">
-            <h3 id={`${uid}-peel`} className="font-display text-xl font-bold tracking-[-0.02em]">
-              Peel the URL
-            </h3>
-            {off.size ? (
-              <button
-                type="button"
-                onClick={() => apply(NONE, { reset: true })}
-                className="inline-flex items-center gap-1.5 rounded-full py-1 text-[0.85rem] font-semibold text-dim transition-colors hover:text-paper"
-              >
-                <RotateCcw aria-hidden className="size-3.5" />
-                Put it all back
-              </button>
-            ) : null}
-          </div>
-          <p id={`${uid}-how`} className="-mt-1.5 text-[0.9rem] leading-snug text-dim">
+  return (
+    // Phones: one column, and the picture and its toggles stick to the top of the screen while
+    // the code scrolls under them. From md: the picture stays beside the long code and its walk-through.
+    <div className="md:grid md:grid-cols-[minmax(0,19rem)_minmax(0,1fr)] md:grid-rows-[auto_auto_auto_1fr] md:gap-x-12 lg:grid-cols-[minmax(0,min(26rem,calc((100svh-6rem)*0.8)))_minmax(0,1fr)] xl:gap-x-16">
+      <div className="flex flex-col gap-4 md:contents">
+        <div className="grid gap-1.5 md:col-start-2 md:row-start-1 md:mb-3">
+          <h3 id={`${uid}-peel`} className="font-display text-xl font-bold tracking-[-0.02em]">
+            Peel the URL
+          </h3>
+          <p id={`${uid}-how`} className="text-[0.9rem] leading-snug text-dim">
             Tap a colour to take that part out of the URL. Cloudinary renders what&apos;s left.
           </p>
-          <div role="group" aria-labelledby={`${uid}-peel`} aria-describedby={`${uid}-how`} className="flex flex-wrap gap-2">
+        </div>
+
+        <div
+          ref={viewerRef}
+          className="z-10 max-md:sticky max-md:top-0 max-md:-mx-4 max-md:border-b max-md:border-line max-md:bg-studio max-md:px-4 max-md:pt-3 max-md:pb-1.5 sm:max-md:-mx-8 sm:max-md:px-8 md:contents"
+        >
+          <figure className="grid gap-x-3.5 gap-y-2.5 max-md:grid-cols-[9.5rem_minmax(0,1fr)] max-md:items-end sm:max-md:grid-cols-[11rem_minmax(0,1fr)] md:sticky md:top-6 md:col-start-1 md:row-span-4 md:row-start-1 md:content-start md:self-start">
+            <div className="relative aspect-[4/5] overflow-hidden rounded-2xl bg-stage-2 ring-1 ring-line max-md:rounded-xl">
+              {frames.map((f) => {
+                const front = f.id === top.id;
+                return (
+                  <img
+                    key={f.id}
+                    src={f.src}
+                    alt={front ? altText : ""}
+                    aria-hidden={front ? undefined : true}
+                    width={PEEL_WIDTH}
+                    height={PEEL_HEIGHT}
+                    loading={f.id === 0 ? "lazy" : "eager"}
+                    decoding={f.id === 0 ? "async" : "sync"}
+                    crossOrigin="anonymous"
+                    onAnimationEnd={() => {
+                      if (front) setFrames((fs) => (fs.length > 1 && fs[fs.length - 1].id === f.id ? fs.slice(-1) : fs));
+                    }}
+                    style={f.id === 0 || reduce ? undefined : { animation: "fade-in 0.5s cubic-bezier(0.25, 1, 0.5, 1) both" }}
+                    className="absolute inset-0 size-full object-cover"
+                  />
+                );
+              })}
+              {pending ? (
+                <span
+                  aria-hidden
+                  style={reduce ? undefined : { animation: "fade-in 0.2s ease-out 0.15s both" }}
+                  className="absolute top-3 left-3 inline-flex items-center gap-2 rounded-full bg-studio/80 px-3 py-1.5 text-[0.75rem] leading-none font-semibold text-paper ring-1 ring-line-strong backdrop-blur-sm max-md:top-2 max-md:left-2 max-md:px-1.5"
+                >
+                  <span className="size-3 animate-spin rounded-full border-[1.5px] border-marigold border-t-transparent" />
+                  <span className="max-md:hidden">Rendering on Cloudinary</span>
+                </span>
+              ) : null}
+            </div>
+            <figcaption className="flex items-start justify-between gap-4 text-[0.8rem] leading-snug max-md:flex-col max-md:justify-end max-md:gap-1.5 max-md:pb-1">
+              <span role="status" aria-live="polite" className={cn("min-h-[2lh] text-dim max-md:min-h-0", said && "error" in said && "text-sindoor")}>
+                {pending ? (
+                  <span aria-hidden className="block font-semibold text-paper md:hidden">
+                    Rendering on Cloudinary…
+                  </span>
+                ) : null}
+                {caption}
+              </span>
+              {topInfo ? (
+                <span className="shrink-0 pt-px font-mono text-[0.72rem] text-faint tabular" title="As Cloudinary delivered it">
+                  {[topInfo.format, topInfo.bytes ? kb(topInfo.bytes) : null].filter(Boolean).join(" · ")}
+                </span>
+              ) : null}
+            </figcaption>
+          </figure>
+
+          {/* the toggles: 44 px tall to the thumb, 40 px to the eye */}
+          <div
+            role="group"
+            aria-labelledby={`${uid}-peel`}
+            aria-describedby={`${uid}-how`}
+            className="mt-2.5 flex flex-wrap gap-x-2 gap-y-1 md:col-start-2 md:row-start-2 md:mt-0"
+          >
             {peelable.map((g) => {
               const on = !off.has(g.kind);
               return (
@@ -251,19 +308,27 @@ export function PeelUrl({ built, note, alt }: { built: BuiltUrl; note?: React.Re
                   aria-pressed={on}
                   onClick={() => toggle(g.kind)}
                   style={kindStyle(g.kind)}
-                  className={cn(
-                    "inline-flex h-10 items-center gap-2 rounded-full pr-3.5 pl-3 text-[0.85rem] font-semibold ring-1 transition-[background-color,color,box-shadow,scale] duration-200 ring-inset active:scale-[0.97]",
-                    on
-                      ? "bg-[color-mix(in_oklab,var(--k)_14%,transparent)] text-paper ring-[color-mix(in_oklab,var(--k)_50%,transparent)] hover:bg-[color-mix(in_oklab,var(--k)_22%,transparent)]"
-                      : "text-faint ring-line-strong hover:text-dim",
-                  )}
+                  className="group inline-flex min-h-11 items-center rounded-full transition-[scale] duration-200 active:scale-[0.97]"
                 >
-                  <span aria-hidden className={cn("size-3 rounded-full border-2 border-[var(--k)] transition-colors duration-200", on ? "bg-[var(--k)]" : "bg-transparent")} />
-                  <span className={cn(!on && "line-through decoration-[var(--k)] decoration-2")}>{g.legend}</span>
+                  <span
+                    className={cn(
+                      "inline-flex h-10 items-center gap-2 rounded-full pr-3.5 pl-3 text-[0.85rem] font-semibold ring-1 transition-[background-color,color,box-shadow] duration-200 ring-inset",
+                      on
+                        ? "bg-[color-mix(in_oklab,var(--k)_14%,transparent)] text-paper ring-[color-mix(in_oklab,var(--k)_50%,transparent)] group-hover:bg-[color-mix(in_oklab,var(--k)_22%,transparent)]"
+                        : "text-faint ring-line-strong group-hover:text-dim",
+                    )}
+                  >
+                    <span aria-hidden className={cn("size-3 rounded-full border-2 border-[var(--k)] transition-colors duration-200", on ? "bg-[var(--k)]" : "bg-transparent")} />
+                    <span className={cn(!on && "line-through decoration-[var(--k)] decoration-2")}>{g.legend}</span>
+                  </span>
                 </button>
               );
             })}
+            {resetButton}
           </div>
+        </div>
+
+        <div className="grid min-w-0 content-start gap-4 md:col-start-2 md:row-start-3 md:mt-3">
           {fixed.length ? (
             <p className="flex flex-wrap items-center gap-x-3.5 gap-y-1 text-[0.8rem] text-faint">
               <span>Always in the URL:</span>
@@ -275,35 +340,37 @@ export function PeelUrl({ built, note, alt }: { built: BuiltUrl; note?: React.Re
               ))}
             </p>
           ) : null}
+          <CodeWall model={model} off={off} expanded={expanded} id={`${uid}-code`} codeRef={codeRef} />
+          <div className="flex flex-wrap items-center justify-between gap-x-6">
+            <button
+              type="button"
+              aria-expanded={expanded}
+              aria-controls={`${uid}-code`}
+              onClick={() => {
+                setExpanded(!expanded);
+                // folding a long wall back up: bring its top back into view
+                if (expanded) requestAnimationFrame(() => document.getElementById(`${uid}-code`)?.scrollIntoView({ block: "nearest", behavior: reduce ? "auto" : "smooth" }));
+              }}
+              className="-mx-1 inline-flex min-h-11 items-center rounded-md px-1 text-[0.85rem] font-semibold text-paper underline decoration-line-strong underline-offset-4 sm:hidden"
+            >
+              {expanded ? "Show less" : `Show all ${count(fullUrl.length)} characters`}
+            </button>
+            <p className="hidden text-[0.8rem] text-faint tabular sm:block">{count(fullUrl.length)} characters, one request, no render server.</p>
+            <a
+              href={current}
+              target="_blank"
+              rel="noopener"
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-md text-[0.9rem] font-semibold text-marigold transition-colors hover:text-marigold-hi"
+            >
+              {off.size ? "Open the peeled URL" : "Open this URL"}
+              <ArrowUpRight aria-hidden className="size-4" />
+              <span className="sr-only"> (opens in a new tab)</span>
+            </a>
+          </div>
         </div>
+      </div>
 
-        <CodeWall model={model} off={off} expanded={expanded} id={`${uid}-code`} />
-        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
-          <button
-            type="button"
-            aria-expanded={expanded}
-            aria-controls={`${uid}-code`}
-            onClick={() => {
-              setExpanded(!expanded);
-              // folding a long wall back up: bring its top back into view
-              if (expanded) requestAnimationFrame(() => document.getElementById(`${uid}-code`)?.scrollIntoView({ block: "nearest", behavior: reduce ? "auto" : "smooth" }));
-            }}
-            className="-mx-1 rounded-md px-1 py-2 text-[0.85rem] font-semibold text-paper underline decoration-line-strong underline-offset-4 sm:hidden"
-          >
-            {expanded ? "Show less" : `Show all ${count(fullUrl.length)} characters`}
-          </button>
-          <p className="hidden text-[0.8rem] text-faint tabular sm:block">{count(fullUrl.length)} characters, one request, no render server.</p>
-          <a
-            href={current}
-            target="_blank"
-            rel="noopener"
-            className="inline-flex items-center gap-1.5 rounded-md py-2 text-[0.9rem] font-semibold text-marigold transition-colors hover:text-marigold-hi"
-          >
-            {off.size ? "Open the peeled URL" : "Open this URL"}
-            <ArrowUpRight aria-hidden className="size-4" />
-            <span className="sr-only"> (opens in a new tab)</span>
-          </a>
-        </div>
+      <div className="mt-4 grid min-w-0 content-start gap-4 md:col-start-2 md:row-start-4 md:mt-0">
         {note ? <p className="max-w-[40rem] text-[0.85rem] leading-relaxed text-dim">{note}</p> : null}
         <PeelSteps model={model} off={off} />
       </div>
@@ -312,10 +379,11 @@ export function PeelUrl({ built, note, alt }: { built: BuiltUrl; note?: React.Re
 }
 
 /** The URL itself, every piece coloured by its group; peeled pieces stay in place, struck through. */
-function CodeWall({ model, off, expanded, id }: { model: PeelModel; off: ReadonlySet<Kind>; expanded: boolean; id: string }) {
+function CodeWall({ model, off, expanded, id, codeRef }: { model: PeelModel; off: ReadonlySet<Kind>; expanded: boolean; id: string; codeRef?: React.Ref<HTMLParagraphElement> }) {
   return (
     <div className="rounded-2xl bg-studio p-5 ring-1 ring-line sm:p-7">
       <p
+        ref={codeRef}
         id={id}
         className={cn(
           "font-mono text-[0.75rem] leading-[1.8] break-all sm:text-[0.85rem]",
@@ -331,7 +399,7 @@ function CodeWall({ model, off, expanded, id }: { model: PeelModel; off: Readonl
               {i > 0 ? <span className={cn("text-faint transition-opacity duration-300", gone && "opacity-40")}>/</span> : null}
               <span title={s.label}>
                 {s.pieces.map((p, j) => (
-                  <span key={j} style={{ color: tok(p.group) }} className={cn("transition-opacity duration-300", isOff(s, p, off) && "line-through decoration-1 opacity-35")}>
+                  <span key={j} data-k={`${s.kind} ${p.group}`} style={{ color: tok(p.group) }} className={cn("transition-opacity duration-300", isOff(s, p, off) && "line-through decoration-1 opacity-35")}>
                     {p.text}
                   </span>
                 ))}

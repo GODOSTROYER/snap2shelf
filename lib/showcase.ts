@@ -646,3 +646,29 @@ export function siteOgImage() {
   const heroes = ["sneaker1", "shbottle", "shtrail1"].flatMap((sku) => getSample(sku)?.heroPublicId ?? []);
   return ogUrl({ heroes, shopName: "Snap2Shelf", tagline: "One photo. A whole shelf.", cloud: SHOWCASE_CLOUD }).url;
 }
+
+/** The landing's "Check" step: a sample's first placement, as the live QA rejected it. */
+export interface LandingQaCatch {
+  /** That attempt's stored composite, scaled to one of the site's fixed widths. */
+  src: (w: number) => string;
+  qa: QaResult;
+  /** Checks the live run took, the approved one included. */
+  attempts: number;
+  /** Where the product's base sat on the plate, as fractions of its width and height. */
+  base: { cx: number; y: number; w: number } | null;
+}
+
+export function landingQaCatch(s: SampleProduct): LandingQaCatch | null {
+  const story = s.qaStory;
+  if (!story || !story.rejectedUrl.includes("/f_auto,q_auto/")) return null;
+  const p = s.product;
+  const placement = p.understanding?.placement ?? "standing";
+  // the same geometry the attempt's URL was built from (flat-lays have no base to ring)
+  const g = p.cutout && placement !== "flatlay" ? geometry(p.cutout, s.scene.dna, story.rejectedControls, placement) : null;
+  return {
+    src: (w) => story.rejectedUrl.replace("/f_auto,q_auto/", `/c_limit,w_${snapWidth(w)}/f_auto,q_auto/`),
+    qa: story.rejected,
+    attempts: story.attempts,
+    base: g ? { cx: (g.px + g.pw / 2) / PLATE.width, y: g.baseY / PLATE.height, w: g.pw / PLATE.width } : null,
+  };
+}
