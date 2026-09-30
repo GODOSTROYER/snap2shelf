@@ -62,6 +62,11 @@ export function prebuiltPackStatus(sku: Sku, currentHero?: string): PrebuiltPack
   return { heroPublicId: kit.hero.publicId, assets: kit.assets.filter((a) => a.format !== "hero"), failed: kit.packFailed ?? [] };
 }
 
+/** The fidelity verdict recorded for a showcase creative take (data/showcase.json), by its public id. */
+export function prebuiltCreativeQa(publicId: string): QaResult | null {
+  return SHOWCASE.creative.find((c) => c.publicId === publicId)?.qa ?? null;
+}
+
 /** The real AI Vision verdict recorded when the showcase was built, for exactly this composite. */
 export function prebuiltQa(url: string): QaResult | null {
   const n = norm(url);

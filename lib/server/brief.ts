@@ -29,6 +29,7 @@ import {
 } from "../types";
 import { updateProduct } from "./facts";
 import { analysisSourceUrl, requireRaw, understandingFromContext } from "./products";
+import { readOnly } from "./protect";
 
 /**
  * Brief bar: one line of seller intent → kit settings.
@@ -432,7 +433,7 @@ export async function runBrief(
   sku: Sku,
   brief: string,
   festival: FestivalSlug | undefined,
-  opts: { beforeSpend?: () => void } = {},
+  opts: { beforeSpend?: () => void; readOnly?: boolean } = {},
 ): Promise<{ response: BriefResponse; spent: boolean }> {
   const t0 = Date.now();
   const raw = await requireRaw(sku);
@@ -453,6 +454,8 @@ export async function runBrief(
     };
   }
 
+  // Sample / showcase product without the access code: cached kits only (lib/server/protect.ts).
+  if (opts.readOnly) throw readOnly();
   opts.beforeSpend?.();
   const rules = parseBriefRules(brief, festival);
   const u = understandingFromContext(raw.context);
