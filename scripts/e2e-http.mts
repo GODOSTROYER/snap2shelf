@@ -1,9 +1,12 @@
 // Exercise every pipeline route over HTTP against a running dev server:
 //   npx next dev -p 3001
-//   node --conditions=react-server --import tsx scripts/e2e-http.mts [--base http://localhost:3001] [--photo <file>] [--no-generate]
+//   node --conditions=react-server --import tsx scripts/e2e-http.mts [--base http://localhost:3001] [--photo <file>] [--no-generate] [--min-admin 60]
 // Uploads one photo to a fresh sku through /api/sign-upload (as the widget / phone page would),
 // then capture → analyze → cutout → scenes → QA → pack → zip → generate → jobs, plus negative cases.
 // Finally scans every response body for pool account names (must never appear).
+// Dev servers answer with x-s2s-admin-calls (Admin API calls main has received from this
+// process): the run prints the delta per step, and aborts early when the hourly Admin
+// allowance (x-s2s-admin-remaining) is below --min-admin.
 import { readFileSync } from "node:fs";
 import { basename } from "node:path";
 import { parseArgs } from "node:util";
@@ -15,6 +18,7 @@ const { values } = parseArgs({
     base: { type: "string", default: "http://localhost:3001" },
     photo: { type: "string", default: "Z:/Projects/Cloudinary/photos/decent/09_neutral_sneaker.png" },
     "no-generate": { type: "boolean", default: false },
+    "min-admin": { type: "string", default: "60" },
   },
 });
 const BASE = values.base!;
@@ -22,6 +26,18 @@ const cloud = process.env.CLOUDINARY_CLOUD_NAME!;
 const { compositeUrl, defaultControls } = await import("../lib/transform/composite.ts");
 
 const bodies: string[] = [];
+/** Admin API calls to main, as reported by the dev server (cumulative per process). */
+const admin = { first: NaN, last: NaN, remaining: NaN, steps: [] as { step: string; calls: number; ms: number }[] };
+let stepName = "";
+let stepAt = NaN;
+let stepT0 = Date.now();
+function step(name: string) {
+  if (stepName) admin.steps.push({ step: stepName, calls: (admin.last || 0) - (stepAt || 0), ms: Date.now() - stepT0 });
+  stepName = name;
+  stepAt = admin.last;
+  stepT0 = Date.now();
+  if (name) console.log(`\n▶ ${name}`);
+}
 let failures = 0;
 const check = (ok: boolean, what: string) => {
   console.log(`  ${ok ? "PASS" : "FAIL"} ${what}`);
@@ -37,6 +53,14 @@ class Jar {
       headers: { ...(body ? { "Content-Type": "application/json" } : {}), ...(this.cookie ? { Cookie: this.cookie } : {}) },
       body: body === undefined ? undefined : typeof body === "string" ? body : JSON.stringify(body),
     });
+    const calls = Number(res.headers.get("x-s2s-admin-calls"));
+    if (res.headers.has("x-s2s-admin-calls") && Number.isFinite(calls)) {
+      if (Number.isNaN(admin.first)) admin.first = calls;
+      if (Number.isNaN(stepAt)) stepAt = calls;
+      admin.last = calls;
+    }
+    const rem = Number(res.headers.get("x-s2s-admin-remaining"));
+    if (res.headers.has("x-s2s-admin-remaining") && Number.isFinite(rem)) admin.remaining = rem;
     const set = res.headers.get("set-cookie");
     if (set) this.cookie = set.split(";")[0];
     const text = await res.text();
@@ -55,10 +79,16 @@ const sku = Array.from({ length: 8 }, () => "abcdefghijklmnopqrstuvwxyz012345678
 const jar = new Jar();
 console.log(`base ${BASE}  sku ${sku}`);
 
-console.log("\n▶ usage + access");
+step("usage + access");
 {
   const u = await jar.call("GET", "/api/usage");
+  console.log(`  admin API: ${Number.isNaN(admin.remaining) ? "remaining unknown" : `${admin.remaining} calls left this hour`}; livePipeline=${u.json.livePipeline} transformations=${JSON.stringify(u.json.transformations)} stale=${u.json.stale}`);
+  if (admin.remaining < Number(values["min-admin"])) {
+    console.log(`  ABORT: fewer than ${values["min-admin"]} Admin API calls left this hour`);
+    process.exit(2);
+  }
   check(u.status === 200 && typeof (u.json.generation as { usable: number }).usable === "number", `GET /api/usage 200 (${u.ms} ms) liveGeneration=${u.json.liveGeneration}`);
+  check(typeof u.json.livePipeline === "boolean" && typeof u.json.transformations === "object", `usage exposes the credit floor: livePipeline=${u.json.livePipeline}`);
   check(Boolean(jar.cookie.startsWith("s2s_access=")), "anonymous session cookie issued");
   const bad = await jar.call("POST", "/api/access", { code: "definitely-wrong" });
   check(bad.status === 403 && bad.json.code === "locked", `wrong access code → ${bad.status} ${bad.json.code}`);
@@ -68,7 +98,7 @@ console.log("\n▶ usage + access");
   check(ok.status === 200 && ok.json.ok === true, `right access code → ${ok.status} generationsLeft=${ok.json.generationsLeft}`);
 }
 
-console.log("\n▶ sign-upload + phone-style upload + capture polling");
+step("sign-upload + phone-style upload + capture polling");
 {
   const ts = Math.floor(Date.now() / 1000);
   const params = { timestamp: ts, source: "uw", upload_preset: "s2s_ingest", public_id: `snap2shelf/products/${sku}/raw`, tags: `s2s,s2s-raw,s2s-sku-${sku}`, context: "origin=phone" };
@@ -110,7 +140,7 @@ console.log("\n▶ sign-upload + phone-style upload + capture polling");
   }
 }
 
-console.log("\n▶ analyze + cutout");
+step("analyze + cutout");
 let placement: "standing" | "flatlay" | "hanging" = "standing";
 {
   const a = await jar.call("POST", `/api/products/${sku}/analyze`);
@@ -142,13 +172,13 @@ let placement: "standing" | "flatlay" | "hanging" = "standing";
   check(again2.status === 200, `cutout again → cached (${again2.ms} ms)`);
 }
 
-console.log("\n▶ scenes");
+step("scenes");
 {
   const s = await jar.call("GET", "/api/scenes?view=eye-level");
   check(s.status === 200 && Array.isArray(s.json.scenes), `GET /api/scenes → ${s.status} ${(s.json.scenes as unknown[]).length} scenes, cache-control="${s.headers.get("cache-control")}", set-cookie=${s.headers.has("set-cookie")}`);
 }
 
-console.log("\n▶ QA + SSRF guard");
+step("QA + SSRF guard");
 const cutoutInfo = (await jar.call("GET", `/api/capture/${sku}`)).json.product as { cutout: { publicId: string; width: number; height: number } };
 const dna = { anchor_x: 0.5, anchor_y: 0.65, surface_width: 0.8, light_azimuth: 315, light_elevation: 45, temperature: "warm", glossy: false, text_zone: "top" } as const;
 const built = compositeUrl({ scenePublicId: "snap2shelf/spikes/scenes/diwali_teak_42", dna, cutout: cutoutInfo.cutout, placement, controls: defaultControls(placement, dna), cloud });
@@ -168,7 +198,7 @@ const built = compositeUrl({ scenePublicId: "snap2shelf/spikes/scenes/diwali_tea
   check(q.status === 200 && (qa?.status === "approved" || qa?.status === "rejected"), `exact QA → ${q.status} (${q.ms} ms) ${qa?.status} ${JSON.stringify(qa?.matched)} tokens=${q.json.tokens}`);
 }
 
-console.log("\n▶ pack");
+step("pack");
 {
   const bad = await jar.call("POST", "/api/pack", { sku, heroUrl: "https://evil.example/x.jpg", sceneSlug: "diwali-teak-42" });
   check(bad.status === 400, `pack refuses a foreign hero URL → ${bad.status}`);
@@ -184,9 +214,18 @@ console.log("\n▶ pack");
   const z = await fetch(zip);
   const buf = Buffer.from(await z.arrayBuffer());
   check(z.status === 200 && buf.subarray(0, 2).toString() === "PK", `zip → ${z.status} ${buf.length} B`);
+  const done = (await jar.call("GET", `/api/pack/${sku}`)).json.assets as { id: string; url: string }[];
+  const story = done.find((a) => a.id === "story");
+  check(Boolean(story && /\/f_auto,q_auto\/v\d+\/snap2shelf\/products\/[a-z0-9]{8}\/pack\/story$/.test(story.url)), `finished formats are served from their materialised copy (${story?.url.split("/upload/")[1]})`);
+
+  // The sample product (no raw upload) answers its prebuilt pack: no Cloudinary call, no transformation.
+  const sampleHero = `https://res.cloudinary.com/${cloud}/image/upload/f_jpg,q_90/snap2shelf/spikes/heroes/shoe_diwali`;
+  const sp = await jar.call("POST", "/api/pack", { sku: "sneaker1", heroUrl: sampleHero, sceneSlug: "diwali-teak" });
+  const ss = await jar.call("GET", "/api/pack/sneaker1");
+  check(sp.status === 200 && (sp.json.pending as string[]).length === 0 && ss.status === 200, `sample pack → ${sp.status} (${sp.ms} ms) ${(sp.json.assets as unknown[])?.length} prebuilt formats; status → ${ss.status} (${ss.ms} ms)`);
 }
 
-console.log("\n▶ generate + jobs");
+step("generate + jobs");
 {
   const anon = new Jar();
   const locked = await anon.call("POST", "/api/generate", { sku, kind: "creative", model: "flux-2-flash-edit", seed: 11 });
@@ -221,6 +260,11 @@ console.log("\n▶ generate + jobs");
     check((u.json.session as { generationsLeft: number }).generationsLeft === 3, `usage after one generation → generationsLeft=${(u.json.session as { generationsLeft: number }).generationsLeft}`);
   }
 }
+
+step("");
+console.log("\n▶ Admin API calls to main (dev-server counter)");
+for (const s of admin.steps) console.log(`  ${String(s.calls).padStart(3)}  ${s.step}  (${(s.ms / 1000).toFixed(1)} s)`);
+console.log(`  ${String((admin.last || 0) - (admin.first || 0)).padStart(3)}  total after the first response (process counter was ${admin.first} then)`);
 
 console.log("\n▶ leak scan over all response bodies");
 {

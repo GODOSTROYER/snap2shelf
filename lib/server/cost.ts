@@ -1,16 +1,17 @@
 import "server-only";
-import { v2 as cloudinary } from "cloudinary";
 import type { CostResponse } from "../api-contract";
 import { PRODUCT_ROOT, SCENE_ROOT, type Scene, type Sku } from "../types";
-import { deliveryUrl, mainAuth } from "./cld";
+import { deliveryUrl } from "./cld";
+import { loadProduct, type AssetFacts, type ProductFacts } from "./facts";
 import { notFound } from "./http";
 import { libraryScenes } from "./scenes";
 
 /**
  * Cost ledger for one product (GET /api/cost/:sku). Everything is read back from
- * Cloudinary: one Admin API listing of snap2shelf/products/<sku>/ (context carries
- * credits, tokens and step timings written as the pipeline ran), the cached scene
- * list for reuse savings, and one HEAD of the delivered hero for bytes.
+ * Cloudinary: the product's facts (lib/server/facts.ts: credits, tokens and step
+ * timings written as the pipeline ran, plus every asset it saved), the cached
+ * scene list for reuse savings, and one HEAD of the delivered hero for bytes.
+ * No Admin API call.
  */
 
 /** Documented transformation counts (cloudinary.com/documentation/transformation_counts, checked 30 Sep 2026). */
@@ -131,25 +132,28 @@ export function computeCost(i: CostInput): Omit<CostResponse, "delivered"> {
 
 // ------------------------------------------------------------------ I/O
 
-type ListedResource = { public_id: string; bytes?: number; format?: string; created_at?: string; context?: { custom?: Record<string, string> } };
+const iso = (ms: number | undefined) => (ms ? new Date(ms).toISOString() : "");
 
-/** Every asset under snap2shelf/products/<sku>/ with context and created_at (one Admin API call). */
-export async function listProductAssets(sku: Sku): Promise<ProductAsset[]> {
-  const res = (await cloudinary.api.resources({
-    ...mainAuth(),
-    type: "upload",
-    resource_type: "image",
-    prefix: `${PRODUCT_ROOT}/${sku}/`,
-    context: true,
-    max_results: 100,
-  })) as unknown as { resources: ListedResource[] };
-  return res.resources.map((r) => ({
-    publicId: r.public_id,
-    bytes: Number(r.bytes ?? 0),
-    format: r.format ?? "",
-    createdAt: r.created_at ?? "",
-    context: r.context?.custom ?? {},
-  }));
+/**
+ * The product's assets as the cost math needs them, from its facts (lib/server/facts.ts):
+ * no Admin API listing. Pure; unit-tested. Pack formats count only for the current hero.
+ */
+export function productAssetsFromFacts(sku: Sku, f: ProductFacts): ProductAsset[] {
+  const root = `${PRODUCT_ROOT}/${sku}/`;
+  const out: ProductAsset[] = [];
+  const raw = f.raw;
+  out.push({ publicId: `${root}raw`, bytes: raw?.bytes ?? 0, format: raw?.format ?? "", createdAt: raw?.createdAt ?? "", context: f.ctx });
+  const add = (a: AssetFacts | undefined, publicId: string, format: string) => {
+    if (a) out.push({ publicId, bytes: a.bytes ?? 0, format, createdAt: iso(a.at), context: a.ctx ?? {} });
+  };
+  add(f.cutout, `${root}cutout`, "png");
+  add(f.retouched, `${root}retouched`, "jpg");
+  for (const [id, a] of Object.entries(f.creatives ?? {})) add(a, `${root}${id}`, "png");
+  for (const [publicId, a] of Object.entries(f.heroes ?? {})) add(a, publicId, "jpg");
+  if (f.pack) {
+    for (const [id, d] of Object.entries(f.pack.done)) out.push({ publicId: `${root}pack/${id}`, bytes: 0, format: "jpg", createdAt: iso(d.at), context: { hero: f.pack.hero } });
+  }
+  return out;
 }
 
 /** Browser-like Accept header, so f_auto negotiates AVIF/WebP the way a real visitor gets it. */
@@ -177,16 +181,25 @@ export async function deliveredSize(url: string, timeoutMs = 8000): Promise<{ by
 const SCENE_ID = new RegExp(`^${SCENE_ROOT}/[a-z0-9-]{1,40}/[a-z0-9_-]{1,60}$`);
 export const isScenePublicId = (s: string) => SCENE_ID.test(s);
 
+/**
+ * GET /api/cost/:sku. Product facts (Upload API explicit + CDN JSON), the cached
+ * scene list and one HEAD of the delivered hero: no Admin API call (this used to
+ * be one `resources` listing per request).
+ */
 export async function costForProduct(sku: Sku, scenePublicId?: string): Promise<CostResponse> {
-  const [assets, library] = await Promise.all([
-    listProductAssets(sku),
+  const [p, library] = await Promise.all([
+    loadProduct(sku),
     scenePublicId ? libraryScenes().catch(() => [] as Scene[]) : Promise.resolve([] as Scene[]),
   ]);
-  const raw = assets.find((a) => a.publicId === `${PRODUCT_ROOT}/${sku}/raw`);
-  if (!raw) throw notFound("No upload found for this product yet.");
+  const assets = productAssetsFromFacts(sku, p.facts);
+  const raw = assets[0];
   const heroes = assets.filter((a) => a.publicId.startsWith(`${PRODUCT_ROOT}/${sku}/hero-`)).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const heroId = heroes.find((h) => h.publicId === raw.context.hero)?.publicId ?? heroes[0]?.publicId;
-  const url = heroId ? deliveryUrl(heroId, "f_auto,q_auto") : deliveryUrl(raw.publicId, "c_limit,w_1080,h_1350/f_auto,q_auto");
+  const heroVersion = heroId ? p.facts.heroes?.[heroId]?.version : undefined;
+  // Same string as the kit page's hero URL, so this HEAD shares its derivative and CDN entry.
+  const url = heroId
+    ? deliveryUrl(heroVersion ? `v${heroVersion}/${heroId}` : heroId, "f_auto,q_auto")
+    : deliveryUrl(raw.publicId, "c_limit,w_1080,h_1350/f_auto,q_auto");
   const delivered = await deliveredSize(url);
 
   const scene = scenePublicId ? (library.find((s) => s.publicId === scenePublicId) ?? null) : null;

@@ -3,9 +3,11 @@ import type { RetouchPendingResponse, RetouchResponse } from "../api-contract";
 import { withPooledAccount } from "../cloudinary/pool";
 import { visionTagging } from "../cloudinary/vision";
 import type { Sku } from "../types";
-import { addContext, deliveryUrl, probe, uploadToMain, type AssetInfo } from "./cld";
+import { assertLivePipeline } from "./budget";
+import { deliveryUrl, probe, uploadToMain, type AssetInfo } from "./cld";
+import { loadProduct, updateProduct } from "./facts";
 import { HttpError } from "./http";
-import { analysisSourceUrl, rawId, requireRaw, retouchedId, skuTag } from "./products";
+import { analysisSourceUrl, rawId, retouchedId, skuTag } from "./products";
 import { RETOUCH_TAGS, bmpMeanLuma, planRetouch, retouchChain, retouchStateFromContext, retouchXray, type RetouchPlan } from "./retouch-plan";
 
 /**
@@ -59,13 +61,14 @@ export type RetouchOutcome =
 export async function retouchProduct(sku: Sku, opts: { budgetMs?: number; beforeSpend?: () => void } = {}): Promise<RetouchOutcome> {
   const budgetMs = opts.budgetMs ?? 6000;
   const t0 = Date.now();
-  const raw = await requireRaw(sku);
+  const { raw } = await loadProduct(sku);
   let state = retouchStateFromContext(raw.context);
   let tokens = 0;
   let spent = false;
   let plan: RetouchPlan;
 
   if (!state.planned) {
+    await assertLivePipeline(); // planning derives a luma probe and starts a kit
     opts.beforeSpend?.();
     spent = true;
     const [tagged, luma] = await Promise.all([
@@ -81,15 +84,18 @@ export async function retouchProduct(sku: Sku, opts: { budgetMs?: number; before
     const focus = focusOf(raw.context);
     plan = planFor(raw, tags, luma, focus);
     const chain = retouchChain(plan);
-    await addContext([raw.publicId], {
-      fix_tags: tags.join(",") || "-",
-      fix_luma: luma === null ? "" : luma.toFixed(1),
-      fix_focus: focus === null ? "" : focus.toFixed(3),
-      fix_plan: plan.fixes.join(",") || "none",
-      fix_chain: chain,
-      fix_tx: String(plan.tx),
-      t_fix: String(tokens),
-      ms_fix: String(Date.now() - t0),
+    // Critical: without the stored plan the next poll would plan (and bill AI Vision) again.
+    await updateProduct(sku, {
+      ctx: {
+        fix_tags: tags.join(",") || "-",
+        fix_luma: luma === null ? "" : luma.toFixed(1),
+        fix_focus: focus === null ? "" : focus.toFixed(3),
+        fix_plan: plan.fixes.join(",") || "none",
+        fix_chain: chain,
+        fix_tx: String(plan.tx),
+        t_fix: String(tokens),
+        ms_fix: String(Date.now() - t0),
+      },
     });
     state = { ...state, planned: true, tags, luma, fixes: plan.fixes, chain, tx: plan.tx };
   } else {
@@ -154,13 +160,15 @@ export async function retouchProduct(sku: Sku, opts: { budgetMs?: number; before
     },
   });
 
+  // The retouch chain can include generative / AI effects: respect the credit floor.
+  await assertLivePipeline();
   // Planning may have used most of this call's budget: just kick the derivation off.
   const left = budgetMs - (Date.now() - t0);
   const p = await probe(derived, Math.max(1200, Math.min(left, budgetMs)));
-  if (p.status === 423 || p.status === 420 || p.status === 0) return pendingOutcome();
+  if (p.status === 423 || p.status === 420 || p.status === 429 || p.status === 0) return pendingOutcome();
   if (p.status !== 200) {
     console.error(`[retouch] ${sku}: derived HTTP ${p.status} ${String(p.error ?? "").slice(0, 160)}`);
-    await addContext([raw.publicId], { fix_err: "1" });
+    await updateProduct(sku, { ctx: { fix_err: "1" } }, { critical: false });
     state = { ...state, failed: true };
     return {
       kind: "done",
@@ -183,7 +191,14 @@ export async function retouchProduct(sku: Sku, opts: { budgetMs?: number; before
     context: { source: rawId(sku), chain: state.chain, fixes: state.fixes.join(",") },
   });
   if (up.publicId !== retouchedId(sku)) throw new HttpError(502, "upstream", "Saving the retouched photo failed. Please try again.");
-  await addContext([raw.publicId], { fix_id: up.publicId, ms_fix_done: String(Date.now() - t0) });
+  await updateProduct(
+    sku,
+    {
+      ctx: { fix_id: up.publicId, ms_fix_done: String(Date.now() - t0) },
+      mutate: (f) => void (f.retouched = { publicId: up.publicId, width: up.width, height: up.height, version: up.version, bytes: up.bytes, at: Date.now() }),
+    },
+    { critical: false },
+  );
   console.info(`[retouch] ${sku}: saved ${state.chain} in ${Date.now() - t0} ms`);
   return done(up.publicId);
 }

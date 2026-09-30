@@ -25,10 +25,10 @@ export interface ApiError {
   code:
     | "bad_request"
     | "not_found"
-    | "pending" // try again shortly (e.g. Cloudinary 423 still processing)
+    | "pending" // try again shortly (Cloudinary 423 still processing, or a rate-limit wait ≤ 15 s on a polled route); 202 + retryAfterMs
     | "locked" // access code required
     | "cap_reached" // per-session generation cap hit
-    | "quota_low" // pool below threshold → UI switches to showcase
+    | "quota_low" // pool below threshold, main's transformation credits at the floor, or Cloudinary's hourly Admin API limit hit (retryAfterMs says when) → UI switches to showcase
     | "upstream"; // Cloudinary error
   retryAfterMs?: number;
 }
@@ -114,6 +114,15 @@ export interface UsageResponse {
   vision: { remaining: number; limit: number; usable: number };
   liveGeneration: boolean; // false → UI shows showcase + explains why
   session: { unlocked: boolean; generationsLeft: number };
+  // (additive) false → main's transformation credits reached the floor (LIVE_TX_MAX_USED, default 21 of 25):
+  // routes that create new derivatives (analyze, retouch, cutout, pack, scene / creative generation)
+  // answer ApiError {code:"quota_low"}; show the prebuilt showcase instead of starting a live kit.
+  livePipeline?: boolean;
+  // (additive) main's plan credits (1 credit ≈ 1,000 transformations or 1 GB), totals only; null until known.
+  // floorCredits = LIVE_TX_MAX_USED: livePipeline turns false once usedCredits reaches it.
+  transformations?: { usedCredits: number | null; limitCredits: number | null; floorCredits?: number };
+  // (additive) true → Cloudinary's Admin API is rate limited right now and these numbers are from an earlier refresh.
+  stale?: boolean;
 }
 
 // ================================================================ pipeline v2 (additive)

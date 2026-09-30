@@ -1,5 +1,7 @@
 import "server-only";
 import { basicAuth, getAccounts, type CloudinaryAccount } from "./accounts";
+import { adminFetch } from "./admin";
+import { SHARED_USAGE_TTL_MS, readSharedMainUsage, writeSharedMainUsage, type SharedMainUsage } from "./shared-usage";
 
 /**
  * Key pool for add-on quota.
@@ -21,6 +23,10 @@ import { basicAuth, getAccounts, type CloudinaryAccount } from "./accounts";
  * State is per server instance. On serverless that means each instance learns
  * independently, which is fine: the worst case is one extra quota error that
  * benches the account on that instance.
+ *
+ * The usage call is an Admin API call (500/hour on Free): it goes through the
+ * breaker in admin.ts, and while an account is rate limited the last numbers
+ * are kept (and reported as stale) instead of failing.
  */
 
 /**
@@ -52,15 +58,35 @@ interface AccountState {
   benchedUntil?: number;
 }
 
-const state = new Map<string, AccountState>();
-let usageFetchedAt = 0;
-let usageInFlight: Promise<void> | null = null;
+/** Main's plan credits (transformations + storage + bandwidth) from its usage call. */
+export interface CreditsSnapshot {
+  used: number;
+  limit: number;
+  at: number; // when Cloudinary answered with these numbers
+}
+
+interface PoolShared {
+  state: Map<string, AccountState>;
+  usageFetchedAt: number;
+  usageInFlight: Promise<void> | null;
+  mainCredits: CreditsSnapshot | null;
+  /** Accounts whose last usage refresh failed (rate limited, network, 5xx): their numbers are stale. */
+  staleAccounts: Set<string>;
+}
+
+/**
+ * One copy per Node process (globalThis), shared by every route bundle: Next.js
+ * may instantiate this module once per route, and each copy would otherwise
+ * make its own Admin `usage` calls.
+ */
+const G = globalThis as unknown as { __s2sPool?: PoolShared };
+const P: PoolShared = (G.__s2sPool ??= { state: new Map(), usageFetchedAt: 0, usageInFlight: null, mainCredits: null, staleAccounts: new Set() });
 
 const stateKey = (label: string, cap: PooledCapability) => `${label}:${cap}`;
 const getState = (label: string, cap: PooledCapability) => {
   const k = stateKey(label, cap);
-  let s = state.get(k);
-  if (!s) state.set(k, (s = {}));
+  let s = P.state.get(k);
+  if (!s) P.state.set(k, (s = {}));
   return s;
 };
 
@@ -110,38 +136,78 @@ export function bench(account: CloudinaryAccount | string, cap: PooledCapability
   getState(label, cap).benchedUntil = Date.now() + ms;
 }
 
-async function fetchUsage(account: CloudinaryAccount): Promise<void> {
-  const res = await fetch(`https://api.cloudinary.com/v1_1/${account.cloudName}/usage`, {
-    headers: { Authorization: basicAuth(account) },
-    cache: "no-store",
-  });
-  if (!res.ok) return; // keep whatever we knew; a failing usage call must not block generation
-  const body = (await res.json()) as Record<string, { usage?: number; limit?: number } | unknown>;
-  for (const cap of ["image_generation", "ai_vision", "object_detection"] as const) {
-    const entry = body[cap] as { usage?: number; limit?: number } | undefined;
-    if (!entry || typeof entry.limit !== "number") continue;
-    const used = typeof entry.usage === "number" ? entry.usage : 0;
-    getState(account.label, cap).usage = {
-      limit: entry.limit,
-      used,
-      remaining: Math.max(0, entry.limit - used),
-      at: Date.now(),
-    };
+const CAPS = ["image_generation", "ai_vision", "object_detection"] as const;
+
+/** Apply main's shared reading (credits + add-on totals) as if this instance had made the call. */
+function applyMain(label: string, u: SharedMainUsage): void {
+  if (u.credits && u.credits.limit > 0) P.mainCredits = { used: u.credits.used, limit: u.credits.limit, at: u.at };
+  for (const cap of CAPS) {
+    const e = u.addons[cap];
+    if (e) getState(label, cap).usage = { limit: e.limit, used: e.used, remaining: Math.max(0, e.limit - e.used), at: u.at };
   }
 }
 
+async function fetchUsage(account: CloudinaryAccount): Promise<void> {
+  // Main: another instance may have read it recently (shared raw JSON, no Admin call).
+  let shared: SharedMainUsage | null = null;
+  if (account.isMain) {
+    shared = await readSharedMainUsage();
+    if (shared && Date.now() - shared.at < SHARED_USAGE_TTL_MS) {
+      applyMain(account.label, shared);
+      P.staleAccounts.delete(account.label);
+      return;
+    }
+  }
+  let res: Response;
+  try {
+    res = await adminFetch("usage", account.label, () =>
+      fetch(`https://api.cloudinary.com/v1_1/${account.cloudName}/usage`, {
+        headers: { Authorization: basicAuth(account) },
+        cache: "no-store",
+      }),
+    );
+  } catch {
+    // Rate limited (breaker open) or network: keep whatever we knew (or an older shared reading), marked stale.
+    if (shared) applyMain(account.label, shared);
+    P.staleAccounts.add(account.label);
+    return;
+  }
+  if (!res.ok) {
+    if (shared) applyMain(account.label, shared);
+    P.staleAccounts.add(account.label);
+    return; // keep whatever we knew; a failing usage call must not block generation
+  }
+  P.staleAccounts.delete(account.label);
+  const body = (await res.json()) as Record<string, { usage?: number; limit?: number } | unknown>;
+  const now = Date.now();
+  const credits = body.credits as { usage?: number; limit?: number } | undefined;
+  const reading: SharedMainUsage = { s: 1, at: now, addons: {} };
+  if (account.isMain && credits && typeof credits.usage === "number" && typeof credits.limit === "number" && credits.limit > 0) {
+    P.mainCredits = { used: credits.usage, limit: credits.limit, at: now };
+    reading.credits = { used: credits.usage, limit: credits.limit };
+  }
+  for (const cap of CAPS) {
+    const entry = body[cap] as { usage?: number; limit?: number } | undefined;
+    if (!entry || typeof entry.limit !== "number") continue;
+    const used = typeof entry.usage === "number" ? entry.usage : 0;
+    getState(account.label, cap).usage = { limit: entry.limit, used, remaining: Math.max(0, entry.limit - used), at: now };
+    reading.addons[cap] = { used, limit: entry.limit };
+  }
+  if (account.isMain) await writeSharedMainUsage(reading);
+}
+
 export async function refreshUsage(force = false): Promise<void> {
-  if (!force && Date.now() - usageFetchedAt < USAGE_TTL_MS) return;
-  if (!usageInFlight) {
-    usageInFlight = Promise.allSettled(getAccounts().map(fetchUsage))
+  if (!force && Date.now() - P.usageFetchedAt < USAGE_TTL_MS) return;
+  if (!P.usageInFlight) {
+    P.usageInFlight = Promise.allSettled(getAccounts().map(fetchUsage))
       .then(() => {
-        usageFetchedAt = Date.now();
+        P.usageFetchedAt = Date.now();
       })
       .finally(() => {
-        usageInFlight = null;
+        P.usageInFlight = null;
       });
   }
-  await usageInFlight;
+  await P.usageInFlight;
 }
 
 /**
@@ -212,8 +278,26 @@ export async function poolSummary(cap: PooledCapability): Promise<{ remaining: n
   return { remaining, limit, usable, known };
 }
 
+/**
+ * Main's plan credits (used / limit), refreshed with the usage call (TTL 10 min,
+ * through the Admin breaker). null until Cloudinary has answered once on this
+ * instance. `stale` = the latest refresh of main failed and older numbers are shown.
+ */
+export async function mainCreditsSummary(): Promise<(CreditsSnapshot & { stale: boolean }) | null> {
+  await refreshUsage();
+  if (!P.mainCredits) return null;
+  const main = getAccounts().find((a) => a.isMain);
+  return { ...P.mainCredits, stale: main ? P.staleAccounts.has(main.label) : false };
+}
+
+/** True when the latest usage refresh failed for any account (numbers served from cache). */
+export const usageIsStale = () => P.staleAccounts.size > 0;
+
 /** Test hook: forget all learned quota state. */
 export function __resetPoolState(): void {
-  state.clear();
-  usageFetchedAt = 0;
+  P.state.clear();
+  P.usageFetchedAt = 0;
+  P.usageInFlight = null;
+  P.mainCredits = null;
+  P.staleAccounts.clear();
 }

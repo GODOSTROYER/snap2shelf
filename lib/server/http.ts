@@ -3,7 +3,9 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import type { ApiError } from "../api-contract";
 import { SKU_RE, type Sku } from "../types";
-import { PoolExhaustedError } from "../cloudinary/pool";
+import { AdminLimitedError, adminStats, parseRateLimitReset } from "../cloudinary/admin";
+import { PoolExhaustedError, QuotaError } from "../cloudinary/pool";
+import { scrubSecrets } from "../cloudinary/safe";
 import { openOpCap } from "./config";
 import { readSession, writeSession, type Session } from "./session";
 
@@ -25,18 +27,67 @@ export const notFound = (msg = "Not found.") => new HttpError(404, "not_found", 
 export const pending = (retryAfterMs = 2000, msg = "Still processing, try again shortly.") =>
   new HttpError(202, "pending", msg, retryAfterMs);
 
-/** Cloudinary SDK rejections are plain objects: { error: { message, http_code } }. */
+/**
+ * HTTP code of a Cloudinary failure: CloudinarySdkError / AdminLimitedError carry
+ * `http_code`; raw SDK rejections are { error: { message, http_code } }.
+ */
 export function cldHttpCode(err: unknown): number | undefined {
   const e = err as { error?: { http_code?: number }; http_code?: number; status?: number } | null;
   return e?.error?.http_code ?? e?.http_code ?? e?.status;
 }
 
+/** A short, credential-free description (message strings only; never the object itself). */
 function cldMessage(err: unknown): string {
-  const e = err as { error?: { message?: string }; message?: string } | null;
-  return String(e?.error?.message ?? e?.message ?? err).slice(0, 300);
+  const e = err as { error?: { message?: unknown }; message?: unknown } | null;
+  const m = [e?.error?.message, e?.message].find((x): x is string => typeof x === "string");
+  return scrubSecrets(m ?? "unknown error").replace(/[\r\n]+/g, " ").slice(0, 300);
 }
 
-export function apiError(err: unknown, route: string): NextResponse {
+/** Waits up to this long are answered 202 "pending" on routes the client retries; longer ones are "quota_low". */
+export const PENDING_MAX_MS = 15_000;
+
+/**
+ * Rate limit (Admin API 420 / breaker open, or a 420 / 429 from any Cloudinary
+ * API) → a friendly ApiError, never a 500. Short waits on retriable routes are
+ * "pending" (the client polls again); anything longer switches the UI to the
+ * saved examples via "quota_low", with retryAfterMs so it can say when.
+ */
+export function rateLimited(retryAfterMs: number, retriable = false): HttpError {
+  const ms = Math.max(1000, Math.round(retryAfterMs));
+  if (retriable && ms <= PENDING_MAX_MS) return new HttpError(202, "pending", "Cloudinary is busy for a moment, retrying shortly.", ms);
+  const min = Math.max(1, Math.ceil(ms / 60_000));
+  return new HttpError(
+    503,
+    "quota_low",
+    `Cloudinary's hourly API allowance is used up right now. Showing saved examples instead; live kits resume in about ${min} minute${min === 1 ? "" : "s"}.`,
+    ms,
+  );
+}
+
+/** Map any thrown value to a safe HttpError-shaped answer (exported for tests). */
+export function toHttpError(err: unknown, retriable = false): HttpError | null {
+  if (err instanceof HttpError) return err;
+  if (err instanceof AdminLimitedError) return rateLimited(err.retryAfterMs, retriable);
+  if (err instanceof PoolExhaustedError || err instanceof QuotaError) {
+    return new HttpError(503, "quota_low", "AI quota is running low right now. Showing saved examples instead.");
+  }
+  const code = cldHttpCode(err);
+  if (code === 420 || code === 429) {
+    // Not an Admin call we routed through the breaker (Upload API, delivery): use the
+    // reset time Cloudinary names, else retry shortly.
+    const msg = cldMessage(err);
+    const named = /\d{2}:\d{2}/.test(msg) ?parseRateLimitReset(msg) - Date.now() : 5_000;
+    return rateLimited(named, retriable);
+  }
+  return null;
+}
+
+export function apiError(err: unknown, route: string, opts: { retriable?: boolean } = {}): NextResponse {
+  const mapped = toHttpError(err, opts.retriable);
+  if (mapped && !(err instanceof HttpError)) {
+    console.warn(`[${route}] ${(err as { name?: string })?.name ?? "Error"} → ${mapped.status} ${mapped.code}`);
+  }
+  if (mapped) err = mapped;
   if (err instanceof HttpError) {
     const body: ApiError = { error: err.publicMessage, code: err.code };
     if (err.retryAfterMs !== undefined) body.retryAfterMs = err.retryAfterMs;
@@ -46,12 +97,6 @@ export function apiError(err: unknown, route: string): NextResponse {
   }
   if (err instanceof z.ZodError) {
     return NextResponse.json({ error: "Invalid request.", code: "bad_request" } satisfies ApiError, { status: 400 });
-  }
-  if (err instanceof PoolExhaustedError) {
-    return NextResponse.json(
-      { error: "AI quota is running low right now. Showing saved examples instead.", code: "quota_low" } satisfies ApiError,
-      { status: 503 },
-    );
   }
   // Log a short, credential-free description server-side; never return details to the client.
   const name = (err as { name?: string })?.name ?? "Error";
@@ -90,12 +135,27 @@ export function chargeOpenOp(s: Session): Session {
 
 type Handler = (req: NextRequest, session: Session) => Promise<{ body: unknown; status?: number; session?: Session; headers?: Record<string, string> }>;
 
+export interface RouteOptions {
+  /** The client retries this route on 202 (cutout, retouch, polls): short rate-limit waits answer "pending". */
+  retriable?: boolean;
+}
+
+const debugHeaders = () => process.env.NODE_ENV !== "production" || process.env.S2S_DEBUG_ADMIN === "1";
+
+/** Dev instrumentation: cumulative Admin API calls this process sent to main (e2e reads the delta). */
+function instrument(res: NextResponse): void {
+  if (!debugHeaders()) return;
+  const s = adminStats("main");
+  res.headers.set("x-s2s-admin-calls", String(s.calls));
+  if (s.remaining !== null) res.headers.set("x-s2s-admin-remaining", String(s.remaining));
+}
+
 /**
  * Route wrapper: reads the session, maps thrown errors to ApiError JSON, and
  * writes the session cookie back when the handler returns an updated one (or
  * when the visitor had none yet).
  */
-export function route(name: string, handler: Handler) {
+export function route(name: string, handler: Handler, opts: RouteOptions = {}) {
   return async (req: NextRequest): Promise<NextResponse> => {
     const session = readSession(req);
     try {
@@ -105,10 +165,12 @@ export function route(name: string, handler: Handler) {
       if (!res.headers.has("Cache-Control")) res.headers.set("Cache-Control", "no-store");
       const hadCookie = Boolean(req.cookies.get("s2s_access"));
       if (out.session || !hadCookie) writeSession(res, out.session ?? session);
+      instrument(res);
       return res;
     } catch (err) {
-      const res = apiError(err, name);
+      const res = apiError(err, name, opts);
       res.headers.set("Cache-Control", "no-store");
+      instrument(res);
       return res;
     }
   };
@@ -118,9 +180,10 @@ export function route(name: string, handler: Handler) {
 export function routeWithParams<P>(
   name: string,
   handler: (req: NextRequest, session: Session, params: P) => ReturnType<Handler>,
+  opts: RouteOptions = {},
 ) {
   return async (req: NextRequest, ctx: { params: Promise<P> }): Promise<NextResponse> => {
     const params = await ctx.params;
-    return route(name, (r, s) => handler(r, s, params))(req);
+    return route(name, (r, s) => handler(r, s, params), opts)(req);
   };
 }

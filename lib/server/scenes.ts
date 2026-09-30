@@ -11,7 +11,7 @@ import { detectFestival } from "../festivals";
 import { SCENE_RECIPES, sceneDnaPrompt } from "../scene-prompts";
 import { SCENE_TAG, sceneFromListResource, sceneListUrl, sceneToContext } from "../scenes";
 import { PLATE, SCENE_ROOT, SCENE_THEMES, type QaResult, type Scene, type SceneDNA, type SceneTier, type SceneView } from "../types";
-import { addContext, addTags, deliveryUrl, getResource, mainCloud, type AssetInfo } from "./cld";
+import { addContext, addTags, assetInfo, deliveryUrl, getResource, mainCloud, type AssetInfo, type Ctx } from "./cld";
 
 /**
  * Scene library core, shared by scripts/seed-scenes.mts (blocking, many plates)
@@ -164,14 +164,42 @@ export type PlateState =
   | { kind: "rejected"; matched: string[]; asset: AssetInfo }
   | { kind: "unanalysed"; asset: AssetInfo };
 
-/** Where a plate id stands, from the Admin API (exact and immediate, unlike the cached list). */
+/**
+ * What this instance knows about plates it copied / committed: their context,
+ * so plateState() needs no Admin API call on the next poll. Bounded.
+ */
+const plateMemo = new Map<string, Ctx>();
+function memoPlate(publicId: string, ctx: Ctx): void {
+  plateMemo.delete(publicId);
+  plateMemo.set(publicId, { ...(plateMemo.get(publicId) ?? {}), ...ctx });
+  if (plateMemo.size > 200) plateMemo.delete(plateMemo.keys().next().value as string);
+}
+
+/**
+ * Where a plate id stands. Existence and tags come from an Upload-API explicit
+ * (exact and immediate, unlike the ~60 s cached list, and no Admin quota); the
+ * Scene DNA of a ready plate from this instance's memo or the library list. Only
+ * a plate that is tagged ready but known to neither (list lag + another
+ * instance committed it) costs one Admin lookup, through the breaker.
+ */
 export async function plateState(publicId: string): Promise<PlateState> {
-  const a = await getResource(publicId);
-  if (!a) return { kind: "missing" };
-  if (a.tags.includes("s2s-scene-rejected")) return { kind: "rejected", matched: (a.context.qa_matched ?? "").split(",").filter(Boolean), asset: a };
-  const scene = sceneFromAsset(a);
-  if (scene && a.tags.includes(SCENE_TAG)) return { kind: "ready", scene };
-  return { kind: "unanalysed", asset: a };
+  const info = await assetInfo(publicId);
+  if (!info) return { kind: "missing" };
+  const memo = plateMemo.get(publicId);
+  const asset: AssetInfo = { ...info, context: memo ?? {} };
+  if (info.tags.includes("s2s-scene-rejected")) return { kind: "rejected", matched: (memo?.qa_matched ?? "").split(",").filter(Boolean), asset };
+  if (info.tags.includes(SCENE_TAG)) {
+    const fromMemo = memo ? sceneFromAsset(asset) : null;
+    const listed = fromMemo ?? (await libraryScenes().catch(() => [] as Scene[])).find((s) => s.publicId === publicId) ?? null;
+    if (listed) return { kind: "ready", scene: listed };
+    const a = await getResource(publicId);
+    const scene = a ? sceneFromAsset(a) : null;
+    if (a && scene) {
+      memoPlate(publicId, a.context);
+      return { kind: "ready", scene };
+    }
+  }
+  return { kind: "unanalysed", asset };
 }
 
 // ------------------------------------------------------------------ pipeline steps
@@ -194,6 +222,15 @@ export interface PlateMeta {
 /** Copy a finished generation into main as the canonical 1080x1350 plate (not in the library until QA approves). */
 export async function copyPlate(account: CloudinaryAccount, asset: GeneratedAsset, spec: SceneSpec, meta: PlateMeta): Promise<{ publicId: string; secureUrl: string }> {
   const publicId = scenePublicId(spec);
+  const context: Ctx = {
+    theme: spec.theme,
+    view: spec.view,
+    title: spec.title,
+    model: meta.modelId,
+    credits: String(meta.credits),
+    origin: meta.origin,
+    ...(meta.sku ? { sku: meta.sku } : {}),
+  };
   const plate = await copyToMain(
     account,
     { secure_url: asset.storage.secure_url }, // always upload: the incoming c_fill makes the canonical plate
@@ -201,17 +238,10 @@ export async function copyPlate(account: CloudinaryAccount, asset: GeneratedAsse
       public_id: publicId,
       transformation: [{ width: PLATE.width, height: PLATE.height, crop: "fill", gravity: "center" }],
       tags: ["s2s", `s2s-theme-${spec.theme}`, `s2s-view-${spec.view}`, `s2s-tier-${spec.tier}`],
-      context: {
-        theme: spec.theme,
-        view: spec.view,
-        title: spec.title,
-        model: meta.modelId,
-        credits: String(meta.credits),
-        origin: meta.origin,
-        ...(meta.sku ? { sku: meta.sku } : {}),
-      },
+      context,
     },
   );
+  memoPlate(publicId, context);
   return { publicId: plate.public_id, secureUrl: plate.secure_url };
 }
 
@@ -245,14 +275,16 @@ export async function analysePlate(publicId: string, view: SceneView): Promise<P
 /** Write DNA + provenance into context; only an approved plate joins the library (`s2s-scene`). */
 export async function commitPlate(publicId: string, spec: SceneSpec, meta: PlateMeta, v: PlateVerdict): Promise<Scene> {
   const scene: Scene = { publicId, theme: spec.theme, view: spec.view, title: spec.title, prompt: spec.prompt, modelId: meta.modelId, credits: meta.credits, dna: v.dna };
-  await addContext([publicId], {
+  const ctx: Ctx = {
     ...sceneToContext(scene),
     origin: meta.origin,
     qa_status: v.qa.status,
     qa_matched: v.qa.matched.join(","),
     qa_tokens: String(v.tokens),
-  });
+  };
+  await addContext([publicId], ctx);
   await addTags([publicId], [v.qa.status === "approved" ? SCENE_TAG : "s2s-scene-rejected"]);
+  memoPlate(publicId, ctx);
   return scene;
 }
 

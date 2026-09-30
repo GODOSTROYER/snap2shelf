@@ -1,7 +1,15 @@
 import "server-only";
 import { v2 as cloudinary, type ResourceApiResponse, type UploadApiOptions, type UploadApiResponse } from "cloudinary";
 import { getMainAccount } from "../cloudinary/accounts";
+import { adminCall } from "../cloudinary/admin";
+import { cldSafe } from "../cloudinary/safe";
 import { cldHttpCode } from "./http";
+
+/**
+ * Every Cloudinary SDK call on main goes through here (or lib/cloudinary/*),
+ * wrapped in cldSafe() / adminCall(): rejections are re-thrown sanitised
+ * (no request_options / auth), Admin API calls go through the rate-limit breaker.
+ */
 
 /** Node SDK auth options for the MAIN environment (passed per call; no global config). */
 export function mainAuth() {
@@ -40,6 +48,7 @@ type ResourceLike = {
   secure_url?: string;
   tags?: string[];
   context?: { custom?: Ctx } | Ctx;
+  created_at?: string;
 };
 
 export function toAssetInfo(r: ResourceLike): AssetInfo {
@@ -58,10 +67,14 @@ export function toAssetInfo(r: ResourceLike): AssetInfo {
   };
 }
 
-/** Admin API resource lookup on main; null when it doesn't exist. */
+/**
+ * Admin API resource lookup on main (with context); null when it doesn't exist.
+ * Counts against the 500/hour Admin limit and goes through the breaker. Live
+ * routes use assetInfo() and product facts instead; this is for rare fallbacks.
+ */
 export async function getResource(publicId: string): Promise<AssetInfo | null> {
   try {
-    const r = (await cloudinary.api.resource(publicId, { ...mainAuth(), context: true, tags: true })) as unknown as ResourceLike;
+    const r = (await adminCall("resource", () => cloudinary.api.resource(publicId, { ...mainAuth(), context: true, tags: true }))) as unknown as ResourceLike;
     return toAssetInfo(r);
   } catch (err) {
     if (cldHttpCode(err) === 404) return null;
@@ -69,29 +82,82 @@ export async function getResource(publicId: string): Promise<AssetInfo | null> {
   }
 }
 
-/** All assets under a folder prefix (with context), up to 100. One Admin API call. */
+/** All assets under a folder prefix (with context), up to 100. One Admin API call (breaker-guarded). */
 export async function listByPrefix(prefix: string): Promise<AssetInfo[]> {
-  const res = (await cloudinary.api.resources({
-    ...mainAuth(),
-    type: "upload",
-    resource_type: "image",
-    prefix,
-    context: true,
-    tags: true,
-    max_results: 100,
-  })) as ResourceApiResponse;
+  const res = (await adminCall("resources", () =>
+    cloudinary.api.resources({
+      ...mainAuth(),
+      type: "upload",
+      resource_type: "image",
+      prefix,
+      context: true,
+      tags: true,
+      max_results: 100,
+    }),
+  )) as ResourceApiResponse;
   return (res.resources as unknown as ResourceLike[]).map(toAssetInfo);
+}
+
+/** Asset facts from an Upload API call: everything in AssetInfo except context, plus created_at. */
+export type ExplicitInfo = Omit<AssetInfo, "context"> & { createdAt: string };
+
+/**
+ * Existence + version / dims / bytes / tags of an asset via `uploader.explicit`
+ * (Upload API: not counted against the Admin API limit, and verified to keep
+ * working during an Admin 420). No eager transformations, so no derivation and
+ * no transformation count. Returns null on 404. Context is NOT returned.
+ */
+export async function assetInfo(publicId: string, resourceType: "image" | "raw" = "image"): Promise<ExplicitInfo | null> {
+  try {
+    const r = (await cldSafe("explicit", () =>
+      cloudinary.uploader.explicit(publicId, { ...mainAuth(), type: "upload", resource_type: resourceType }),
+    )) as unknown as ResourceLike;
+    const info = toAssetInfo(r);
+    return {
+      publicId: info.publicId,
+      assetId: info.assetId,
+      version: info.version,
+      width: info.width,
+      height: info.height,
+      bytes: info.bytes,
+      format: info.format,
+      secureUrl: info.secureUrl,
+      tags: info.tags,
+      createdAt: r.created_at ?? "",
+    };
+  } catch (err) {
+    if (cldHttpCode(err) === 404) return null;
+    throw err;
+  }
 }
 
 /** Upload to main (by URL or data URI). Upload API calls don't count against the Admin API rate limit. */
 export async function uploadToMain(file: string, options: UploadApiOptions & { public_id: string }): Promise<AssetInfo> {
-  const r: UploadApiResponse = await cloudinary.uploader.upload(file, {
-    resource_type: "image",
-    unique_filename: false,
-    ...options,
-    ...mainAuth(),
-  });
+  const r: UploadApiResponse = await cldSafe("upload", () =>
+    cloudinary.uploader.upload(file, {
+      resource_type: "image",
+      unique_filename: false,
+      ...options,
+      ...mainAuth(),
+    }),
+  );
   return toAssetInfo(r as unknown as ResourceLike);
+}
+
+/** Store a small JSON document on main as a raw asset (Upload API; raw files are not image transformations). */
+export async function uploadRawJson(publicId: string, value: unknown): Promise<{ version: number; bytes: number }> {
+  const data = `data:application/json;base64,${Buffer.from(JSON.stringify(value)).toString("base64")}`;
+  const r = (await cldSafe("upload-raw", () =>
+    cloudinary.uploader.upload(data, {
+      resource_type: "raw",
+      type: "upload",
+      public_id: publicId,
+      overwrite: true,
+      unique_filename: false,
+      ...mainAuth(),
+    }),
+  )) as unknown as { version?: number; bytes?: number };
+  return { version: Number(r.version ?? 0), bytes: Number(r.bytes ?? 0) };
 }
 
 /**
@@ -108,15 +174,15 @@ const uploader = cloudinary.uploader as unknown as {
 export async function addContext(publicIds: string[], ctx: Ctx): Promise<void> {
   const clean: Ctx = {};
   for (const [k, v] of Object.entries(ctx)) clean[k] = String(v).replace(/[\r\n]+/g, " ").slice(0, 900);
-  await uploader.add_context(clean, publicIds, mainAuth());
+  await cldSafe("add_context", () => uploader.add_context(clean, publicIds, mainAuth()));
 }
 
 export async function addTags(publicIds: string[], tags: string[]): Promise<void> {
-  for (const t of tags) await uploader.add_tag(t, publicIds, mainAuth());
+  for (const t of tags) await cldSafe("add_tag", () => uploader.add_tag(t, publicIds, mainAuth()));
 }
 
 export async function removeTag(publicIds: string[], tag: string): Promise<void> {
-  if (publicIds.length) await uploader.remove_tag(tag, publicIds, mainAuth());
+  if (publicIds.length) await cldSafe("remove_tag", () => uploader.remove_tag(tag, publicIds, mainAuth()));
 }
 
 export interface ProbeResult {

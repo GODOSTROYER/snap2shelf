@@ -21,4 +21,4 @@ export const POST = routeWithParams<{ sku: string }>("retouch", async (_req, ses
     return { status: 202, body, session: charged, headers: { "Retry-After": String(Math.ceil((body.retryAfterMs ?? 2000) / 1000)) } };
   }
   return { body: out.response satisfies RetouchResponse, session: charged };
-});
+}, { retriable: true });

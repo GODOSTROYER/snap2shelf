@@ -27,7 +27,7 @@ import {
   type Placement,
   type Sku,
 } from "../types";
-import { addContext } from "./cld";
+import { updateProduct } from "./facts";
 import { analysisSourceUrl, requireRaw, understandingFromContext } from "./products";
 
 /**
@@ -478,10 +478,16 @@ export async function runBrief(
     cached: false,
   };
   const prevTokens = Number(raw.context.t_brief) || 0;
-  await addContext([raw.publicId], {
-    ...briefCachePatch(raw.context, hash, { kit: merged.kit, festival: rules.festival?.slug, scenePrompt: merged.scenePrompt, sources: merged.sources }),
-    t_brief: String(prevTokens + tokens),
-    ms_brief: String(Date.now() - t0),
-  });
+  await updateProduct(
+    sku,
+    {
+      ctx: {
+        ...briefCachePatch(raw.context, hash, { kit: merged.kit, festival: rules.festival?.slug, scenePrompt: merged.scenePrompt, sources: merged.sources }),
+        t_brief: String(prevTokens + tokens),
+        ms_brief: String(Date.now() - t0),
+      },
+    },
+    { critical: false },
+  );
   return { response, spent: true };
 }
