@@ -12,7 +12,7 @@ Work top to bottom. Nothing in this file is secret, and nothing secret may be ad
 | Repository | **Public:** https://github.com/GODOSTROYER/snap2shelf, MIT `LICENSE` at the root |
 | README | **Final pass done:** demo GIF at the top, a `## How it's built` section (anchor `#how-its-built`) with the architecture diagram and the key Cloudinary techniques, every number checked against `lib/claims.ts`, `SPIKES.md`, `data/showcase.json` and the code. One open slot: the video link. |
 | Demo GIF and social clip | **Rendered** from the live site: `docs/media/demo.gif` (800 px, 12 fps, loops, under 6 MB), `docs/media/demo-social.mp4` (1280×720 H.264, silent, about 20 s), `docs/media/poster.png`. Re-render after the final deploy: `npm run media:gif`. |
-| Demo video | **Pending, due Sat 3 Oct.** Script and shot list: `docs/VIDEO_SCRIPT.md`. |
+| Demo video | **Picture-locked and rendered (3:08, 1080p), voice-over pending.** Outside the repo in `Z:\Projects\Cloudinaryideo\`: `snap2shelf-walkthrough-picture.mp4` (for your voice-over), `snap2shelf-walkthrough-captioned.mp4` (works as-is, no voice needed), `VO_CUE_SHEET.md` (timecode → line to read) and `snap2shelf-walkthrough-captions.srt`. Re-render with `npm run media:video` (`--render-only` re-cuts without recording). Script: `docs/VIDEO_SCRIPT.md`. |
 | Social posts | **Drafted, not posted:** `docs/SOCIAL_POSTS.md` (attach the MP4). |
 | Cloudinary survey | **Drafted, not submitted:** `docs/SURVEY_ANSWERS.md`. |
 | create-cloudinary-next bug reports | **Drafted, not filed:** `docs/UPSTREAM_ISSUES.md`. |
@@ -57,7 +57,7 @@ Work top to bottom. Nothing in this file is secret, and nothing secret may be ad
 
 ### Quota and credit check (the morning of submission, and again before judging)
 - [ ] Open `https://snap2shelf.vercel.app/api/usage` and read it:
-  - `livePipeline: true`. When main's transformation credits reach `floorCredits` (21 of 25), live kit building pauses and the site shows the saved samples. On 30 Sep at about 14:00 IST it read `usedCredits: 18.52`. A live kit derives roughly 300 transformations, about 0.3 credits, so plan the remaining live runs (rehearsals, the video, judges) against that margin.
+  - `livePipeline: true`. When main's transformation credits reach `floorCredits` (24 of 25 with the pool offload on in production, 21 without), live kit building pauses and the site shows the saved samples. On 30 Sep at about 14:00 IST it read `usedCredits: 18.52`. A live kit derives roughly 300 transformations, about 0.3 credits, so plan the remaining live runs (rehearsals, the video, judges) against that margin.
   - `liveGeneration: true` and `generation.usable` comfortably above `LIVE_GEN_MIN` (12) plus what judges will spend (up to 4 per unlocked session).
   - `stale: false`. If it is `true`, the Admin API is rate limited right now; wait for the next hour and re-check.
 - [ ] Run `node scripts/spikes/00-usage.mjs` for the per-environment numbers. **It prints environment names, so don't run it on a screen recording or screen share.**
