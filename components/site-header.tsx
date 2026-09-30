@@ -40,7 +40,14 @@ export function SiteHeader({ current, children }: { current: Section; children?:
         Skip to content
       </a>
       <header className="relative z-20 mx-auto flex h-16 w-full max-w-[90rem] items-center justify-between gap-3 px-4 sm:px-8">
-        <Link href="/" aria-label="Snap2Shelf home" aria-current={current === "home" ? "page" : undefined} className="inline-flex min-h-11 items-center rounded-lg">
+        {/* on the home page this link is the page itself: prefetching it would re-download the whole landing payload during load */}
+        <Link
+          href="/"
+          prefetch={current === "home" ? false : undefined}
+          aria-label="Snap2Shelf home"
+          aria-current={current === "home" ? "page" : undefined}
+          className="inline-flex min-h-11 items-center rounded-lg"
+        >
           <Wordmark />
         </Link>
         <nav aria-label="Main" className="flex items-center gap-0.5 sm:gap-2">

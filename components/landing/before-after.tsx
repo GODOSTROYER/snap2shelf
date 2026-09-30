@@ -104,7 +104,9 @@ export function BeforeAfter({
         alt={before.alt}
         width={width}
         height={height}
-        fetchPriority="auto"
+        // after the hero: both come from one CDN connection, and the hero is the LCP
+        // image (the blurred placeholder holds this half until it lands)
+        fetchPriority="low"
         decoding="async"
         onLoad={onImg}
         style={before.placeholder ? { backgroundImage: `url("${before.placeholder}")` } : undefined}
