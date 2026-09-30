@@ -39,7 +39,7 @@ type Section = "home" | "studio" | "kit" | "capture" | "admin";
 
 const links: { href: string; label: string; section: Section }[] = [
   { href: "/studio", label: "Studio", section: "studio" },
-  // a finished kit with a ZIP (the landing's sneaker kit has none)
+  // the showcase kit (lib/claims.ts SHOWCASE_KIT_SKU): a finished kit with a ZIP
   { href: `/kit/${SHOWCASE_KIT_SKU}`, label: "Sample kit", section: "kit" },
 ];
 

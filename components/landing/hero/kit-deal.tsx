@@ -24,7 +24,6 @@ export function KitDeal({ children, className }: { children: React.ReactNode; cl
       el.dataset.deal = "off";
       return;
     }
-    el.dataset.deal = "armed";
 
     const hero = () => document.querySelector<HTMLElement>("[data-hero-compare]");
     let introDone = !hero() || hero()!.dataset.intro === "done";
@@ -47,6 +46,8 @@ export function KitDeal({ children, className }: { children: React.ReactNode; cl
     window.addEventListener(HERO_INTRO_DONE, onIntro);
     const io = new IntersectionObserver(
       ([e]) => {
+        // switch from the CSS pre-hydration hold to ours here, after layout: no forced reflow
+        if (el.dataset.deal === "auto") el.dataset.deal = "armed";
         inView = e.intersectionRatio >= 0.5;
         go();
       },
