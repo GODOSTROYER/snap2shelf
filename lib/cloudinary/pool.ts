@@ -23,7 +23,11 @@ import { basicAuth, getAccounts, type CloudinaryAccount } from "./accounts";
  * benches the account on that instance.
  */
 
-export type PooledCapability = "image_generation" | "ai_vision";
+/**
+ * Add-on quotas the pool balances. `object_detection` is the quota type that the
+ * captioning endpoint reports (AI Content Analysis, 500 detections/month on Free).
+ */
+export type PooledCapability = "image_generation" | "ai_vision" | "object_detection";
 
 export interface QuotaSnapshot {
   limit: number | null;
@@ -36,6 +40,7 @@ export interface QuotaSnapshot {
 export const QUOTA_FLOOR: Record<PooledCapability, number> = {
   image_generation: 2,
   ai_vision: 2_000,
+  object_detection: 5,
 };
 
 const USAGE_TTL_MS = 10 * 60_000;
@@ -112,7 +117,7 @@ async function fetchUsage(account: CloudinaryAccount): Promise<void> {
   });
   if (!res.ok) return; // keep whatever we knew; a failing usage call must not block generation
   const body = (await res.json()) as Record<string, { usage?: number; limit?: number } | unknown>;
-  for (const cap of ["image_generation", "ai_vision"] as const) {
+  for (const cap of ["image_generation", "ai_vision", "object_detection"] as const) {
     const entry = body[cap] as { usage?: number; limit?: number } | undefined;
     if (!entry || typeof entry.limit !== "number") continue;
     const used = typeof entry.usage === "number" ? entry.usage : 0;

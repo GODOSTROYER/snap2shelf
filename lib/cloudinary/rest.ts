@@ -53,6 +53,7 @@ export function extractQuotas(body: unknown): AddonQuota[] {
 const CAPABILITY_BY_TYPE: Record<string, PooledCapability> = {
   image_generation: "image_generation",
   ai_vision: "ai_vision",
+  object_detection: "object_detection",
 };
 
 /**

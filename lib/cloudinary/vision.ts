@@ -85,3 +85,28 @@ export function parseJsonAnswer<T>(answer: string, schema: z.ZodType<T>): T | nu
   }
   return null;
 }
+
+/**
+ * AI Content Analysis captioning (checked live 2026-09-29, SPIKES.md §9):
+ *   POST /v2/analysis/{cloud}/analyze/captioning  { source }
+ * Billed against the `object_detection` quota (500 detections/month on Free),
+ * which is how the response's limits block reports it.
+ */
+const captionSchema = z.object({
+  data: z.object({
+    analysis: z
+      .object({
+        data: z.object({ caption: z.string() }).loose().optional(),
+        caption: z.string().optional(),
+      })
+      .loose(),
+  }),
+});
+
+const captionQuota = (quotas: AddonQuota[]) => quotas.find((q) => q.type === "object_detection") ?? null;
+
+export async function captioning(account: CloudinaryAccount, source: VisionSource): Promise<{ caption: string; quota: AddonQuota | null }> {
+  const { body, quotas } = await cldRequest<unknown>(account, "/analysis/{cloud}/analyze/captioning", { body: { source } });
+  const a = captionSchema.parse(body).data.analysis;
+  return { caption: (a.data?.caption ?? a.caption ?? "").trim(), quota: captionQuota(quotas) };
+}
