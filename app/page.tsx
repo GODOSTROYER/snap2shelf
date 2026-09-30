@@ -163,7 +163,7 @@ export default async function Home() {
               </Link>
               <Link href={DEMO_SHELF.path} className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-paper underline decoration-marigold/60 underline-offset-4 hover:decoration-marigold">
                 <Store aria-hidden className="size-4 text-marigold" />
-                See a shop built from these kits
+                See a shop built from the sample products
               </Link>
             </div>
           </div>

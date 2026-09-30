@@ -24,8 +24,8 @@ export function XrayNote({ count, ogUrl, ogLayers, heroTransformation }: XrayNot
       </summary>
       <ol className="grid gap-4 px-4 pb-5 pt-1 text-[13px] leading-relaxed text-[#a89f92] sm:grid-cols-2 sm:text-sm">
         <li>
-          <strong className="block font-semibold text-[#f4efe7]">Real product, AI-built stage</strong>
-          Each photo is the seller&apos;s own product, cut out with <code className={code}>e_background_removal</code> and layered onto one
+          <strong className="block font-semibold text-[#f4efe7]">Photo pixels kept, AI-built stage</strong>
+          Each product is cut out of its own photo with <code className={code}>e_background_removal</code> and layered onto one
           AI-generated scene in a single transformation URL. The product pixels are never redrawn.
         </li>
         <li>

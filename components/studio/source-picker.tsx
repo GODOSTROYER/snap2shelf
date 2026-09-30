@@ -128,7 +128,7 @@ export function SamplePicker({ onPick, compact, className }: { onPick: (s: Sampl
             <Sparkles className="size-5 text-marigold" aria-hidden />
             No photo handy? Try a sample
           </p>
-          <p className="mt-1 text-sm text-dim">Each one replays a finished live run step by step, in about 10 to 15 seconds, with no AI quota used.</p>
+          <p className="mt-1 text-sm text-dim">Each one replays a finished live run step by step, in about 10 to 15 seconds, with no AI quota used. The sample photos are AI-generated test images.</p>
         </>
       )}
       <ul

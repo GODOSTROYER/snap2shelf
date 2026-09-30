@@ -123,7 +123,7 @@ export default async function KitPage({ params }: Props) {
               <li>
                 <Link href={DEMO_SHELF.path} className={`${textLink} inline-flex items-center gap-1.5`}>
                   <Store aria-hidden className="size-4 text-marigold" />
-                  See a shop built from the sample kits
+                  See a shop built from the sample products
                   <ArrowUpRight aria-hidden className="size-4" />
                 </Link>
               </li>

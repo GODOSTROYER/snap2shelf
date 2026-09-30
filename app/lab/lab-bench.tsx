@@ -73,7 +73,7 @@ export function LabBench() {
 
         <div className="mt-10 flex flex-wrap items-start gap-x-10 gap-y-14">
           <Bench title="Touch-up" where="After analyze, before the cutout. The cutout starts from the retouched photo." width="lg:w-[25rem]">
-            <RetouchCard key={sku} sku={sku} autoStart={product.retouched} onDone={(f) => setFixes(f)} />
+            <RetouchCard key={sku} sku={sku} autoStart={false} onDone={(f) => setFixes(f)} />
             {!product.retouched ? <p className="mt-3 text-[0.8rem] text-faint">This product hasn&apos;t been checked yet, so the first check spends a few AI Vision tokens.</p> : null}
             {fixes ? <Readout rows={[["onDone(fixes)", fixes.length ? `[${fixes.map((f) => `"${f}"`).join(", ")}]` : "[] (nothing to fix)"]]} /> : null}
           </Bench>

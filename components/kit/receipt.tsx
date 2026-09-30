@@ -14,7 +14,7 @@ export function Receipt({ cost, mode, assetCount, replay, className }: { cost: C
     {
       label: "Generation credits used",
       value: String(cost.generationCredits),
-      note: cost.generationCredits === 0 && mode === "exact" ? "Exact mode composites your real photo, no generation" : undefined,
+      note: cost.generationCredits === 0 && mode === "exact" ? "Exact mode composites the photo itself, no generation" : undefined,
     },
     { label: "Saved by reusing a scene", value: `${cost.creditsSavedByReuse} credits`, note: "A scene is generated once, then shared" },
     { label: "Photoshoot you skipped", value: `≈ ${inr(PHOTOSHOOT_INR_ESTIMATE)}`, note: PHOTOSHOOT_NOTE, strong: true },
