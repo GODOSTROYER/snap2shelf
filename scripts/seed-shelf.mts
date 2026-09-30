@@ -26,7 +26,7 @@ const { values } = parseArgs({
 });
 
 const { analyzeProduct, ensureCutout, getCutout, rawId } = await import("../lib/server/products.ts");
-const { getResource } = await import("../lib/server/cld.ts");
+const { getResource } = await import("../lib/server/cld.ts"); // Admin API: only for the sample uploads and --preview
 const { HttpError } = await import("../lib/server/http.ts");
 const { stageCollection, publishShelf, getShelf, shelfOgImage } = await import("../lib/shelf/server.ts");
 
@@ -92,7 +92,9 @@ console.log(`collection on ${col.scene.publicId} in ${Date.now() - t0} ms: ${col
 console.log(`  consistency ${JSON.stringify(col.consistency)}`);
 for (const it of col.items) console.log(`  ${it.sku} ${it.name} → ${it.hero.publicId} geo=${JSON.stringify(it.geo)}`);
 
-const shelf = await publishShelf({ shop: values.shop!, title: values.title!, tagline: values.tagline, skus });
+// hand the just-saved hero ids over explicitly: CDN listings can lag a minute behind
+const heroes = Object.fromEntries(col.items.map((it) => [it.sku, it.hero.publicId!]));
+const shelf = await publishShelf({ shop: values.shop!, title: values.title!, tagline: values.tagline, skus, heroes });
 console.log(`published ${shelf.url} items=${shelf.items.length} skipped=${JSON.stringify(shelf.skipped)} removed=${shelf.removed.length}`);
 
 const read = await getShelf(values.shop!);

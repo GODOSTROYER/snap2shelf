@@ -14,6 +14,7 @@ const schema = z.object({
   title: text(60).min(1),
   tagline: text(90).optional(),
   skus: z.array(skuSchema).min(1).max(12),
+  heroes: z.record(skuSchema, z.string().regex(/^snap2shelf\/products\/[a-z0-9]{8}\/hero-[a-z0-9-]{1,80}$/)).optional(),
 });
 
 /** POST /api/shelf → publish (or update) /shelf/<shop>: tags each product's current hero with s2s-shop-<shop>. */
@@ -21,6 +22,9 @@ export const POST = route("shelf", async (req, session) => {
   const body = await readJson(req, schema);
   const shop = checkShop(body.shop);
   if (!shop.ok) throw badRequest(shop.reason);
+  for (const [sku, id] of Object.entries(body.heroes ?? {})) {
+    if (!id.startsWith(`snap2shelf/products/${sku}/hero-`)) throw badRequest("Each hero must belong to its product.");
+  }
   const charged = chargeOpenOp(session);
   const out = await publishShelf({ ...body, shop: shop.shop });
   revalidatePath(shelfPath(shop.shop));

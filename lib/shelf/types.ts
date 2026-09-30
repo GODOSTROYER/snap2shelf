@@ -5,7 +5,7 @@
  *   a shelf is a TAG on product heroes:  s2s-shop-<shop>
  *   shelf facts live in each hero's context:
  *     st_<key>  shop title          so_<key>  position on the shelf     sl_<key>  tagline
- *     name / caption / sku          product facts copied from the raw asset at publish time
+ *     name / caption / facts / sku  product facts copied from the raw asset at publish time
  *     geo                           "px,py,pw,ph" product box on the 1080x1350 plate (collection mode)
  *   <key> is the shop slug with "-" → "_" (context keys stay plain identifiers).
  */
@@ -26,7 +26,9 @@ export interface ShelfItem {
   width: number;
   height: number;
   name: string;
-  caption: string;
+  caption: string; // AI caption of the ORIGINAL photo (describes the phone shot, not the staged hero)
+  facts?: string; // "Silver · stainless steel", from AI Vision product understanding
+  scene?: string; // scene slug the hero was staged on
   order: number;
   geo?: PlateBox;
 }
@@ -44,6 +46,8 @@ export interface ShelfRequest {
   title: string; // 1..60 chars
   tagline?: string; // 0..90 chars
   skus: Sku[]; // 1..12, shelf order
+  /** Optional sku → hero public id (e.g. straight from a CollectionResponse), so a just-saved hero is used even while CDN listings catch up. */
+  heroes?: Record<Sku, string>;
 }
 export interface ShelfResponse {
   shop: string;

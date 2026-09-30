@@ -33,7 +33,7 @@ export const POST = routeWithParams<{ sku: string }>("readiness-fix", async (req
   assertSku(sku);
   const body = await readJson(req, fixSchema);
   const charged = chargeOpenOp(session);
-  const applied = await applyReadinessFix(sku, body.fixes);
-  const out = await measureReadiness(sku, { vision: true });
+  const { asset, ...applied } = await applyReadinessFix(sku, body.fixes);
+  const out = await measureReadiness(sku, { vision: true, marketplace: asset });
   return { body: { report: out.report, tokens: out.tokens, applied } satisfies ReadinessResponse, session: charged };
 });

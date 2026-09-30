@@ -4,10 +4,11 @@ import { sceneFromListResource, SCENE_TAG } from "../scenes";
 import { heroPublicId } from "../server/pack";
 import { addContext, addTags, getResource, listByPrefix, mainAuth, mainCloud, removeTag, toAssetInfo, uploadToMain, type AssetInfo } from "../server/cld";
 import { pinJpeg } from "../server/guard";
-import { badRequest, notFound } from "../server/http";
+import { badRequest, HttpError, notFound } from "../server/http";
 import { cutoutRecord, skuTag, understandingFromContext } from "../server/products";
 import { compositeUrl, defaultControls, geometry, quantise, type CompositeInput, type Geometry } from "../transform/composite";
 import { PLATE, productId, type BuiltUrl, type CompositeControls, type KitAsset, type Placement, type Scene, type SceneDNA, type Sku } from "../types";
+import { adminSafe, listByTag } from "./cloud";
 import { heroUrl, lqipUrl } from "./images";
 import { ogCollageUrl } from "./og";
 import { checkShop, shelfPath, shopContextKeys, shopTag } from "./slug";
@@ -32,10 +33,30 @@ interface ProductAssets {
   all: AssetInfo[];
 }
 
-/** Everything under snap2shelf/products/<sku>/ in ONE Admin API call. */
-export async function productAssets(sku: Sku): Promise<ProductAssets> {
-  const all = await listByPrefix(productId(sku, ""));
+const isRateLimited = (err: unknown) => err instanceof HttpError && err.status === 503;
+
+/**
+ * Everything under snap2shelf/products/<sku>/ in one call.
+ *   "admin" (writes: collection, publish): fresh Admin API listing; falls back to the CDN list when rate-limited.
+ *   "list"  (reads: readiness): CDN list of tag s2s-sku-<sku> (<=60 s old, no Admin quota); Admin API when it's missing.
+ */
+export async function productAssets(sku: Sku, source: "admin" | "list" = "admin"): Promise<ProductAssets> {
   const leaf = (a: AssetInfo) => a.publicId.slice(productId(sku, "").length);
+  const fromList = async () => (await listByTag(skuTag(sku), 0).catch(() => null))?.filter((a) => a.publicId.startsWith(productId(sku, ""))) ?? null;
+  const fromAdmin = () => adminSafe(() => listByPrefix(productId(sku, "")));
+  let all: AssetInfo[] | null = null;
+  if (source === "list") {
+    all = await fromList();
+    if (!all?.some((a) => leaf(a) === "raw")) all = await fromAdmin();
+  } else {
+    try {
+      all = await fromAdmin();
+    } catch (err) {
+      if (!isRateLimited(err)) throw err;
+      all = await fromList();
+      if (!all) throw err;
+    }
+  }
   return {
     sku,
     all,
@@ -114,7 +135,9 @@ export function collectionScale(
 
 async function loadScene(scenePublicId: string): Promise<Scene> {
   if (!SCENE_ID_RE.test(scenePublicId)) throw badRequest("Pick a scene from the library.");
-  const a = await getResource(scenePublicId);
+  // the scene library is on the CDN list (same source as GET /api/scenes); Admin API only if it's missing there
+  const listed = (await listByTag(SCENE_TAG).catch(() => null))?.find((s) => s.publicId === scenePublicId);
+  const a = listed ? { ...listed, tags: [SCENE_TAG] } : await adminSafe(() => getResource(scenePublicId));
   if (!a || !a.tags.includes(SCENE_TAG)) throw notFound("That scene isn't in the library.");
   const scene = sceneFromListResource({ public_id: a.publicId, context: { custom: a.context } } as ListResource);
   if (!scene) throw notFound("That scene has no Scene DNA yet.");
@@ -135,7 +158,8 @@ export async function stageCollection(req: CollectionRequest, kit: CompositeKit 
 
   const results = await Promise.allSettled(
     skus.map(async (sku): Promise<CollectionItem> => {
-      const p = await productAssets(sku);
+      let p = await productAssets(sku, "list");
+      if (!p.cutout) p = await productAssets(sku, "admin"); // a cutout made seconds ago may not be listed yet
       if (!p.raw) throw notFound("No upload found for this product.");
       if (!p.cutout) throw notFound("Cut out this product first.");
       const cutout = cutoutRecord(p.cutout);
@@ -161,7 +185,7 @@ export async function stageCollection(req: CollectionRequest, kit: CompositeKit 
         id: "hero",
         format: "hero",
         label: u?.name ?? "Hero",
-        url: heroUrl(hero, PLATE.width, saved.version, cloud),
+        url: heroUrl(hero, PLATE.width, { version: saved.version, cloud }),
         width: PLATE.width,
         height: PLATE.height,
         frame: "feed-post",
@@ -199,16 +223,27 @@ export async function stageCollection(req: CollectionRequest, kit: CompositeKit 
 
 // ------------------------------------------------------------------ shelf
 
+/** "silver", "stainless steel" → "Silver · stainless steel" (drops a colour the material already says). */
+export function productFacts(color: string, material: string): string {
+  const c = color.trim().toLowerCase();
+  const m = material.trim().toLowerCase();
+  const parts = [c && !m.includes(c) ? c : "", m].filter(Boolean);
+  const s = parts.join(" · ");
+  return s ? s[0].toUpperCase() + s.slice(1) : "";
+}
+
 const clean = (s: string, max: number) => s.replace(/[\u0000-\u001f<>]/g, "").replace(/\s+/g, " ").trim().slice(0, max);
 
 async function heroesByTag(tag: string): Promise<AssetInfo[]> {
-  const res = (await cloudinary.api.resources_by_tag(tag, {
-    ...mainAuth(),
-    resource_type: "image",
-    context: true,
-    tags: true,
-    max_results: 100,
-  })) as ResourceApiResponse;
+  const res = (await adminSafe(() =>
+    cloudinary.api.resources_by_tag(tag, {
+      ...mainAuth(),
+      resource_type: "image",
+      context: true,
+      tags: true,
+      max_results: 100,
+    }),
+  )) as ResourceApiResponse;
   return (res.resources as unknown as Parameters<typeof toAssetInfo>[0][]).map(toAssetInfo);
 }
 
@@ -222,7 +257,13 @@ export async function publishShelf(req: ShelfRequest): Promise<ShelfResponse> {
   const skus = [...new Set(req.skus)];
   if (skus.length < 1 || skus.length > 12) throw badRequest("A shelf holds 1 to 12 products.");
 
-  const [products, members] = await Promise.all([Promise.all(skus.map(productAssets)), heroesByTag(shopTag(shop)).catch(() => [] as AssetInfo[])]);
+  // Reads come from the CDN lists (no Admin API quota). Tags and context are written with the Upload API.
+  const [products, members] = await Promise.all([
+    Promise.all(skus.map((s) => productAssets(s, "list"))),
+    listByTag(shopTag(shop), 0)
+      .then((l) => l ?? [])
+      .catch(() => heroesByTag(shopTag(shop))),
+  ]);
 
   const keys = shopContextKeys(shop);
   const items: ShelfResponse["items"] = [];
@@ -234,7 +275,10 @@ export async function publishShelf(req: ShelfRequest): Promise<ShelfResponse> {
       skipped.push({ sku: p.sku, reason: "No upload found for this product." });
       continue;
     }
-    const hero = currentHero(p);
+    const explicit = req.heroes?.[p.sku];
+    const hero: AssetInfo | null = explicit
+      ? (p.heroes.find((h) => h.publicId === explicit) ?? { ...(currentHero(p) ?? p.raw), publicId: explicit, context: {} })
+      : currentHero(p);
     if (!hero) {
       skipped.push({ sku: p.sku, reason: "Stage and save a hero first." });
       continue;
@@ -246,6 +290,7 @@ export async function publishShelf(req: ShelfRequest): Promise<ShelfResponse> {
         sku: p.sku,
         name: u?.name ?? hero.context.name ?? "Product",
         caption: p.raw.context.caption ?? "",
+        facts: u ? productFacts(u.primary_color, u.material) : "",
         ...(geo ? { geo } : {}),
         [keys.title]: title,
         [keys.order]: String(order++),
@@ -280,6 +325,8 @@ function shelfFromAssets(shop: string, assets: AssetInfo[]): Shelf | null {
       height: a.height || PLATE.height,
       name: a.context.name || "Product",
       caption: a.context.caption || "",
+      facts: a.context.facts || undefined,
+      scene: a.context.scene || undefined,
       order: Number(a.context[keys.order] ?? 99),
       geo: boxFromString(a.context.geo),
     }))
@@ -289,32 +336,27 @@ function shelfFromAssets(shop: string, assets: AssetInfo[]): Shelf | null {
   return { shop, title: first.context[keys.title], tagline: first.context[keys.tagline] || undefined, items };
 }
 
-/** Fallback when the Admin API is rate-limited: the public list JSON (CDN-cached ~60 s). */
-async function heroesFromListJson(shop: string): Promise<AssetInfo[]> {
-  const res = await fetch(`https://res.cloudinary.com/${mainCloud()}/image/list/${shopTag(shop)}.json`, { next: { revalidate: 60 } });
-  if (res.status === 404) return [];
-  if (!res.ok) throw new Error(`shelf list HTTP ${res.status}`);
-  const json = (await res.json()) as { resources?: { public_id: string; version?: number; width?: number; height?: number; format?: string; context?: { custom?: Record<string, string> } }[] };
-  return (json.resources ?? []).map((r) => toAssetInfo(r));
-}
-
-/** The shelf as the storefront renders it; null when nothing carries the tag. */
+/**
+ * The shelf as the storefront renders it; null when nothing carries the tag.
+ * Reads the CDN list (no Admin API quota, so visitors can never exhaust it);
+ * the Admin API is only a fallback when the list itself fails.
+ */
 export async function getShelf(shop: string): Promise<Shelf | null> {
   if (!checkShop(shop).ok) return null;
   let assets: AssetInfo[];
   try {
-    assets = await heroesByTag(shopTag(shop));
+    assets = (await listByTag(shopTag(shop))) ?? [];
   } catch (err) {
-    console.error(`[shelf] admin lookup failed, using list JSON: ${String((err as Error)?.message ?? err).slice(0, 120)}`);
-    assets = await heroesFromListJson(shop);
+    console.error(`[shelf] list JSON failed, using the Admin API: ${String((err as Error)?.message ?? err).slice(0, 120)}`);
+    assets = await heroesByTag(shopTag(shop));
   }
   return shelfFromAssets(shop, assets);
 }
 
 /** Tiny blurred JPEG as a data URI (immutable per version, so cache it hard). */
-export async function lqipDataUri(publicId: string, version?: number): Promise<string | undefined> {
+export async function lqipDataUri(publicId: string, version?: number, geo?: PlateBox): Promise<string | undefined> {
   try {
-    const res = await fetch(lqipUrl(publicId, version, mainCloud()), { next: { revalidate: 86_400 } });
+    const res = await fetch(lqipUrl(publicId, { version, geo, cloud: mainCloud() }), { next: { revalidate: 86_400 } });
     if (!res.ok) return undefined;
     const buf = Buffer.from(await res.arrayBuffer());
     return buf.length < 4096 ? `data:image/jpeg;base64,${buf.toString("base64")}` : undefined;
@@ -324,11 +366,15 @@ export async function lqipDataUri(publicId: string, version?: number): Promise<s
 }
 
 export function shelfOgImage(shelf: Shelf): string {
+  return shelfOg(shelf).url;
+}
+
+export function shelfOg(shelf: Shelf) {
   return ogCollageUrl({
     title: shelf.title,
     tagline: shelf.tagline,
     heroes: shelf.items.slice(0, 4).map((i) => ({ publicId: i.heroPublicId, geo: i.geo })),
     count: shelf.items.length,
     cloud: mainCloud(),
-  }).url;
+  });
 }

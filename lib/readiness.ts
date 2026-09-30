@@ -361,6 +361,7 @@ export const STORY = { width: 1080, height: 1920, heroTop: 285, topBand: 250, bo
 
 /** Where the offer overlay (lib/transform/channels.ts) writes on the 1350 px hero: two lines, ~70–270 px from the edge. */
 export const OFFER_BAND = 280;
+const PLATE_H = 1350;
 
 export function checkSafeZone(box: ProductBoxLike | null, opts: { textZone?: SceneDNA["text_zone"]; hasOffer?: boolean } = {}): ReadinessCheck {
   if (!box) return check("safe-zone", "unknown", "Product position unknown (stage it in Snap2Shelf to measure).");
@@ -368,37 +369,37 @@ export function checkSafeZone(box: ProductBoxLike | null, opts: { textZone?: Sce
   const bottom = box.baseY ?? box.py + box.ph;
   const storyTop = STORY.heroTop + top;
   const storyBottom = STORY.heroTop + bottom;
-  const problems: string[] = [];
-  let fix: ReadinessFix | undefined;
+  const measured = `${storyTop}-${storyBottom}`;
 
-  if (storyTop < STORY.topBand) problems.push("its top sits under the story header");
-  if (storyBottom > STORY.height - STORY.bottomBand) problems.push("its base sits under the story reply bar");
-  if (box.px < STORY.side || box.px + box.pw > STORY.width - STORY.side) problems.push("it touches the side edges");
+  const story: string[] = [];
+  if (storyTop < STORY.topBand) story.push("its top sits under the story header");
+  if (storyBottom > STORY.height - STORY.bottomBand) story.push("its base sits under the reply bar");
+  if (box.px < STORY.side || box.px + box.pw > STORY.width - STORY.side) story.push("it touches the side edges");
 
   // channels.ts writes the offer at the bottom only for text_zone "bottom", otherwise at the top
   const zone = opts.textZone ?? "top";
-  if (opts.hasOffer) {
-    const offerBottom = zone === "bottom";
-    const offerTop = !offerBottom;
-    if (offerTop && top < OFFER_BAND) {
-      problems.push("the offer text would overlap it");
-      fix = { kind: "restage", label: `Move the product down ${OFFER_BAND - top} px`, controls: { offsetY: Math.ceil((OFFER_BAND - top) / 10) * 10 } };
-    } else if (offerBottom && bottom > 1350 - OFFER_BAND) {
-      problems.push("the offer text would overlap it");
-      fix = { kind: "repack", label: "Put the offer text at the top", textZone: "top" };
-    }
-  }
-  if (!problems.length) {
-    return check("safe-zone", "pass", "Clear of story header, reply bar and offer text.", { measured: `${storyTop}-${storyBottom}` });
-  }
-  if (!fix && storyBottom > STORY.height - STORY.bottomBand) {
+  const offerAtBottom = zone === "bottom";
+  const clearTop = top >= OFFER_BAND;
+  const clearBottom = bottom <= PLATE_H - OFFER_BAND;
+  const offerClash = Boolean(opts.hasOffer) && (offerAtBottom ? !clearBottom : !clearTop);
+
+  if (!story.length && !offerClash) return check("safe-zone", "pass", "Clear of the story header, reply bar and offer text.", { measured });
+
+  let fix: ReadinessFix | undefined;
+  if (offerClash) {
+    if (!offerAtBottom && clearBottom) fix = { kind: "repack", label: "Move the offer text to the bottom", textZone: "bottom" };
+    else if (offerAtBottom && clearTop) fix = { kind: "repack", label: "Move the offer text to the top", textZone: "top" };
+    else fix = { kind: "restage", label: "Make the product a little smaller", controls: { scale: 0.4 } };
+  } else if (storyBottom > STORY.height - STORY.bottomBand) {
     const up = storyBottom - (STORY.height - STORY.bottomBand);
     fix = { kind: "restage", label: `Move the product up ${up} px`, controls: { offsetY: -Math.ceil(up / 10) * 10 } };
-  }
-  if (!fix && storyTop < STORY.topBand) {
+  } else {
     fix = { kind: "restage", label: "Make the product a little smaller", controls: { scale: 0.4 } };
   }
-  return check("safe-zone", problems.length > 1 ? "fail" : "warn", `On a story, ${problems.join(" and ")}.`, { measured: `${storyTop}-${storyBottom}`, fix });
+  const parts = [offerClash ? "the offer text would overlap the product" : "", story.length ? `on a story, ${story.join(" and ")}` : ""].filter(Boolean);
+  const detail = parts.join("; ");
+  const n = story.length + (offerClash ? 1 : 0);
+  return check("safe-zone", n > 1 ? "fail" : "warn", detail[0].toUpperCase() + detail.slice(1) + ".", { measured, fix });
 }
 
 // ------------------------------------------------------------------ score

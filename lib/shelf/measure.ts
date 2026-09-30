@@ -25,7 +25,7 @@ import {
   type ReadinessCheck,
   type ReadinessReport,
 } from "../readiness";
-import { addContext, deliveryBase, deliveryUrl, mainCloud, probe, uploadToMain } from "../server/cld";
+import { addContext, deliveryUrl, mainCloud, probe, uploadToMain, type AssetInfo } from "../server/cld";
 import { notFound, pending } from "../server/http";
 import { packId } from "../server/pack";
 import { skuTag } from "../server/products";
@@ -71,27 +71,36 @@ const hash8 = (s: string) => createHash("sha256").update(s).digest("hex").slice(
 export interface MeasureOptions {
   /** Allow one AI Vision tagging call when there is no cached verdict for this image. Default true. */
   vision?: boolean;
+  /** Where to read the product's assets (see productAssets). Default "list": CDN, no Admin API quota. */
+  source?: "list" | "admin";
+  /** A marketplace asset just written (fix): used instead of a possibly stale listing. */
+  marketplace?: AssetInfo;
 }
+
+/** Verdicts seen by this server instance, so a stale CDN listing never triggers a second AI Vision call. */
+const visionMemo = new Map<string, string[]>();
 
 export interface MeasureOutcome {
   report: ReadinessReport;
   tokens: number;
   visionCalled: boolean;
+  product: { name: string; rawUrl: string };
 }
 
 export async function measureReadiness(sku: Sku, opts: MeasureOptions = {}): Promise<MeasureOutcome> {
-  const p = await productAssets(sku);
+  const p = await productAssets(sku, opts.source ?? "list");
   if (!p.raw) throw notFound("No upload found for this product yet.");
   const raw = p.raw;
   const cloud = mainCloud();
   const leaf = (id: string) => id.slice(`snap2shelf/products/${sku}/`.length);
-  const packed = p.all.find((a) => leaf(a.publicId) === "pack/marketplace");
+  const packed = opts.marketplace ?? p.all.find((a) => leaf(a.publicId) === "pack/marketplace");
   const hero = currentHero(p);
 
   // ---- which image is the marketplace main image?
   let mk: MarketplaceSource | null = null;
   if (packed) {
-    mk = { transformation: "", publicId: packed.publicId, width: packed.width, height: packed.height, materialised: true };
+    // versioned, so a re-materialised (fixed) image never shows a cached old copy
+    mk = { transformation: "", publicId: `v${packed.version}/${packed.publicId}`, width: packed.width, height: packed.height, materialised: true };
   } else if (p.cutout) {
     const recipe = channelAssets({
       heroPublicId: hero?.publicId ?? p.cutout.publicId,
@@ -140,7 +149,9 @@ export async function measureReadiness(sku: Sku, opts: MeasureOptions = {}): Pro
   if (mk) {
     const visionUrl = mkUrl("c_limit,w_1024,h_1024/f_jpg,q_80");
     const src = hash8(mk.materialised ? `${mk.publicId}@${packed?.version}` : visionUrl);
-    if (raw.context.rd_src === src && raw.context.rd_tags !== undefined) {
+    if (visionMemo.has(src)) {
+      matched = visionMemo.get(src)!;
+    } else if (raw.context.rd_src === src && raw.context.rd_tags !== undefined) {
       matched = raw.context.rd_tags ? raw.context.rd_tags.split(",") : [];
     } else if (opts.vision !== false) {
       try {
@@ -148,6 +159,7 @@ export async function measureReadiness(sku: Sku, opts: MeasureOptions = {}): Pro
         const { result } = await withPooledAccount("ai_vision", (a) => visionTagging(a, { uri: visionUrl }, [...TEXT_TAGS]));
         matched = result.matched;
         tokens = result.quota?.usedByRequest ?? 0;
+        visionMemo.set(src, matched);
         await addContext([raw.publicId], { rd_tags: matched.join(","), rd_src: src, rd_at: new Date().toISOString() });
       } catch (err) {
         console.error(`[readiness] vision failed: ${String((err as Error)?.message ?? err).slice(0, 160)}`);
@@ -197,7 +209,8 @@ export async function measureReadiness(sku: Sku, opts: MeasureOptions = {}): Pro
     ...(kitChecks.length ? { baseline: { score: bs, grade: grade(bs), checks: sortChecks(baselineChecks) } } : {}),
     measuredAt: new Date().toISOString(),
   };
-  return { report, tokens, visionCalled };
+  const product = { name: raw.context.u_name || "Product", rawUrl: deliveryUrl(raw.publicId, "c_limit,w_720,h_720/f_auto,q_auto") };
+  return { report, tokens, visionCalled, product };
 }
 
 /**
@@ -205,8 +218,8 @@ export async function measureReadiness(sku: Sku, opts: MeasureOptions = {}): Pro
  * an allow-listed recipe (never a client-supplied transformation). Keeps the pack's
  * `hero` context so GET /api/pack/:sku treats it as current.
  */
-export async function applyReadinessFix(sku: Sku, fixes: ApplicableFix[]): Promise<{ publicId: string; transformation: string }> {
-  const p = await productAssets(sku);
+export async function applyReadinessFix(sku: Sku, fixes: ApplicableFix[]): Promise<{ publicId: string; transformation: string; asset: AssetInfo }> {
+  const p = await productAssets(sku, "list");
   if (!p.raw) throw notFound("No upload found for this product yet.");
   if (!p.cutout) throw notFound("Cut out the product first.");
   const transformation = fixes.includes("sharpen") ? APPLICABLE_FIXES.sharpen : APPLICABLE_FIXES.repad;
@@ -220,8 +233,6 @@ export async function applyReadinessFix(sku: Sku, fixes: ApplicableFix[]): Promi
     tags: [...packTags(sku), skuTag(sku)],
     context: { hero: p.raw.context.hero ?? "", format: "marketplace", label: "Marketplace main 2000px", fix: [...new Set(fixes)].join(",") },
   });
-  return { publicId: up.publicId, transformation };
+  return { publicId: up.publicId, transformation, asset: up };
 }
 
-/** Where the original photo lives (for the demo route's before/after thumbnails). */
-export const rawPreviewUrl = (sku: Sku, width = 480) => `${deliveryBase()}/c_limit,w_${width}/f_auto,q_auto/snap2shelf/products/${sku}/raw`;
