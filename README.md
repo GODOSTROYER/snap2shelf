@@ -515,7 +515,7 @@ A live demo on a Free plan fails in boring ways: an hourly API limit, a monthly 
 
 | You want to | Do this | Needs |
 |---|---|---|
-| See the whole flow, including a QA catch | open the **[sample replay](https://snap2shelf.vercel.app/studio?sample=shmessy1)**, or press **Try a sample product (no signup)** on the home page | nothing (no API calls) |
+| See the whole flow, including a QA catch | open the **[sample replay](https://snap2shelf.vercel.app/studio?sample=shmessy1)** (the home page's **Try a sample product (no signup)** also starts a sample) | nothing (no API calls) |
 | Read how an image was made | press the code button (`</>`) under any kit image to open its X-ray | nothing |
 | See a finished kit with its Readiness Score and receipt | [/kit/shbottle](https://snap2shelf.vercel.app/kit/shbottle) | nothing |
 | See a storefront and its WhatsApp preview | [/shelf/demo-studio](https://snap2shelf.vercel.app/shelf/demo-studio), then **Share on WhatsApp** | nothing |
