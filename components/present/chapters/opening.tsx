@@ -61,11 +61,12 @@ export function ColdOpen({ d }: ChapterProps) {
         transition={{ delay: shot - 0.05, duration: 0.55, times: [0, 0.1, 1], ease: "easeOut" }}
       />
 
-      <div style={abs(120, 300, { width: 900 })}>
-        <Rise delay={1.2} y={26} as="h1" className="pz-display" style={{ fontSize: 176, margin: 0 }}>
+      {/* 164 px: "A whole shelf." is 871 px wide at wdth 92, so it holds one line clear of the photo (x 1070) */}
+      <div style={abs(120, 300, { width: 920 })}>
+        <Rise delay={1.2} y={26} as="h1" className="pz-display" style={{ fontSize: 164, margin: 0, whiteSpace: "nowrap" }}>
           One photo.
         </Rise>
-        <Rise delay={2.7} y={26} as="p" className="pz-display" style={{ fontSize: 176, margin: "6px 0 0", color: "var(--pz-faint)" }}>
+        <Rise delay={2.7} y={26} as="p" className="pz-display" style={{ fontSize: 164, margin: "6px 0 0", color: "var(--pz-faint)", whiteSpace: "nowrap" }}>
           A whole shelf.
         </Rise>
       </div>
