@@ -15,6 +15,7 @@
     "seed:scenes": "node --conditions=react-server --import tsx scripts/seed-scenes.mts",
     "media:gif": "python scripts/media/capture.py",
     "media:video": "python scripts/media/walkthrough.py",
+    "media:audio": "python scripts/media/voiceover.py",
     "test": "node --conditions=react-server --import tsx --test tests/*.mts"
   },
   "dependencies": {
