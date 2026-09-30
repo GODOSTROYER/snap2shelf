@@ -1,0 +1,168 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" role="img" aria-labelledby="title desc">
+  <title id="title">Snap2Shelf architecture</title>
+  <desc id="desc">Seller devices upload photos straight to Cloudinary with signatures from Next.js route handlers on Vercel. The route handlers call Cloudinary's Admin, Upload, Analyze and Image Generation APIs; AI calls go through a key pool that can also use two organiser-approved pool environments, whose results are copied into the main environment. Every image, video and zip is delivered back to browsers as a Cloudinary URL.</desc>
+  <defs>
+    <marker id="ai" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.4" markerHeight="5.4" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#f4efe7"/>
+    </marker>
+    <marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.4" markerHeight="5.4" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#f5a524"/>
+    </marker>
+  </defs>
+
+  <!-- canvas -->
+  <rect x="0" y="0" width="1600" height="1000" rx="28" fill="#0e0c0a"/>
+
+  <g font-family="Inter, 'Segoe UI', 'Helvetica Neue', Arial, 'DejaVu Sans', sans-serif">
+    <!-- title -->
+    <text x="60" y="72" font-size="34" font-weight="700" fill="#f4efe7">Snap2Shelf · architecture</text>
+    <text x="60" y="106" font-size="20" fill="#b4aa9c">Cloudinary is the whole backend: assets, tags and context. No database.</text>
+
+    <!-- legend -->
+    <line x1="1188" y1="64" x2="1240" y2="64" stroke="#f4efe7" stroke-width="3" marker-end="url(#ai)"/>
+    <text x="1254" y="70" font-size="17" fill="#b4aa9c">request or delivery</text>
+    <line x1="1188" y1="96" x2="1240" y2="96" stroke="#f5a524" stroke-width="3" stroke-dasharray="9 7" marker-end="url(#ag)"/>
+    <text x="1254" y="102" font-size="17" fill="#b4aa9c">AI call through the key pool</text>
+
+    <!-- ============ column A: clients ============ -->
+    <rect x="60" y="190" width="280" height="370" rx="18" fill="#141110" stroke="#3a332b" stroke-width="2"/>
+    <text x="80" y="224" font-size="16" font-weight="700" letter-spacing="2.5" fill="#f5a524">SELLER</text>
+
+    <rect x="80" y="240" width="240" height="132" rx="12" fill="#1f1b16" stroke="#3a332b" stroke-width="1.5"/>
+    <text x="100" y="276" font-size="23" font-weight="700" fill="#f4efe7">Phone</text>
+    <text x="100" y="306" font-size="17" fill="#b4aa9c">/capture · scan the QR</text>
+    <text x="100" y="334" font-size="17" fill="#b4aa9c">camera → signed upload</text>
+
+    <rect x="80" y="388" width="240" height="152" rx="12" fill="#1f1b16" stroke="#3a332b" stroke-width="1.5"/>
+    <text x="100" y="424" font-size="23" font-weight="700" fill="#f4efe7">Laptop browser</text>
+    <text x="100" y="454" font-size="17" fill="#b4aa9c">/studio · /kit/&lt;sku&gt;</text>
+    <text x="100" y="482" font-size="17" fill="#b4aa9c">CldUploadWidget</text>
+    <text x="100" y="510" font-size="17" fill="#b4aa9c">live composite URLs</text>
+
+    <rect x="60" y="600" width="280" height="160" rx="18" fill="#141110" stroke="#3a332b" stroke-width="2"/>
+    <text x="80" y="634" font-size="16" font-weight="700" letter-spacing="2.5" fill="#f5a524">SHOPPERS &amp; JUDGES</text>
+    <text x="80" y="670" font-size="21" font-weight="700" fill="#f4efe7">/shelf/&lt;shop&gt;</text>
+    <text x="80" y="700" font-size="17" fill="#b4aa9c">shared on WhatsApp</text>
+    <text x="80" y="728" font-size="17" fill="#b4aa9c">dynamic OG image</text>
+
+    <!-- ============ column B: Next.js on Vercel ============ -->
+    <rect x="420" y="190" width="340" height="510" rx="18" fill="#141110" stroke="#3a332b" stroke-width="2"/>
+    <text x="444" y="232" font-size="25" font-weight="700" fill="#f4efe7">Next.js 16 on Vercel</text>
+    <text x="444" y="260" font-size="17" fill="#b4aa9c">route handlers · secrets stay here</text>
+    <g font-family="'JetBrains Mono', Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="16" fill="#e4dccf">
+      <text x="444" y="304">/api/sign-upload</text>
+      <text x="444" y="332">/api/products/:sku/analyze</text>
+      <text x="444" y="360">/api/products/:sku/cutout</text>
+      <text x="444" y="388">/api/scenes · /api/qa</text>
+      <text x="444" y="416">/api/generate → /api/jobs/:job</text>
+      <text x="444" y="444">/api/pack → /api/pack/:sku</text>
+      <text x="444" y="472">/api/access · /api/usage</text>
+      <text x="444" y="500">/api/capture/:sku</text>
+    </g>
+    <rect x="440" y="524" width="300" height="86" rx="12" fill="#1f1b16" stroke="#3a332b" stroke-width="1.5"/>
+    <text x="458" y="551" font-size="19" font-weight="700" fill="#f4efe7">Guards</text>
+    <text x="458" y="576" font-size="16" fill="#b4aa9c">access code · session caps</text>
+    <text x="458" y="599" font-size="16" fill="#b4aa9c">SSRF guard · sealed job tokens</text>
+    <rect x="440" y="622" width="300" height="66" rx="12" fill="#261c0d" stroke="#f5a524" stroke-width="2"/>
+    <text x="458" y="649" font-size="19" font-weight="700" fill="#f5a524">Key pool</text>
+    <text x="458" y="674" font-size="16" fill="#e9d9bd">most quota first · quota floor</text>
+
+    <!-- pool environments -->
+    <rect x="420" y="740" width="340" height="160" rx="18" fill="#141110" stroke="#f5a524" stroke-width="2" stroke-dasharray="10 7"/>
+    <text x="444" y="778" font-size="21" font-weight="700" fill="#f4efe7">Pool environments ×2</text>
+    <text x="444" y="806" font-size="17" fill="#f5a524">organiser-approved · disclosed</text>
+    <text x="444" y="834" font-size="17" fill="#b4aa9c">lend Image Generation, AI Vision</text>
+    <text x="444" y="858" font-size="17" fill="#b4aa9c">and captioning quota only;</text>
+    <text x="444" y="882" font-size="17" fill="#b4aa9c">never named in API responses</text>
+
+    <!-- ============ column C: Cloudinary main environment ============ -->
+    <rect x="880" y="190" width="660" height="662" rx="18" fill="#141110" stroke="#f5a524" stroke-width="2.5"/>
+    <text x="904" y="232" font-size="25" font-weight="700" fill="#f4efe7">Cloudinary · main product environment</text>
+    <text x="904" y="260" font-size="17" fill="#b4aa9c">stores, layers, analyses and delivers everything</text>
+
+    <!-- r1 -->
+    <rect x="900" y="284" width="302" height="90" rx="12" fill="#1f1b16" stroke="#3a332b" stroke-width="1.5"/>
+    <text x="918" y="313" font-size="19" font-weight="700" fill="#f4efe7">Analyze API</text>
+    <text x="918" y="339" font-size="16" fill="#b4aa9c">captioning → alt text</text>
+    <text x="918" y="362" font-size="16" fill="#b4aa9c">AI Vision: JSON, Scene DNA, QA</text>
+    <rect x="1218" y="284" width="302" height="90" rx="12" fill="#1f1b16" stroke="#3a332b" stroke-width="1.5"/>
+    <text x="1236" y="313" font-size="19" font-weight="700" fill="#f4efe7">Upload API</text>
+    <text x="1236" y="339" font-size="16" fill="#b4aa9c">signed preset s2s_ingest</text>
+    <text x="1236" y="362" font-size="16" fill="#b4aa9c">upload by URL from the server</text>
+
+    <!-- r2 -->
+    <rect x="900" y="388" width="302" height="90" rx="12" fill="#1f1b16" stroke="#3a332b" stroke-width="1.5"/>
+    <text x="918" y="417" font-size="19" font-weight="700" fill="#f4efe7">Image Generation</text>
+    <text x="918" y="443" font-size="16" fill="#b4aa9c">text_to_image → scene library</text>
+    <text x="918" y="466" font-size="16" fill="#b4aa9c">image_to_image → Creative</text>
+    <rect x="1218" y="388" width="302" height="90" rx="12" fill="#1f1b16" stroke="#3a332b" stroke-width="1.5"/>
+    <text x="1236" y="417" font-size="19" font-weight="700" fill="#f4efe7">Background removal</text>
+    <text x="1236" y="443" font-size="16" fill="#b4aa9c">run once per product, saved</text>
+    <text x="1236" y="466" font-size="15" fill="#e4dccf" font-family="'JetBrains Mono', Menlo, Consolas, 'DejaVu Sans Mono', monospace">e_background_removal/e_trim</text>
+
+    <!-- r3: transformations -->
+    <rect x="900" y="492" width="620" height="130" rx="12" fill="#261c0d" stroke="#f5a524" stroke-width="1.5"/>
+    <text x="920" y="522" font-size="20" font-weight="700" fill="#f5a524">Transformations: the render engine</text>
+    <g font-family="'JetBrains Mono', Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="16" fill="#efe4d2">
+      <text x="920" y="552">l_&lt;cutout&gt; layers · shadows · reflection · light-match</text>
+      <text x="920" y="580">b_gen_fill · e_gen_recolor · l_text:&lt;Google font&gt;</text>
+      <text x="920" y="608">e_zoompan + fl_splice video · named t_s2s_* chains</text>
+    </g>
+
+    <!-- r4 -->
+    <rect x="900" y="636" width="302" height="90" rx="12" fill="#1f1b16" stroke="#3a332b" stroke-width="1.5"/>
+    <text x="918" y="665" font-size="19" font-weight="700" fill="#f4efe7">Tags + context</text>
+    <text x="918" y="691" font-size="16" fill="#b4aa9c">the database (there is no other)</text>
+    <text x="918" y="714" font-size="15" fill="#e4dccf" font-family="'JetBrains Mono', Menlo, Consolas, 'DejaVu Sans Mono', monospace">s2s-sku-&lt;sku&gt; · dna_* · qa_*</text>
+    <rect x="1218" y="636" width="302" height="90" rx="12" fill="#1f1b16" stroke="#3a332b" stroke-width="1.5"/>
+    <text x="1236" y="665" font-size="19" font-weight="700" fill="#f4efe7">Client-side list JSON</text>
+    <text x="1236" y="691" font-size="15" fill="#e4dccf" font-family="'JetBrains Mono', Menlo, Consolas, 'DejaVu Sans Mono', monospace">image/list/s2s-scene.json</text>
+    <text x="1236" y="714" font-size="16" fill="#b4aa9c">scene library, no Admin API</text>
+
+    <!-- r5 -->
+    <rect x="900" y="740" width="302" height="90" rx="12" fill="#1f1b16" stroke="#3a332b" stroke-width="1.5"/>
+    <text x="918" y="769" font-size="19" font-weight="700" fill="#f4efe7">Archive</text>
+    <text x="918" y="795" font-size="15" fill="#e4dccf" font-family="'JetBrains Mono', Menlo, Consolas, 'DejaVu Sans Mono', monospace">download_zip_url by tag</text>
+    <text x="918" y="818" font-size="16" fill="#b4aa9c">one signed zip per pack</text>
+    <rect x="1218" y="740" width="302" height="90" rx="12" fill="#1f1b16" stroke="#3a332b" stroke-width="1.5"/>
+    <text x="1236" y="769" font-size="19" font-weight="700" fill="#f4efe7">CDN delivery</text>
+    <text x="1236" y="795" font-size="15" fill="#e4dccf" font-family="'JetBrains Mono', Menlo, Consolas, 'DejaVu Sans Mono', monospace">f_auto · q_auto</text>
+    <text x="1236" y="818" font-size="16" fill="#b4aa9c">every asset is just a URL</text>
+
+    <!-- ============ arrows ============ -->
+    <!-- 1. signed direct upload: seller → Upload API, over the top -->
+    <path d="M340 300 H374 V150 H1470 V282" fill="none" stroke="#f4efe7" stroke-width="3" stroke-linejoin="round" marker-end="url(#ai)"/>
+    <text x="922" y="140" font-size="17" fill="#f4efe7" text-anchor="middle">signed direct upload: the photo never passes through our server</text>
+
+    <!-- 2. JSON API: seller ↔ Next.js -->
+    <line x1="342" y1="470" x2="418" y2="470" stroke="#f4efe7" stroke-width="3" marker-start="url(#ai)" marker-end="url(#ai)"/>
+    <text x="380" y="452" font-size="15" fill="#b4aa9c" text-anchor="middle">JSON</text>
+
+    <!-- 3. pages: Next.js → shoppers -->
+    <line x1="418" y1="662" x2="342" y2="662" stroke="#f4efe7" stroke-width="3" marker-end="url(#ai)"/>
+    <text x="380" y="644" font-size="15" fill="#b4aa9c" text-anchor="middle">pages</text>
+
+    <!-- 4. server SDK: Next.js → main -->
+    <line x1="760" y1="306" x2="878" y2="306" stroke="#f4efe7" stroke-width="3" marker-end="url(#ai)"/>
+    <text x="820" y="274" font-size="15" fill="#b4aa9c" text-anchor="middle">Admin +</text>
+    <text x="820" y="293" font-size="15" fill="#b4aa9c" text-anchor="middle">Upload API</text>
+
+    <!-- 5. key pool → main AI (Analyze, Image Generation) -->
+    <path d="M740 655 H806 V431 H878" fill="none" stroke="#f5a524" stroke-width="3" stroke-dasharray="10 7" stroke-linejoin="round" marker-end="url(#ag)"/>
+    <text x="818" y="560" font-size="15" fill="#f5a524">AI</text>
+    <text x="818" y="578" font-size="15" fill="#f5a524">calls</text>
+
+    <!-- 6. key pool → pool environments -->
+    <line x1="590" y1="688" x2="590" y2="738" stroke="#f5a524" stroke-width="3" stroke-dasharray="10 7" marker-end="url(#ag)"/>
+    <text x="604" y="722" font-size="15" fill="#f5a524">same calls, spare quota</text>
+
+    <!-- 7. pool → main: copy result -->
+    <line x1="760" y1="820" x2="878" y2="820" stroke="#f4efe7" stroke-width="3" marker-end="url(#ai)"/>
+    <text x="820" y="802" font-size="15" fill="#b4aa9c" text-anchor="middle">copy result</text>
+
+    <!-- 8. CDN → every browser, along the bottom -->
+    <path d="M1369 830 V966 H36 V380 H58" fill="none" stroke="#f4efe7" stroke-width="3" stroke-linejoin="round" marker-end="url(#ai)"/>
+    <line x1="36" y1="680" x2="58" y2="680" stroke="#f4efe7" stroke-width="3" marker-end="url(#ai)"/>
+    <text x="760" y="952" font-size="17" fill="#f4efe7" text-anchor="middle">every image, video and zip is a delivery URL, sized and encoded per viewer</text>
+  </g>
+</svg>
