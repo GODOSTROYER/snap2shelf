@@ -288,7 +288,7 @@ export const CREATIVE_MODELS = [
     name: "Faithful",
     detail: "Keeps logos, colours and shape",
     credits: 9,
-    seconds: 17,
+    seconds: 35,
   },
   {
     id: "flux-2-flash-edit",
