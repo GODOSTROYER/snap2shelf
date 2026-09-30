@@ -199,7 +199,7 @@ export function SceneDnaChapter({ d }: ChapterProps) {
             style={{ position: "absolute", left: `${(box.x - box.w * 0.35) * 100}%`, width: `${box.w * 170}%`, top: `${box.y * 100}%`, height: 3, marginTop: -1.5, background: "var(--pz-marigold-hi)", boxShadow: "0 0 16px 4px rgb(245 165 36 / 0.6)", borderRadius: 2 }}
             initial={{ y: 0, opacity: 0 }}
             animate={{ y: [0, box.h * H], opacity: [0, 1, 1, 0] }}
-            transition={{ duration: PROOF_IN, ease: [0.65, 0, 0.35, 1], times: [0, 0.08, 0.9, 1] }}
+            transition={{ y: { duration: PROOF_IN, ease: [0.65, 0, 0.35, 1] }, opacity: { duration: PROOF_IN, times: [0, 0.08, 0.9, 1] } }}
           />
         )}
 
@@ -355,7 +355,7 @@ export function Stages({ d }: ChapterProps) {
                   style={{ left: 0, top: 0, bottom: 0 }}
                   initial={{ x: 0, opacity: 0 }}
                   animate={{ x: [0, FW], opacity: [0, 1, 1, 0] }}
-                  transition={{ duration: WIPE, ease: [0.65, 0, 0.35, 1], opacity: { duration: WIPE, times: [0, 0.08, 0.88, 1] } }}
+                  transition={{ x: { duration: WIPE, ease: [0.65, 0, 0.35, 1] }, opacity: { duration: WIPE, times: [0, 0.08, 0.88, 1] } }}
                 />
               ),
           )}

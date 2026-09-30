@@ -202,11 +202,14 @@ export function Cutout({ d }: ChapterProps) {
   const cut = d.product.cutout;
   const H = 880;
   const W = Math.round((H * raw.width) / raw.height);
-  const L = 1020;
+  const L = 1080; // the same plate box as chapters 4 and 5, so the frame stays put from here to the wipe
   const T = 100;
   // wipe: 0 → 100% (background dissolves), back to a 50% split, forward again
   const wipe = reduced ? [0, 100, 100, 50, 50, 100, 100] : [0, 100, 100, 50, 50, 100, 100];
   const times = [0, 0.26, 0.45, 0.58, 0.72, 0.85, 1];
+  // one easing PER SEGMENT: a single easing on a keyframed clip-path is applied to the whole run by the
+  // browser (WAAPI), which left the photo's edge trailing the scan line by ~40% at the 50% split
+  const segEase = times.slice(1).map(() => [0.65, 0, 0.35, 1] as const);
   const DUR = 7.4;
   const D0 = 1.0;
   const beat = useBeat([D0 + DUR * 0.28, D0 + DUR * 0.6, D0 + DUR * 0.86]);
@@ -265,7 +268,7 @@ export function Cutout({ d }: ChapterProps) {
           style={{ position: "absolute", inset: 0 }}
           initial={{ clipPath: "inset(0% 0% 0% 0%)" }}
           animate={{ clipPath: wipe.map((p) => `inset(0% 0% 0% ${p}%)`) }}
-          transition={{ delay: D0, duration: DUR, times, ease: [0.65, 0, 0.35, 1] }}
+          transition={{ delay: D0, duration: DUR, times, ease: segEase }}
         >
           <Img src={raw.url} alt={raw.alt} className="pz-fill" fade={false} />
           {/* the label rides on the photo, so it is on screen exactly as long as the photo is (samples are AI-generated test images) */}
@@ -279,7 +282,7 @@ export function Cutout({ d }: ChapterProps) {
             style={{ left: 0 }}
             initial={{ x: 0, opacity: 0 }}
             animate={{ x: wipe.map((p) => (p / 100) * W), opacity: [0, 1, 0, 1, 1, 1, 0] }}
-            transition={{ delay: D0, duration: DUR, times, ease: [0.65, 0, 0.35, 1] }}
+            transition={{ delay: D0, duration: DUR, times, ease: segEase }}
           />
         )}
 
