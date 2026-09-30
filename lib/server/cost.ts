@@ -35,6 +35,11 @@ export interface ProductAsset {
   context: Record<string, string>;
 }
 
+/** Context key productAssetsFromFacts sets on assets rendered on a key-pool account (lib/server/offload.ts). */
+export const OFFLOADED = "offloaded";
+/** Label suffix of those rows: the work happened, on a pool account's credits instead of main's. */
+export const KEY_POOL = " · key pool";
+
 const num = (v: string | undefined) => {
   const n = Number(v);
   return v !== undefined && v !== "" && Number.isFinite(n) ? n : 0;
@@ -90,15 +95,16 @@ export function computeCost(i: CostInput): Omit<CostResponse, "delivered"> {
     { label: "New scene DNA + QA", tokens: num(c.t_scene) },
   ].filter((t) => t.tokens > 0);
 
-  // transformation estimate from what exists
+  // transformation estimate from what exists (" · key pool": rendered on a pool account, main only stored it)
+  const where = (a: ProductAsset) => (a.context[OFFLOADED] === "1" ? KEY_POOL : "");
   const transformations: { label: string; tx: number }[] = [];
   if (c.analyzed) transformations.push({ label: "Analysis JPEG", tx: TX.derived });
   if (c.fix_plan) transformations.push({ label: "Luma probe (16x16)", tx: TX.derived });
   if (retouched) transformations.push({ label: `Retouch (${c.fix_plan || "fixes"})`, tx: num(c.fix_tx) || TX.derived });
-  if (cutout) transformations.push({ label: "Cutout (background removal + trim)", tx: TX.derived + TX.backgroundRemoval });
+  if (cutout) transformations.push({ label: `Cutout (background removal + trim)${where(cutout)}`, tx: TX.derived + TX.backgroundRemoval });
   for (const a of creatives) transformations.push({ label: `Fidelity sheet · ${leaf(a)}`, tx: TX.derived });
   for (const a of heroes) transformations.push({ label: `Hero composite · ${leaf(a)}`, tx: TX.derived });
-  for (const a of pack) transformations.push({ label: `Pack · ${leaf(a).slice("pack/".length)}`, tx: packFormatTx(leaf(a).slice("pack/".length)) });
+  for (const a of pack) transformations.push({ label: `Pack · ${leaf(a).slice("pack/".length)}${where(a)}`, tx: packFormatTx(leaf(a).slice("pack/".length)) });
   transformations.push({ label: heroes.length ? "Delivered hero (f_auto, q_auto)" : "Delivered photo (f_auto, q_auto)", tx: TX.derived });
 
   // recorded server time per step
@@ -146,14 +152,14 @@ export function productAssetsFromFacts(sku: Sku, f: ProductFacts): ProductAsset[
   const raw = f.raw;
   out.push({ publicId: `${root}raw`, bytes: raw?.bytes ?? 0, format: raw?.format ?? "", createdAt: raw?.createdAt ?? "", context: f.ctx });
   const add = (a: AssetFacts | undefined, publicId: string, format: string) => {
-    if (a) out.push({ publicId, bytes: a.bytes ?? 0, format, createdAt: iso(a.at), context: a.ctx ?? {} });
+    if (a) out.push({ publicId, bytes: a.bytes ?? 0, format, createdAt: iso(a.at), context: { ...(a.ctx ?? {}), ...(a.o ? { [OFFLOADED]: "1" } : {}) } });
   };
   add(f.cutout, `${root}cutout`, "png");
   add(f.retouched, `${root}retouched`, "jpg");
   for (const [id, a] of Object.entries(f.creatives ?? {})) add(a, `${root}${id}`, "png");
   for (const [publicId, a] of Object.entries(f.heroes ?? {})) add(a, publicId, "jpg");
   if (f.pack) {
-    for (const [id, d] of Object.entries(f.pack.done)) out.push({ publicId: `${root}pack/${id}`, bytes: 0, format: "jpg", createdAt: iso(d.at), context: { hero: f.pack.hero } });
+    for (const [id, d] of Object.entries(f.pack.done)) out.push({ publicId: `${root}pack/${id}`, bytes: 0, format: "jpg", createdAt: iso(d.at), context: { hero: f.pack.hero, ...(d.o ? { [OFFLOADED]: "1" } : {}) } });
   }
   return out;
 }

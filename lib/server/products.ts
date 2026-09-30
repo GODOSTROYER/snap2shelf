@@ -19,6 +19,7 @@ import { assetInfo, deliveryUrl, mainAuth, probe, uploadToMain, type AssetInfo, 
 import { assertLivePipeline } from "./budget";
 import { loadProduct, updateProduct, type LoadedProduct } from "./facts";
 import { HttpError, notFound, pending } from "./http";
+import { offloadCutout, prewarmCutout } from "./offload";
 import { readOnly } from "./protect";
 import { fixesFromContext } from "./retouch-plan";
 
@@ -182,6 +183,8 @@ export async function analyzeProduct(sku: Sku, opts: { readOnly?: boolean } = {}
     withPooledAccount("object_detection", (a) => captioning(a, source)),
     withPooledAccount("ai_vision", (a) => visionGeneral(a, source, [UNDERSTANDING_PROMPT])),
     cldSafe("explicit-quality", () => cloudinary.uploader.explicit(raw.publicId, { ...mainAuth(), type: "upload", quality_analysis: true })),
+    // ── [offload] S2S_OFFLOAD_POOL=1: start the cutout's key-pool render while AI Vision reads the photo (no-op otherwise)
+    prewarmCutout(cutoutSourceFrom(sku, raw.context), CUTOUT_CHAIN),
   ]);
 
   const captionText = caption.status === "fulfilled" ? caption.value.result.caption : "";
@@ -279,6 +282,29 @@ export async function ensureCutout(sku: Sku, budgetMs = 6000, opts: { readOnly?:
   // Background removal is 75 transformations: respect the credit floor.
   await assertLivePipeline();
   const source = cutoutSourceFrom(sku, p.raw.context);
+  const save = async (derived: string, probeMs: number, pooled = false): Promise<CutoutOutcome> => {
+    const ctx = { source, chain: CUTOUT_CHAIN, ms: String(Date.now() - t0) };
+    const up = await uploadToMain(derived, {
+      public_id: cutoutId(sku),
+      overwrite: false,
+      tags: ["s2s", "s2s-cutout", skuTag(sku)],
+      context: ctx,
+    });
+    await updateProduct(
+      sku,
+      { mutate: (f) => void (f.cutout = { publicId: up.publicId, width: up.width, height: up.height, version: up.version, bytes: up.bytes, at: Date.now(), ctx, ...(pooled ? { o: 1 as const } : {}) }) },
+      { critical: false }, // getCutout() falls back to an explicit lookup
+    );
+    console.info(`[cutout] ${sku}: saved in ${Date.now() - t0 - probeMs} ms`);
+    return { created: true, response: { sku, cutout: cutoutRecord(up), ms: Date.now() - t0 } };
+  };
+
+  // ── [offload] S2S_OFFLOAD_POOL=1: background removal runs on a key-pool account and the result is
+  //    stored here under the same id / tags / context (lib/server/offload.ts). null → main derives it below, as before.
+  const pooled = await offloadCutout({ source, chain: CUTOUT_CHAIN, deadline: t0 + budgetMs, save: (src) => save(src, Date.now() - t0, true) });
+  if (pooled === "pending") throw pending(2000, "Cutting out the product, try again shortly.");
+  if (pooled) return pooled;
+
   const derived = deliveryUrl(source, CUTOUT_CHAIN);
   // HEAD waits while Cloudinary derives (≈4 s); 423 means "still processing" on a later request.
   let status = 0;
@@ -297,19 +323,5 @@ export async function ensureCutout(sku: Sku, budgetMs = 6000, opts: { readOnly?:
   const probeMs = Date.now() - t0;
   console.info(`[cutout] ${sku}: derived HTTP ${status} after ${probeMs} ms`);
   if (status !== 200) throw pending(2000, "Cutting out the product, try again shortly.");
-
-  const ctx = { source, chain: CUTOUT_CHAIN, ms: String(Date.now() - t0) };
-  const up = await uploadToMain(derived, {
-    public_id: cutoutId(sku),
-    overwrite: false,
-    tags: ["s2s", "s2s-cutout", skuTag(sku)],
-    context: ctx,
-  });
-  await updateProduct(
-    sku,
-    { mutate: (f) => void (f.cutout = { publicId: up.publicId, width: up.width, height: up.height, version: up.version, bytes: up.bytes, at: Date.now(), ctx }) },
-    { critical: false }, // getCutout() falls back to an explicit lookup
-  );
-  console.info(`[cutout] ${sku}: saved in ${Date.now() - t0 - probeMs} ms`);
-  return { created: true, response: { sku, cutout: cutoutRecord(up), ms: Date.now() - t0 } };
+  return save(derived, probeMs);
 }

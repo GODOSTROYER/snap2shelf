@@ -32,8 +32,11 @@ import { SHARED_USAGE_TTL_MS, readSharedMainUsage, writeSharedMainUsage, type Sh
 /**
  * Add-on quotas the pool balances. `object_detection` is the quota type that the
  * captioning endpoint reports (AI Content Analysis, 500 detections/month on Free).
+ * `transformations` is the account's plan credits (Free: 25/month, 1 credit ≈
+ * 1,000 transformations), read from the same usage call; it ranks accounts for
+ * rendering AI transformations off main (lib/server/offload.ts, S2S_OFFLOAD_POOL).
  */
-export type PooledCapability = "image_generation" | "ai_vision" | "object_detection";
+export type PooledCapability = "image_generation" | "ai_vision" | "object_detection" | "transformations";
 
 export interface QuotaSnapshot {
   limit: number | null;
@@ -47,6 +50,7 @@ export const QUOTA_FLOOR: Record<PooledCapability, number> = {
   image_generation: 2,
   ai_vision: 2_000,
   object_detection: 5,
+  transformations: 2, // plan credits
 };
 
 const USAGE_TTL_MS = 10 * 60_000;
@@ -138,9 +142,17 @@ export function bench(account: CloudinaryAccount | string, cap: PooledCapability
 
 const CAPS = ["image_generation", "ai_vision", "object_detection"] as const;
 
+/** Plan credits as the `transformations` capability (every account; main's also feed the credit floor). */
+function setCredits(label: string, used: number, limit: number, at: number): void {
+  getState(label, "transformations").usage = { limit, used, remaining: Math.max(0, limit - used), at };
+}
+
 /** Apply main's shared reading (credits + add-on totals) as if this instance had made the call. */
 function applyMain(label: string, u: SharedMainUsage): void {
-  if (u.credits && u.credits.limit > 0) P.mainCredits = { used: u.credits.used, limit: u.credits.limit, at: u.at };
+  if (u.credits && u.credits.limit > 0) {
+    P.mainCredits = { used: u.credits.used, limit: u.credits.limit, at: u.at };
+    setCredits(label, u.credits.used, u.credits.limit, u.at);
+  }
   for (const cap of CAPS) {
     const e = u.addons[cap];
     if (e) getState(label, cap).usage = { limit: e.limit, used: e.used, remaining: Math.max(0, e.limit - e.used), at: u.at };
@@ -182,9 +194,12 @@ async function fetchUsage(account: CloudinaryAccount): Promise<void> {
   const now = Date.now();
   const credits = body.credits as { usage?: number; limit?: number } | undefined;
   const reading: SharedMainUsage = { s: 1, at: now, addons: {} };
-  if (account.isMain && credits && typeof credits.usage === "number" && typeof credits.limit === "number" && credits.limit > 0) {
-    P.mainCredits = { used: credits.usage, limit: credits.limit, at: now };
-    reading.credits = { used: credits.usage, limit: credits.limit };
+  if (credits && typeof credits.usage === "number" && typeof credits.limit === "number" && credits.limit > 0) {
+    setCredits(account.label, credits.usage, credits.limit, now);
+    if (account.isMain) {
+      P.mainCredits = { used: credits.usage, limit: credits.limit, at: now };
+      reading.credits = { used: credits.usage, limit: credits.limit };
+    }
   }
   for (const cap of CAPS) {
     const entry = body[cap] as { usage?: number; limit?: number } | undefined;
