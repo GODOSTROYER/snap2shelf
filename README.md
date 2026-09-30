@@ -9,11 +9,7 @@
 
 [**Live demo**](https://snap2shelf.vercel.app) · [Demo video](#demo-video) · [How it uses Cloudinary](#cloudinary-feature-map) · [Architecture](#architecture)
 
-[![Live](https://img.shields.io/badge/live-snap2shelf.vercel.app-f5a524?style=flat-square)](https://snap2shelf.vercel.app)
-[![Track 2](https://img.shields.io/badge/Track%202-Generative%20Content%20Workflows-2b2118?style=flat-square)](#)
-[![Built on Cloudinary](https://img.shields.io/badge/built%20on-Cloudinary-3448c5?style=flat-square)](https://cloudinary.com/documentation)
-[![Next.js 16](https://img.shields.io/badge/Next.js-16-111111?style=flat-square)](https://nextjs.org)
-[![MIT](https://img.shields.io/badge/license-MIT-4b5563?style=flat-square)](LICENSE)
+[![Live](https://img.shields.io/badge/live-snap2shelf.vercel.app-f5a524?style=flat-square)](https://snap2shelf.vercel.app) ![Track 2](https://img.shields.io/badge/Track%202-Generative%20Content%20Workflows-2b2118?style=flat-square) [![Built on Cloudinary](https://img.shields.io/badge/built%20on-Cloudinary-3448c5?style=flat-square)](https://cloudinary.com/documentation) [![Next.js 16](https://img.shields.io/badge/Next.js-16-111111?style=flat-square)](https://nextjs.org) [![MIT](https://img.shields.io/badge/license-MIT-4b5563?style=flat-square)](LICENSE)
 
 Entry for **Pixels to Products — Cloudinary AI Hackathon 2026** (HackIndia) · **Track 2 — Generative Content Workflows**
 
@@ -87,30 +83,30 @@ a **shop shelf** at `/shelf/<shop>` with a <a href="https://res.cloudinary.com/n
 
 Cloudinary is the entire backend: storage, image processing, AI, video, search-by-tag and delivery. There is no database and no image server of our own. Each row below does real work in the product.
 
-| # | Cloudinary capability | Where in the code | Exactly what we send |
+| # | Capability | Exactly what we send | Code |
 |---|---|---|---|
-| 1 | **Signed uploads** with the Upload Widget and a signed upload preset | [`app/api/sign-upload/route.ts`](app/api/sign-upload/route.ts), [`lib/server/upload-sign.ts`](lib/server/upload-sign.ts), [`scripts/setup-cloudinary.mjs`](scripts/setup-cloudinary.mjs) | `CldUploadWidget signatureEndpoint="/api/sign-upload"`; preset `s2s_ingest`: signed, `overwrite: false`, incoming `c_limit,w_2400,h_2400`, `jpg,jpeg,png,webp,heic` only |
-| 2 | **Captioning** (AI Content Analysis) for alt text | [`lib/cloudinary/vision.ts`](lib/cloudinary/vision.ts) `captioning()` | `POST /v2/analysis/{cloud}/analyze/captioning` with `{ "source": { "uri": … } }` |
-| 3 | **Quality analysis** | [`lib/server/products.ts`](lib/server/products.ts) | `uploader.explicit(id, { quality_analysis: true })` → `focus` |
-| 4 | **AI Vision General**: product JSON, Scene DNA, fidelity verdict | [`lib/server/products.ts`](lib/server/products.ts), [`lib/scene-prompts.ts`](lib/scene-prompts.ts), [`lib/server/qa.ts`](lib/server/qa.ts) | `POST /v2/analysis/{cloud}/analyze/ai_vision_general` with `{ source, prompts: [ … "Return ONLY a JSON object" … ] }`, validated with zod |
-| 5 | **AI Vision Tagging**: the QA gate | [`lib/server/qa.ts`](lib/server/qa.ts) | `ai_vision_tagging` with `tag_definitions` such as `product-floating`, `product-redesigned`, `extra-product` |
-| 6 | **Image Generation**, `text_to_image`: the scene library | [`scripts/seed-scenes.mts`](scripts/seed-scenes.mts), [`lib/cloudinary/generate.ts`](lib/cloudinary/generate.ts) | `model: { id: "gpt-image-2.5-flare" }` (final) or `{ id: "flux-2-flash" }` (draft), `image_size: { aspect_ratio: "3:4", resolution: "1K" }`, `async: true`, then poll `GET /v2/generate/{cloud}/tasks/{id}` |
-| 7 | **Image Generation**, `image_to_image`: Creative mode | [`lib/server/creative.ts`](lib/server/creative.ts) | `reference_images: [{ source_type: "url", url: <versioned cut-out URL> }]`, `model: { id: "nano-banana-2-edit" }`, explicit `seed`, `target: { target_type: "managed_asset" }` |
-| 8 | **Background removal**, run once | [`lib/server/products.ts`](lib/server/products.ts) `CUTOUT_CHAIN` | `e_background_removal/e_trim/f_png`, then saved as `snap2shelf/products/<sku>/cutout` |
-| 9 | **Layers** with pixel placement | [`lib/transform/composite.ts`](lib/transform/composite.ts) | `l_snap2shelf:products:<sku>:cutout/c_scale,w_583,h_312/…/fl_layer_apply,g_north_west,x_249,y_566` |
-| 10 | **Shadows and light-match** built from the product's own silhouette | [`lib/transform/composite.ts`](lib/transform/composite.ts) | `co_rgb:3a2414,e_colorize:100/e_distort:…/c_mpad,…,b_transparent/e_blur:309/e_gradient_fade:40,y_0.7/o_45/e_multiply,fl_layer_apply,fl_no_overflow`, and `e_tint:20:ffa04a`, `e_screen` |
-| 11 | **Generative fill** for new aspect ratios | [`lib/transform/channels.ts`](lib/transform/channels.ts) | `ar_9:16,b_gen_fill,c_pad,w_1080` · `ar_16:9,b_gen_fill,c_pad,w_1920` |
-| 12 | **Generative recolor** of one part | [`lib/transform/channels.ts`](lib/transform/channels.ts) | `e_gen_recolor:prompt_suede%20panels;to-color_1e3a8a` (the part comes from AI Vision) |
-| 13 | **Text overlays** with Google Fonts, including Devanagari | [`lib/transform/channels.ts`](lib/transform/channels.ts) | `l_text:Noto%20Sans%20Devanagari@google_84_700:<UTF-8, with , / % double-encoded>` |
-| 14 | **Video from stills**: the Kit Reel | [`lib/transform/reel.ts`](lib/transform/reel.ts) | `e_zoompan:du_3;fps_25;from_(zoom_1.0);to_(zoom_1.15)`, `fl_splice,l_<image>/…/e_fade:400/fl_layer_apply`, `vc_h264,q_auto`, `.mp4` |
-| 15 | **Named transformations** | [`lib/transform/named.ts`](lib/transform/named.ts), created by `npm run setup:cloudinary` | `t_s2s_story/f_auto,q_auto`, `t_s2s_marketplace/f_jpg,q_auto:best` (delivery options stay outside the name) |
-| 16 | **Tags + contextual metadata** as the database | [`lib/types.ts`](lib/types.ts), [`lib/scenes.ts`](lib/scenes.ts), [`lib/server/cld.ts`](lib/server/cld.ts) | tags `s2s-sku-<sku>`, `s2s-pack-<sku>`, `s2s-scene`; context `dna_ax=0.500`, `qa_status=approved`, `pack_hi=…` |
-| 17 | **Client-side resource list** | [`lib/scenes.ts`](lib/scenes.ts), [`app/api/scenes/route.ts`](app/api/scenes/route.ts) | `https://res.cloudinary.com/<cloud>/image/list/s2s-scene.json` (no Admin API call) |
-| 18 | **Upload by URL** to save derived images as assets | [`lib/server/pack.ts`](lib/server/pack.ts), [`lib/cloudinary/copy.ts`](lib/cloudinary/copy.ts) | `uploader.upload(<delivery URL>, { public_id, tags, context })` |
-| 19 | **Archive** | [`lib/server/pack.ts`](lib/server/pack.ts) `zipUrl()` | `utils.download_zip_url({ tags: ["s2s-pack-<sku>"], flatten_folders: true, expires_at: now + 3600 })` |
-| 20 | **Automatic format and quality** everywhere | every URL builder in [`lib/transform/`](lib/transform/) | `f_auto,q_auto`; `f_jpg` where a scraper or AI fetches the image |
-| 21 | **Admin usage API** for the quota-aware key pool | [`lib/cloudinary/pool.ts`](lib/cloudinary/pool.ts) | `GET /v1_1/{cloud}/usage` → `image_generation`, `ai_vision`, `object_detection` |
-| 22 | **Dynamic OG image** for shared shelves | [`lib/transform/og.ts`](lib/transform/og.ts) | four hero layers with `r_18` over `e_blur:1200/e_brightness:-35`, shop name as `l_text`, `f_jpg` for link scrapers |
+| 1 | **Signed uploads** (Upload Widget + signed preset) | `CldUploadWidget` with `signatureEndpoint="/api/sign-upload"`; preset `s2s_ingest`: signed, `overwrite: false`, incoming `c_limit,w_2400,h_2400`, image formats only | [upload-sign.ts](lib/server/upload-sign.ts) · [setup-cloudinary.mjs](scripts/setup-cloudinary.mjs) |
+| 2 | **Captioning** (AI Content Analysis) for alt text | `POST /v2/analysis/{cloud}/analyze/captioning` | [vision.ts](lib/cloudinary/vision.ts) |
+| 3 | **Quality analysis** | `explicit(id, { quality_analysis: true })` → `focus` | [products.ts](lib/server/products.ts) |
+| 4 | **AI Vision General**: product JSON, Scene DNA, fidelity verdict | `…/analyze/ai_vision_general` with a "Return ONLY a JSON object" prompt, validated with zod | [products.ts](lib/server/products.ts) · [scene-prompts.ts](lib/scene-prompts.ts) · [qa.ts](lib/server/qa.ts) |
+| 5 | **AI Vision Tagging**: the QA gate | `…/analyze/ai_vision_tagging` with `tag_definitions` such as `product-floating`, `product-redesigned`, `extra-product` | [qa.ts](lib/server/qa.ts) |
+| 6 | **Image Generation** `text_to_image`: the scene library | `model: { id: "gpt-image-2.5-flare" }` (final) or `"flux-2-flash"` (draft), `aspect_ratio: "3:4"`, `async: true`, then poll `/tasks/{id}` | [seed-scenes.mts](scripts/seed-scenes.mts) · [generate.ts](lib/cloudinary/generate.ts) |
+| 7 | **Image Generation** `image_to_image`: Creative mode | `reference_images: [{ source_type: "url", url: … }]` (the versioned cut-out), `model: { id: "nano-banana-2-edit" }`, `seed` | [creative.ts](lib/server/creative.ts) |
+| 8 | **Background removal**, once per product | `e_background_removal/e_trim/f_png`, saved as `…/<sku>/cutout` | [products.ts](lib/server/products.ts) |
+| 9 | **Layers** with pixel placement | `l_<cutout>/c_scale,w_583,h_312` … `fl_layer_apply,g_north_west,x_249,y_566` | [composite.ts](lib/transform/composite.ts) |
+| 10 | **Shadows and light-match** from the product's own silhouette | `e_distort:…` `c_mpad,…,b_transparent` `e_blur:309` `e_gradient_fade` `e_multiply` `fl_no_overflow` `e_tint:20:ffa04a` `e_screen` | [composite.ts](lib/transform/composite.ts) |
+| 11 | **Generative fill** | `ar_9:16,b_gen_fill,c_pad,w_1080` · `ar_16:9,b_gen_fill,c_pad,w_1920` | [channels.ts](lib/transform/channels.ts) |
+| 12 | **Generative recolor** of one part | `e_gen_recolor:prompt_suede%20panels;to-color_1e3a8a` | [channels.ts](lib/transform/channels.ts) |
+| 13 | **Text overlays** with Google Fonts, Devanagari included | `l_text:Noto%20Sans%20Devanagari@google_84_700:<text>` | [channels.ts](lib/transform/channels.ts) |
+| 14 | **Video from stills**: the Kit Reel | `e_zoompan:du_3;fps_25;from_(zoom_1.0);to_(zoom_1.15)` `fl_splice,l_<image>` `e_fade:400` `vc_h264` `.mp4` | [reel.ts](lib/transform/reel.ts) |
+| 15 | **Named transformations** | `t_s2s_story/f_auto,q_auto` (delivery options stay outside the name) | [named.ts](lib/transform/named.ts) |
+| 16 | **Tags + contextual metadata** as the database | tags `s2s-sku-<sku>`, `s2s-pack-<sku>`; context `dna_ax=0.500`, `qa_status=approved` | [types.ts](lib/types.ts) · [scenes.ts](lib/scenes.ts) · [cld.ts](lib/server/cld.ts) |
+| 17 | **Client-side resource list** | `res.cloudinary.com/<cloud>/image/list/s2s-scene.json` | [scenes.ts](lib/scenes.ts) · [scenes route](app/api/scenes/route.ts) |
+| 18 | **Upload by URL**: save derived images as assets | `uploader.upload(<delivery URL>, { public_id, tags, context })` | [pack.ts](lib/server/pack.ts) · [copy.ts](lib/cloudinary/copy.ts) |
+| 19 | **Archive** | `download_zip_url({ tags: ["s2s-pack-<sku>"], flatten_folders: true })` | [pack.ts](lib/server/pack.ts) |
+| 20 | **Automatic format and quality** | `f_auto,q_auto` everywhere; `f_jpg` when a scraper or AI fetches the image | [lib/transform/](lib/transform/) |
+| 21 | **Admin usage API** for the key pool | `GET /v1_1/{cloud}/usage` → `image_generation`, `ai_vision`, `object_detection` | [pool.ts](lib/cloudinary/pool.ts) |
+| 22 | **Dynamic OG image** for shared shelves | hero layers with `r_18` over `e_blur:1200/e_brightness:-35`, shop name as `l_text`, `f_jpg` | [og.ts](lib/transform/og.ts) |
 
 <details>
 <summary><b>The whole Exact-mode hero is one URL. Here it is, layer by layer.</b></summary>
@@ -190,15 +186,15 @@ Lessons we paid for:
 
 <sub>The diagram is an SVG ([`docs/architecture.svg`](docs/architecture.svg)) stored in Cloudinary and rasterised on delivery with `f_png,w_1600`. `node --import tsx scripts/docs/upload-diagram.mts` re-uploads it.</sub>
 
-**Where things live.** Every asset sits in one Cloudinary product environment, under predictable public IDs, and its facts live in tags and context, so the client-side list JSON and delivery URLs are most of the "API":
+**Where things live.** Every asset sits in one Cloudinary product environment, under predictable public IDs, and its facts live in tags and context, so the client-side list JSON and delivery URLs are most of the "API". Every asset also carries the tag `s2s`.
 
 ```text
-snap2shelf/products/<sku>/raw              original upload             tags: s2s, s2s-raw, s2s-sku-<sku>
-snap2shelf/products/<sku>/cutout           trimmed transparent PNG     tags: s2s, s2s-cutout, s2s-sku-<sku>
-snap2shelf/products/<sku>/hero-<scene>-<h> approved hero               tags: s2s, s2s-hero, s2s-sku-<sku>
-snap2shelf/products/<sku>/creative-<model>-<seed>                      tags: s2s, s2s-creative, s2s-sku-<sku>
-snap2shelf/products/<sku>/pack/<format>    materialised channel asset  tags: s2s, s2s-pack, s2s-pack-<sku>
-snap2shelf/scenes/<theme>/<tier>-<hash>    1080×1350 scene plate       tags: s2s, s2s-scene, s2s-theme-<theme>, s2s-view-<view>
+snap2shelf/products/<sku>/raw                  original upload          s2s-raw, s2s-sku-<sku>
+snap2shelf/products/<sku>/cutout               trimmed transparent PNG  s2s-cutout, s2s-sku-<sku>
+snap2shelf/products/<sku>/hero-<scene>-<hash>  approved hero            s2s-hero, s2s-sku-<sku>
+snap2shelf/products/<sku>/creative-<m>-<seed>  Creative take            s2s-creative, s2s-sku-<sku>
+snap2shelf/products/<sku>/pack/<format>        channel asset            s2s-pack, s2s-pack-<sku>
+snap2shelf/scenes/<theme>/<tier>-<hash>        1080×1350 scene plate    s2s-scene, s2s-theme-<theme>
 ```
 
 **A request's life, for one product:**
