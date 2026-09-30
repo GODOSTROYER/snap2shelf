@@ -3,6 +3,7 @@
  * the browser/phone uploads directly with parameters signed by /api/sign-upload.
  */
 import type { SignUploadResponse } from "../api-contract";
+import { isCaptured } from "../capture";
 import { cloudName, deliveryBase } from "../transform/composite";
 import { productId, type Sku } from "../types";
 import { sleep } from "./util";
@@ -16,20 +17,29 @@ export interface RawInfo {
   bytes: number;
 }
 
+let bust = 0;
+const fresh = () => `v${Date.now() * 10 + (bust++ % 10)}`;
+
 /**
- * Is the raw photo there yet? fl_getinfo answers with its size as JSON (404 until
- * it exists). The query string only defeats CDN caching of the 404.
+ * Is the raw photo there yet? A HEAD on the original with a fresh version
+ * component (lib/capture.ts): no cache layer can answer with a stale 404, and
+ * it costs no transformation. Only once it exists do we ask for its size.
  */
 export async function rawInfo(sku: Sku, signal?: AbortSignal): Promise<RawInfo | null> {
-  const res = await fetch(`${deliveryBase()}/fl_getinfo/${rawPublicId(sku)}?poll=${Date.now()}`, { signal, cache: "no-store" });
-  if (!res.ok) return null;
+  const here = await isCaptured(cloudName(), sku, (u, init) => fetch(u, { ...init, signal }));
+  if (signal?.aborted) throw new DOMException("aborted", "AbortError");
+  if (!here) return null;
+  const res = await fetch(`${deliveryBase()}/fl_getinfo/${fresh()}/${rawPublicId(sku)}`, { signal, cache: "no-store" });
+  if (!res.ok) return { width: 0, height: 0, bytes: 0 };
   const j = (await res.json()) as { input?: RawInfo };
-  return j.input ?? null;
+  return j.input ?? { width: 0, height: 0, bytes: 0 };
 }
 
-/** Poll until the phone's upload lands (or the signal aborts). */
-export async function waitForRaw(sku: Sku, signal: AbortSignal, everyMs = 2500): Promise<RawInfo> {
+/** Poll until the phone's upload lands (or the signal aborts): one HEAD every 2.5 s, noticed within ~3 s. */
+export async function waitForRaw(sku: Sku, signal: AbortSignal, everyMs = 2500, maxMs = 10 * 60_000): Promise<RawInfo> {
+  const until = Date.now() + maxMs;
   for (;;) {
+    if (Date.now() > until) throw new UploadError("No photo arrived. Scan the code again to retry.");
     try {
       const info = await rawInfo(sku, signal);
       if (info) return info;

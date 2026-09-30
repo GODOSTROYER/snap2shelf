@@ -13,11 +13,26 @@ export const isGenerative = (a: Pick<KitAsset, "xray">) =>
   isBuiltUrl(a.xray) && a.xray.segments.some((s) => s.kind === "gen-ai");
 
 /**
- * Same image, scaled down to `w` px wide, as the last step of the chain.
- * Generative assets are returned untouched: a new URL would re-run the AI
- * step (≈50 transformations, and a different outpaint).
+ * Delivery URL of a stored asset (a saved hero, a materialised pack format):
+ * plain f_auto/q_auto, optionally limited to `w` px. Resizing a stored asset
+ * is a cheap, cacheable transformation, never a re-run of an AI step.
  */
-export function sizedUrl(asset: Pick<KitAsset, "url" | "xray">, w: number): string {
+export function storedUrl(publicId: string, w?: number, cloud?: string) {
+  return `${deliveryBase(cloud)}/${w ? `c_limit,w_${w}/` : ""}f_auto,q_auto/${publicId}`;
+}
+
+const STORED = /\/image\/upload\/f_auto,q_auto\/(?:v\d+\/)?[^/].*$/;
+
+/**
+ * Same image, scaled down to `w` px wide, as the last step of the chain.
+ * Stored assets are resized from the stored copy. Generative recipes that were
+ * never stored are returned untouched: a new URL would re-run the AI step
+ * (≈50 transformations, and a different outpaint).
+ */
+export function sizedUrl(asset: Pick<KitAsset, "url" | "xray"> & { publicId?: string }, w: number): string {
+  if (asset.publicId && STORED.test(asset.url) && asset.url.endsWith(asset.publicId)) {
+    return asset.url.replace("/image/upload/f_auto,q_auto/", `/image/upload/c_limit,w_${w}/f_auto,q_auto/`);
+  }
   if (!isBuiltUrl(asset.xray) || isGenerative(asset)) return asset.url;
   const t = asset.xray.transformation;
   const marker = `/${t}/`;
