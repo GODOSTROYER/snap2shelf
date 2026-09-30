@@ -79,6 +79,8 @@ export const PRODUCT_NAMES: Record<string, string> = {
   shmessy1: "Steel water bottle", // the cluttered-counter photo of the same bottle; the picker tells them apart by the photo's blurb
   shtrail1: "Trail mix pouch",
   shkurta1: "Chikankari kurta",
+  // the same steel bottle as it stands on the demo shelf (/shelf/demo-studio), where AI Vision read "Stainless steel water bottle"
+  "9uo8w8pc": "Steel water bottle",
 };
 
 /**
