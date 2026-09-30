@@ -100,7 +100,7 @@ export function computeCost(i: CostInput): Omit<CostResponse, "delivered"> {
   const transformations: { label: string; tx: number }[] = [];
   if (c.analyzed) transformations.push({ label: "Analysis JPEG", tx: TX.derived });
   if (c.fix_plan) transformations.push({ label: "Luma probe (16x16)", tx: TX.derived });
-  if (retouched) transformations.push({ label: `Retouch (${c.fix_plan || "fixes"})`, tx: num(c.fix_tx) || TX.derived });
+  if (retouched) transformations.push({ label: `Retouch (${c.fix_plan || "fixes"})${where(retouched)}`, tx: num(c.fix_tx) || TX.derived });
   if (cutout) transformations.push({ label: `Cutout (background removal + trim)${where(cutout)}`, tx: TX.derived + TX.backgroundRemoval });
   for (const a of creatives) transformations.push({ label: `Fidelity sheet · ${leaf(a)}`, tx: TX.derived });
   for (const a of heroes) transformations.push({ label: `Hero composite · ${leaf(a)}`, tx: TX.derived });

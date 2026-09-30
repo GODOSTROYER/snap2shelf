@@ -13,8 +13,10 @@ import { pinJpeg } from "./guard";
  * the results in main (S2S_OFFLOAD_POOL=1; off by default, nothing changes).
  *
  * Main's transformation credits are the scarce resource (a kit derives ~186 on
- * main: background removal 75, generative fill 2 × 50, recolor 50 each). With
- * the flag on, for the cutout and every generative pack format:
+ * main: background removal 75, generative fill 2 × 50, recolor 50 each; a messy
+ * photo's retouch adds gen remove 50 / gen restore 100 / upscale 10-100 / enhance
+ * 100). With the flag on, for the cutout, an AI retouch chain and every
+ * generative pack format:
  *   1. the pool account gets a plain copy of the source (upload by URL of main's
  *      original: bandwidth, no transformation on main; lib/cloudinary/offload.ts),
  *   2. it derives the same chain on its own credits,
@@ -43,10 +45,10 @@ import { pinJpeg } from "./guard";
 export const offloadEnabled = () => process.env.S2S_OFFLOAD_POOL === "1";
 
 /** Plan credits one render is estimated to take on the pool account (ranking floor check). */
-export const OFFLOAD_COST = { cutout: 0.08, format: 0.06 } as const;
+export const OFFLOAD_COST = { cutout: 0.08, format: 0.06, retouch: 0.15 } as const;
 
-/** Effects billed at 50+ transformations each (documented counts, lib/server/cost.ts TX). */
-const EXPENSIVE = /(?:^|[/,])(?:b_gen_fill|e_gen_[a-z_]+|e_background_removal)(?=$|[,/:;])/;
+/** Effects billed at 10-100+ transformations each (documented counts, lib/server/cost.ts TX). */
+const EXPENSIVE = /(?:^|[/,])(?:b_gen_fill|e_gen_[a-z_]+|e_background_removal|e_upscale|e_enhance)(?=$|[,/:;])/;
 export const isExpensiveTransformation = (t: string) => EXPENSIVE.test(t);
 
 /**
@@ -192,6 +194,16 @@ async function saveOrMark<T>(save: (src: string) => Promise<T>, src: string): Pr
 
 // ------------------------------------------------------------------ public hooks
 
+/** `chain` on a pool copy of `source`, then `save(poolUrl)` stores the result on main. */
+function offloadChain<T>(what: string, cost: number, loop: boolean, o: { source: string; chain: string; deadline: number; save: (src: string) => Promise<T> }): Promise<T | "pending" | null> {
+  return onPool(what, o.source, cost, o.deadline, async (account) => {
+    const copy = await ensurePoolCopy(account, deliveryUrl(o.source), o.source);
+    const src = poolDeliveryUrl(account, o.chain, copy);
+    if ((await waitDerived(src, o.deadline, loop)) === "pending") return "pending";
+    return saveOrMark(o.save, src);
+  });
+}
+
 /**
  * Cutout: `chain` (background removal + trim) on a pool copy of `source`, then
  * `save(poolUrl)` stores it on main. Returns save's result, "pending", or null
@@ -199,12 +211,23 @@ async function saveOrMark<T>(save: (src: string) => Promise<T>, src: string): Pr
  */
 export async function offloadCutout<T>(o: { source: string; chain: string; deadline: number; save: (src: string) => Promise<T> }): Promise<T | "pending" | null> {
   if (!offloadEnabled()) return null;
-  return onPool("cutout", o.source, OFFLOAD_COST.cutout, o.deadline, async (account) => {
-    const copy = await ensurePoolCopy(account, deliveryUrl(o.source), o.source);
-    const src = poolDeliveryUrl(account, o.chain, copy);
-    if ((await waitDerived(src, o.deadline, true)) === "pending") return "pending";
-    return saveOrMark(o.save, src);
-  });
+  return offloadChain("cutout", OFFLOAD_COST.cutout, true, o);
+}
+
+/**
+ * Q4 auto-retouch: when the planned chain has an AI effect (e_gen_remove,
+ * e_gen_restore, e_upscale, e_enhance), render it on a pool copy of the raw and
+ * `save(poolUrl)` the JPEG snapshot on main. A cheap chain (e_improve alone, 1 tx)
+ * stays on main. One probe per call, like main's path: the first call (which also
+ * planned) only needs to start the render; the client's polls finish it.
+ * `tx` = the plan's documented transformation estimate (ranks against the floor).
+ * Returns save's result, "pending", or null (flag off / cheap chain / no pool
+ * account / pool failed → main path).
+ */
+export async function offloadRetouch<T>(o: { source: string; chain: string; tx: number; deadline: number; save: (src: string) => Promise<T> }): Promise<T | "pending" | null> {
+  if (!offloadEnabled() || !isExpensiveTransformation(o.chain) || /(?:^|[/,])(?:[lu]|t)_/.test(o.chain)) return null;
+  const cost = o.tx > 0 ? Math.max(0.01, o.tx / 1000) : OFFLOAD_COST.retouch;
+  return offloadChain("retouch", cost, false, o);
 }
 
 /**

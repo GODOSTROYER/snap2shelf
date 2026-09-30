@@ -7,6 +7,7 @@ import { assertLivePipeline } from "./budget";
 import { deliveryUrl, probe, uploadToMain, type AssetInfo } from "./cld";
 import { loadProduct, updateProduct } from "./facts";
 import { HttpError } from "./http";
+import { offloadRetouch } from "./offload";
 import { readOnly } from "./protect";
 import { analysisSourceUrl, rawId, retouchedId, skuTag } from "./products";
 import { RETOUCH_TAGS, bmpMeanLuma, planRetouch, retouchChain, retouchStateFromContext, retouchXray, type RetouchPlan } from "./retouch-plan";
@@ -167,6 +168,34 @@ export async function retouchProduct(sku: Sku, opts: { budgetMs?: number; before
   if (opts.readOnly) throw readOnly();
   // The retouch chain can include generative / AI effects: respect the credit floor.
   await assertLivePipeline();
+
+  const save = async (src: string, pooled = false): Promise<RetouchOutcome> => {
+    const up = await uploadToMain(src, {
+      public_id: retouchedId(sku),
+      overwrite: false,
+      tags: ["s2s", "s2s-retouched", skuTag(sku)],
+      context: { source: rawId(sku), chain: state.chain, fixes: state.fixes.join(",") },
+    });
+    if (up.publicId !== retouchedId(sku)) throw new HttpError(502, "upstream", "Saving the retouched photo failed. Please try again.");
+    await updateProduct(
+      sku,
+      {
+        ctx: { fix_id: up.publicId, ms_fix_done: String(Date.now() - t0) },
+        mutate: (f) => void (f.retouched = { publicId: up.publicId, width: up.width, height: up.height, version: up.version, bytes: up.bytes, at: Date.now(), ...(pooled ? { o: 1 as const } : {}) }),
+      },
+      { critical: false },
+    );
+    console.info(`[retouch] ${sku}: saved ${state.chain} in ${Date.now() - t0} ms`);
+    return done(up.publicId);
+  };
+
+  // ── [offload] S2S_OFFLOAD_POOL=1: an AI chain (gen remove / restore, upscale, enhance) renders on a key-pool
+  //    account and the snapshot is stored here as before (lib/server/offload.ts). null → main derives it below.
+  //    The planning call may have used its budget: allow ~3 s to start the pool render, as main's probe does.
+  const pooled = await offloadRetouch({ source: rawId(sku), chain: state.chain, tx: state.tx, deadline: Math.max(t0 + budgetMs, Date.now() + 3000), save: (src) => save(src, true) });
+  if (pooled === "pending") return pendingOutcome();
+  if (pooled) return pooled;
+
   // Planning may have used most of this call's budget: just kick the derivation off.
   const left = budgetMs - (Date.now() - t0);
   const p = await probe(derived, Math.max(1200, Math.min(left, budgetMs)));
@@ -189,21 +218,5 @@ export async function retouchProduct(sku: Sku, opts: { budgetMs?: number; before
     };
   }
 
-  const up = await uploadToMain(derived, {
-    public_id: retouchedId(sku),
-    overwrite: false,
-    tags: ["s2s", "s2s-retouched", skuTag(sku)],
-    context: { source: rawId(sku), chain: state.chain, fixes: state.fixes.join(",") },
-  });
-  if (up.publicId !== retouchedId(sku)) throw new HttpError(502, "upstream", "Saving the retouched photo failed. Please try again.");
-  await updateProduct(
-    sku,
-    {
-      ctx: { fix_id: up.publicId, ms_fix_done: String(Date.now() - t0) },
-      mutate: (f) => void (f.retouched = { publicId: up.publicId, width: up.width, height: up.height, version: up.version, bytes: up.bytes, at: Date.now() }),
-    },
-    { critical: false },
-  );
-  console.info(`[retouch] ${sku}: saved ${state.chain} in ${Date.now() - t0} ms`);
-  return done(up.publicId);
+  return save(derived);
 }
