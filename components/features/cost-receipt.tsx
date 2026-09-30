@@ -28,6 +28,12 @@ export interface CostReceiptProps {
    * Its hero weight is the canonical measurement (MEASURED_HERO_WEIGHT).
    */
   replay?: string;
+  /**
+   * When the kit was made (ISO, e.g. Kit.createdAt): the date the receipt prints.
+   * A saved sample's receipt carries its recording date, never the day it's viewed.
+   * Omitted: today (a kit just made in the studio).
+   */
+  date?: string;
   className?: string;
 }
 
@@ -35,6 +41,13 @@ type State =
   | { kind: "loading"; busyUntil?: number }
   | { kind: "ready"; data: CostResponse }
   | { kind: "error"; message: string; busy: boolean };
+
+/** The receipt's date: the kit's own (in India time, like the rest of the receipt), else today. */
+function printDate(madeAt?: string) {
+  const at = madeAt ? new Date(madeAt) : null;
+  const valid = at && Number.isFinite(at.getTime());
+  return (valid ? at : new Date()).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", ...(valid ? { timeZone: "Asia/Kolkata" } : {}) });
+}
 
 const inr = (n: number) => `₹${Math.round(n).toLocaleString("en-IN")}`;
 const int = (n: number) => Math.round(n).toLocaleString("en-IN");
@@ -45,7 +58,7 @@ const PRINT_MS = 1500;
  * each line counts up as it prints, and the photo's weight counts down from the
  * original upload to what a browser actually downloads.
  */
-export function CostReceipt({ sku, scene, refreshKey, photoshootInr = PHOTOSHOOT_INR_ESTIMATE, client = featuresClient, initial, replay, className }: CostReceiptProps) {
+export function CostReceipt({ sku, scene, refreshKey, photoshootInr = PHOTOSHOOT_INR_ESTIMATE, client = featuresClient, initial, replay, date, className }: CostReceiptProps) {
   const [state, setState] = React.useState<State>(initial ? { kind: "ready", data: initial } : { kind: "loading" });
   const hasInitial = !!initial;
   const [attempt, setAttempt] = React.useState(0);
@@ -96,7 +109,7 @@ export function CostReceipt({ sku, scene, refreshKey, photoshootInr = PHOTOSHOOT
       <div className="-mt-2 overflow-hidden px-2.5 pt-1.5 pb-8">
         <AnimatePresence mode="wait" initial={false}>
           {state.kind === "ready" ? (
-            <Printed key={`ready-${attempt}-${String(refreshKey ?? "")}`} data={state.data} photoshootInr={photoshootInr} replay={replay} seen={seen} />
+            <Printed key={`ready-${attempt}-${String(refreshKey ?? "")}`} data={state.data} photoshootInr={photoshootInr} replay={replay} madeAt={date} seen={seen} />
           ) : state.kind === "error" ? (
             <motion.div key="error" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="pt-3">
               <Notice
@@ -136,7 +149,7 @@ function Printing({ busyUntil }: { busyUntil?: number }) {
   );
 }
 
-function Printed({ data, photoshootInr, replay, seen = true }: { data: CostResponse; photoshootInr: number; replay?: string; seen?: boolean }) {
+function Printed({ data, photoshootInr, replay, madeAt, seen = true }: { data: CostResponse; photoshootInr: number; replay?: string; madeAt?: string; seen?: boolean }) {
   const reduce = useReducedMotion();
   const [open, setOpen] = React.useState(false);
   const itemsId = React.useId();
@@ -152,7 +165,7 @@ function Printed({ data, photoshootInr, replay, seen = true }: { data: CostRespo
   const fmt = format ? formatLabel(format) : "";
   const fromHero = !!measured || data.delivered.from === "hero";
   const wall = data.wallClockSeconds;
-  const date = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+  const date = printDate(madeAt);
 
   const lines: { label: string; value: number; unit: (n: number) => string; note?: string; tone?: "saved" }[] = [
     { label: "Image generation", value: c.generationCredits, unit: (n) => `${int(n)} ${Math.round(n) === 1 ? "credit" : "credits"}`, note: c.generationCredits === 0 ? "Nothing generated: the product photo itself is used" : undefined },
@@ -160,8 +173,8 @@ function Printed({ data, photoshootInr, replay, seen = true }: { data: CostRespo
     { label: "AI Vision", value: c.aiVisionTokens, unit: (n) => `${int(n)} tokens` },
     { label: "Transformations", value: c.transformationsEstimate, unit: (n) => int(n), note: "Estimate" },
   ];
-  // the pipeline's own steps (read, cut out, stage, check, pack), not the upload or the seller's time in the studio
-  if (c.seconds > 0) lines.push({ label: "Cloudinary processing", value: c.seconds, unit: (n) => `${n.toFixed(1)} s`, note: replay ?? "Every step after the upload" });
+  // the recorded time of the pipeline's Cloudinary calls: not the upload, and never the wall-clock wait on screen
+  if (c.seconds > 0) lines.push({ label: "Time inside Cloudinary calls", value: c.seconds, unit: (n) => `${n.toFixed(1)} s`, note: replay ?? "What the recorded calls took, not the wait on screen" });
   // end to end, live kits only: this kit's own upload → its last format saved
   const photoToKit = replay ? null : wall !== null && wall > 0 && wall < 3600 ? `${wall < 90 ? `${wall} s` : `${Math.round(wall / 60)} min`} from upload to the last format saved` : null;
 
