@@ -4,7 +4,7 @@
  * brand-free. Height comes from the parent's --h (px); width follows the format.
  * Server-safe (no hooks); the chrome is decorative, the image carries the alt text.
  */
-import { Bookmark, ChevronUp, Heart, MessageCircle, Ellipsis, Send, Star } from "lucide-react";
+import { Bookmark, ChevronUp, Ellipsis, Heart, MessageCircle, Send, Star, VolumeX } from "lucide-react";
 import * as React from "react";
 import { CloudImg } from "@/components/cloud-img";
 import { sizedUrl } from "@/lib/client/img";
@@ -23,7 +23,8 @@ type Props = {
   className?: string;
   /** Replace the image with something else (the reel video). */
   media?: React.ReactNode;
-  frame?: PreviewFrame;
+  /** "reel": a vertical video post, chrome kept at the bottom so the reel's own offer card stays clear. */
+  frame?: PreviewFrame | "reel";
 };
 
 const shop = "yourshop";
@@ -44,11 +45,12 @@ function Img({ asset, w, className }: { asset: KitAsset; w: number; className?: 
   return <CloudImg src={sizedUrl(asset, w)} alt={asset.alt} width={asset.width} height={asset.height} className={cn("block size-full object-cover", className)} />;
 }
 
-export function frameWidth(frame: PreviewFrame, asset: Pick<KitAsset, "width" | "height">): string {
+export function frameWidth(frame: PreviewFrame | "reel", asset: Pick<KitAsset, "width" | "height">): string {
   switch (frame) {
     case "feed-post":
       return "calc((var(--h) - 112px) * 0.8)";
     case "story":
+    case "reel":
       return "calc(var(--h) * 0.5625)";
     case "listing-card":
       return "calc(var(--h) - 118px)";
@@ -86,6 +88,28 @@ export function AssetFrame({ asset, product, className, media, frame = asset.fra
             <p className="truncate text-white/75">
               <span className="font-semibold text-white">{shop}</span> {product.name}. Tap to shop.
             </p>
+          </div>
+        </div>
+      );
+
+    case "reel":
+      return (
+        <div className={cn(base, "rounded-[18px] bg-frame-dark ring-1 ring-white/10")} style={{ width }}>
+          {media ?? <Img asset={asset} w={640} />}
+          <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end gap-2 bg-gradient-to-t from-black/60 to-transparent px-2.5 pt-10 pb-3 text-white">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 text-[0.66rem] font-semibold">
+                <Avatar size={20} />
+                {shop}
+                <span className="rounded border border-white/50 px-1 text-[0.58rem] leading-[1.4]">Follow</span>
+              </div>
+              <p className="mt-1 truncate text-[0.62rem] text-white/80">{product.name}. Shop the reel</p>
+            </div>
+            <div className="flex flex-col items-center gap-2.5">
+              <Heart className="size-[15px]" />
+              <MessageCircle className="size-[15px]" />
+              <VolumeX className="size-[15px]" />
+            </div>
           </div>
         </div>
       );
