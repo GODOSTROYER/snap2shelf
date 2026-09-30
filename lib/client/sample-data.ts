@@ -12,15 +12,18 @@ import type { Kit } from "../types";
 /** Documented transformation counts (same table as the cost route). */
 const TX = { derived: 1, backgroundRemoval: 75, genFill: 50, genRecolor: 50 } as const;
 
+/**
+ * The steps that add up to the receipt's "Cloudinary processing" line. The seed
+ * script's own upload (a server-side SDK upload, not a seller's) and the reel's
+ * first render (it happens on first view) are left out of both.
+ */
 const STEP_LABELS: [keyof NonNullable<SampleProduct["timings"]>, string][] = [
-  ["upload", "Upload"],
   ["analyze", "Read the product (AI Vision)"],
   ["cutout", "Cut out"],
   ["stage", "Stage"],
   ["qa", "QA check"],
   ["pack", "Pack every format"],
   ["zip", "Zip"],
-  ["reel", "Kit Reel"],
 ];
 
 /** The cost ledger of a sample's live run, in the cost route's shape. */
@@ -53,6 +56,12 @@ export function sampleCost(sample: SampleProduct, kit: Kit = sample.kit): CostRe
     wallClockSeconds: sample.timings ? Math.round(sample.timings.total / 1000) : c.seconds || null,
     estimated: true,
   };
+}
+
+/** What a sample's processing time covers, for its receipt ("… this run needed 3 QA checks"). */
+export function sampleProcessingNote(sample: SampleProduct): string {
+  const checks = sample.qaStory?.attempts;
+  return `Every step after the upload, on this sample's live run${checks && checks > 1 ? `, which needed ${checks} QA checks` : ""}`;
 }
 
 /**

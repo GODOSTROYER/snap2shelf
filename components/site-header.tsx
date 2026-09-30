@@ -1,6 +1,6 @@
 import Link from "next/link";
+import { SHOWCASE_KIT_SKU } from "@/lib/claims";
 import { cn } from "@/lib/client/util";
-import { FEATURED } from "@/lib/showcase";
 
 export function Mark({ className }: { className?: string }) {
   // a product resting on a shelf, casting its shadow
@@ -26,32 +26,40 @@ type Section = "home" | "studio" | "kit" | "capture" | "admin";
 
 const links: { href: string; label: string; section: Section }[] = [
   { href: "/studio", label: "Studio", section: "studio" },
-  { href: `/kit/${FEATURED.sku}`, label: "Sample kit", section: "kit" },
+  // a finished kit with a ZIP (the landing's sneaker kit has none)
+  { href: `/kit/${SHOWCASE_KIT_SKU}`, label: "Sample kit", section: "kit" },
 ];
 
 export function SiteHeader({ current, children }: { current: Section; children?: React.ReactNode }) {
   return (
-    <header className="relative z-20 mx-auto flex h-16 w-full max-w-[90rem] items-center justify-between gap-4 px-4 sm:px-8">
-      <Link href="/" aria-label="Snap2Shelf home" aria-current={current === "home" ? "page" : undefined} className="rounded-lg">
-        <Wordmark />
-      </Link>
-      <nav aria-label="Main" className="flex items-center gap-1 sm:gap-2">
-        {children}
-        {links.map((l) => (
-          <Link
-            key={l.href}
-            href={l.href}
-            aria-current={current === l.section ? "page" : undefined}
-            className={cn(
-              "relative rounded-full px-3 py-2 text-sm font-medium text-dim transition-colors hover:text-paper",
-              "aria-[current=page]:text-paper aria-[current=page]:after:absolute aria-[current=page]:after:inset-x-3 aria-[current=page]:after:-bottom-0.5 aria-[current=page]:after:h-0.5 aria-[current=page]:after:rounded-full aria-[current=page]:after:bg-marigold",
-              l.section === "kit" && "hidden sm:inline-flex",
-            )}
-          >
-            {l.label}
-          </Link>
-        ))}
-      </nav>
-    </header>
+    <>
+      <a
+        href="#main"
+        className="sr-only z-50 rounded-full bg-marigold px-4 py-2.5 text-sm font-semibold text-marigold-ink focus-visible:not-sr-only focus-visible:fixed focus-visible:top-3 focus-visible:left-3"
+      >
+        Skip to content
+      </a>
+      <header className="relative z-20 mx-auto flex h-16 w-full max-w-[90rem] items-center justify-between gap-3 px-4 sm:px-8">
+        <Link href="/" aria-label="Snap2Shelf home" aria-current={current === "home" ? "page" : undefined} className="inline-flex min-h-11 items-center rounded-lg">
+          <Wordmark />
+        </Link>
+        <nav aria-label="Main" className="flex items-center gap-0.5 sm:gap-2">
+          {children}
+          {links.map((l) => (
+            <Link
+              key={l.href}
+              href={l.href}
+              aria-current={current === l.section ? "page" : undefined}
+              className={cn(
+                "relative inline-flex min-h-11 items-center rounded-full px-2.5 text-sm font-medium whitespace-nowrap text-dim transition-colors hover:text-paper sm:px-3",
+                "aria-[current=page]:text-paper aria-[current=page]:after:absolute aria-[current=page]:after:inset-x-3 aria-[current=page]:after:bottom-1.5 aria-[current=page]:after:h-0.5 aria-[current=page]:after:rounded-full aria-[current=page]:after:bg-marigold",
+              )}
+            >
+              {l.label}
+            </Link>
+          ))}
+        </nav>
+      </header>
+    </>
   );
 }

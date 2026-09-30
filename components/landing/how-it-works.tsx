@@ -4,6 +4,7 @@
  */
 import { CloudImg } from "@/components/cloud-img";
 import { QaBadge } from "@/components/kit/qa-badge";
+import { SAMPLE_PHOTO_LABEL } from "@/lib/claims";
 import { publicUrl, sizedUrl } from "@/lib/client/img";
 import { CREATIVE_REJECTED, heroAt } from "@/lib/showcase";
 import type { Kit } from "@/lib/types";
@@ -17,7 +18,18 @@ export function HowItWorks({ kit }: { kit: Kit }) {
     {
       title: "Snap",
       body: "Upload a photo, or scan a QR code and take one with your phone. Any background, any light.",
-      art: <CloudImg src={publicUrl(p.rawPublicId, { w: 480, h: 600, crop: "c_fill,g_auto" })} alt={`The original phone photo: ${p.caption ?? "the product on a plain floor"}`} width={480} height={600} className="size-full object-cover" />,
+      art: (
+        <div className="relative size-full">
+          <CloudImg
+            src={publicUrl(p.rawPublicId, { w: 480, h: 600, crop: "c_fill,g_auto" })}
+            alt={`${SAMPLE_PHOTO_LABEL}, an AI-generated test image: ${p.caption ?? "the product on a plain floor"}`}
+            width={480}
+            height={600}
+            className="size-full object-cover"
+          />
+          <span className="absolute top-3 left-3 rounded-full bg-black/60 px-2.5 py-1 text-[0.75rem] leading-none font-semibold text-white backdrop-blur-sm">{SAMPLE_PHOTO_LABEL}</span>
+        </div>
+      ),
     },
     {
       title: "Cut out",
@@ -53,7 +65,7 @@ export function HowItWorks({ kit }: { kit: Kit }) {
     },
     {
       title: "Ship",
-      body: "A feed post, story, banner, marketplace image, catalog tile, colour variants, a Hindi and English offer and a reel. One zip.",
+      body: "A feed post, story, banner, marketplace image, catalog tile, colour variants and a Hindi and English offer, in one zip. Plus a reel, streamed from one URL.",
       art: (
         <div className="relative size-full bg-stage">
           {fan.map((a, i) => (
@@ -62,7 +74,7 @@ export function HowItWorks({ kit }: { kit: Kit }) {
               className="absolute top-1/2 left-1/2 w-[58%] overflow-hidden rounded-lg shadow-[0_18px_30px_-12px_rgb(0_0_0/0.9)] ring-1 ring-white/10"
               style={{ transform: `translate(-50%, -50%) translate(${(i - 1) * 22}%, ${Math.abs(i - 1) * 6}%) rotate(${(i - 1) * 11}deg)`, zIndex: i === 1 ? 2 : 1 }}
             >
-              <CloudImg src={sizedUrl(a, 320)} alt={`${a.label}: ${a.alt}`} width={a.width} height={a.height} className="block w-full bg-frame-line" />
+              <CloudImg src={sizedUrl(a, 360)}alt={`${a.label}: ${a.alt}`} width={a.width} height={a.height} className="block w-full bg-frame-line" />
             </div>
           ))}
         </div>

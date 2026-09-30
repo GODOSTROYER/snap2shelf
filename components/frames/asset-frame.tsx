@@ -53,10 +53,11 @@ const FRAME_PX: Record<string, [number, number, number]> = {
 
 function Img({ asset, frame, className }: { asset: KitAsset; frame: string; className?: string }) {
   const px = FRAME_PX[frame] ?? [200, 240, 280];
-  const widths = frame === "web-banner" ? [480, 720, 960, 1280] : [240, 360, 480, 640];
+  // from the site's fixed width set (lib/client/img.ts WIDTHS): no layout-derived w_ values
+  const widths = frame === "web-banner" ? [480, 720, 1080] : [360, 480, 720];
   return (
     <CloudImg
-      src={sizedUrl(asset, widths[2])}
+      src={sizedUrl(asset, widths[1])}
       srcSet={widths.map((w) => `${sizedUrl(asset, w)} ${w}w`).join(", ")}
       sizes={`(min-width: 1024px) ${px[2]}px, (min-width: 640px) ${px[1]}px, ${px[0]}px`}
       alt={asset.alt}

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FEATURED } from "@/lib/showcase";
+import { SHOWCASE_KIT_SKU } from "@/lib/claims";
 import { Wordmark } from "./site-header";
 
 export function SiteFooter() {
@@ -10,14 +10,14 @@ export function SiteFooter() {
           <Wordmark className="text-base text-paper" />
           <p>Built for Pixels to Products, the Cloudinary AI Hackathon 2026. Every image and video here is delivered by Cloudinary.</p>
         </div>
-        <nav aria-label="Footer" className="flex gap-5">
-          <Link href="/studio" className="hover:text-paper">
+        <nav aria-label="Footer" className="flex flex-wrap gap-x-5">
+          <Link href="/studio" className="inline-flex min-h-11 items-center hover:text-paper">
             Studio
           </Link>
-          <Link href={`/kit/${FEATURED.sku}`} className="hover:text-paper">
+          <Link href={`/kit/${SHOWCASE_KIT_SKU}`} className="inline-flex min-h-11 items-center hover:text-paper">
             Sample kit
           </Link>
-          <Link href="/#how" className="hover:text-paper">
+          <Link href="/#how" className="inline-flex min-h-11 items-center hover:text-paper">
             How it works
           </Link>
         </nav>

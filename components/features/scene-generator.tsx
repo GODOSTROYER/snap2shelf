@@ -14,6 +14,7 @@ import {
   featureMessage,
   featuresClient,
   isBusy,
+  isReadOnly,
   matchReason,
   sceneJobUntilDone,
   themeLabel,
@@ -24,7 +25,7 @@ import { publicUrl } from "@/lib/client/img";
 import { cn, isAborted } from "@/lib/client/util";
 
 import type { QaResult, Scene, SceneView, Sku } from "@/lib/types";
-import { Narration, Notice } from "./shared";
+import { Narration, Notice, ReadOnlyNote } from "./shared";
 
 const EXPO = [0.16, 1, 0.3, 1] as const;
 
@@ -60,7 +61,7 @@ type Gen =
   | { kind: "developing"; since: number; status: "pending" | "processing"; estimatedCredits: number }
   | { kind: "ready"; scene: Scene; choice: SceneChoice; qa?: QaResult }
   | { kind: "rejected"; message: string; reasons: string[]; credits?: number }
-  | { kind: "error"; message: string; tone: "error" | "busy" | "info"; locked?: boolean };
+  | { kind: "error"; message: string; tone: "error" | "busy" | "info"; locked?: boolean; readOnly?: boolean };
 
 /**
  * "Need a different backdrop?" Library matches first (reused, 0 credits), then
@@ -155,6 +156,11 @@ export function SceneGenerator({ sku, theme, prompt, view, selectedId, onSelect,
       if (e instanceof ApiFailure && e.body.code === "locked") {
         setGen({ kind: "error", tone: "info", locked: true, message: "A new scene uses image generation credits, so it needs the demo access code. Library scenes stay free." });
         setAskCode(true);
+        return;
+      }
+      if (isReadOnly(e)) {
+        // the write lock, not the access code: never open the code dialog for it
+        setGen({ kind: "error", tone: "info", readOnly: true, message: featureMessage(e) });
         return;
       }
       if (e instanceof ApiFailure && e.status === 409) {
@@ -314,7 +320,9 @@ export function SceneGenerator({ sku, theme, prompt, view, selectedId, onSelect,
           </motion.div>
         ) : gen.kind === "error" ? (
           <motion.div key={`err-${gen.message}`} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-            {gen.locked ? (
+            {gen.readOnly ? (
+              <ReadOnlyNote message={gen.message} />
+            ) : gen.locked ? (
               <Notice tone="info" title="New scenes need the access code" onRetry={() => setAskCode(true)} retryLabel="Enter access code" retryIcon={<KeyRound />}>
                 {gen.message}
               </Notice>

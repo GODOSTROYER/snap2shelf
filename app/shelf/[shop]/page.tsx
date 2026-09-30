@@ -14,6 +14,8 @@ import { getShelf, lqipDataUri, shelfOg } from "@/lib/shelf/server";
 import { absoluteUrl, siteUrl } from "@/lib/shelf/site";
 import { checkShop, shelfPath, whatsappShareUrl } from "@/lib/shelf/slug";
 import type { Shelf, ShelfItem } from "@/lib/shelf/types";
+import { DEMO_SHELF } from "@/lib/claims";
+import { productName } from "@/lib/showcase";
 import { SCENE_THEMES } from "@/lib/types";
 
 /** ISR: the shelf re-renders at most once a minute; POST /api/shelf revalidates it immediately. */
@@ -26,7 +28,11 @@ export function generateStaticParams() {
 type Params = { params: Promise<{ shop: string }> };
 
 /** One Admin API lookup per render, shared by generateMetadata and the page. */
-const loadShelf = cache(async (shop: string): Promise<Shelf | null> => (checkShop(shop).ok ? getShelf(shop) : null));
+const loadShelf = cache(async (shop: string): Promise<Shelf | null> => {
+  const shelf = checkShop(shop).ok ? await getShelf(shop) : null;
+  // sample kits go by their canonical names (lib/claims.ts), not AI Vision's generic reading
+  return shelf ? { ...shelf, items: shelf.items.map((i) => ({ ...i, name: productName(i.sku, i.name) })) } : null;
+});
 
 const sceneLabel = (slug?: string) => SCENE_THEMES.find((t) => slug?.startsWith(t.slug))?.label.toLowerCase();
 
@@ -44,7 +50,7 @@ function shareMessage(shelf: Shelf): string {
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { shop } = await params;
   const shelf = await loadShelf(shop);
-  if (!shelf) return { title: "Shelf not found · Snap2Shelf", robots: { index: false } };
+  if (!shelf) return { title: "Shelf not found", robots: { index: false } };
   const og = shelfOg(shelf).url;
   const url = absoluteUrl(shelfPath(shop));
   const n = shelf.items.length;
@@ -52,7 +58,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const alt = `${shelf.title}: ${shelf.items.map((i) => i.name).join(", ")}`;
   return {
     metadataBase: new URL(siteUrl()),
-    title: `${shelf.title} · Snap2Shelf`,
+    title: shelf.title, // the root layout adds " · Snap2Shelf"
     description,
     alternates: { canonical: url },
     openGraph: { type: "website", url, siteName: "Snap2Shelf", title: shelf.title, description, images: [{ url: og, width: 1200, height: 630, alt, type: "image/jpeg" }] },
@@ -150,7 +156,11 @@ export default async function ShelfPage({ params }: Params) {
             </Link>{" "}
             · One photo. A whole shelf.
           </span>
-          <span className="text-[#a89f92]/70">Product photos are real; only the stage is AI.</span>
+          <span className="text-[#a89f92]/70">
+            {shop === DEMO_SHELF.slug
+              ? "Sample products from AI-generated test photos · the product pixels are never redrawn; AI builds only the stage."
+              : "Product pixels come from the seller's own photo; only the stage is AI."}
+          </span>
         </p>
       </footer>
     </div>

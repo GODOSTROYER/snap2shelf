@@ -8,7 +8,7 @@ import { isAborted, sleep } from "@/lib/client/util";
 import type { ReadinessReport } from "@/lib/readiness";
 import { ReadinessPanel, type ReadinessPanelProps } from "./ReadinessPanel";
 
-type State = { kind: "loading"; slow?: boolean } | { kind: "ready"; report: ReadinessReport } | { kind: "error"; message: string; busy: boolean } | { kind: "none" };
+type State = { kind: "loading"; slow?: boolean } | { kind: "ready"; report: ReadinessReport; canFix?: boolean } | { kind: "error"; message: string; busy: boolean } | { kind: "none" };
 
 const RETRY_MS = [4000, 8000, 16000];
 
@@ -51,7 +51,9 @@ export function KitReadiness({
           const res = await fetch(`/api/readiness/${sku}`, { cache: "no-store", credentials: "same-origin", signal: ac.signal });
           const body = (await res.json().catch(() => null)) as ReadinessResponse | ApiError | null;
           if (res.ok && body && "report" in body) {
-            setState({ kind: "ready", report: body.report });
+            // canFix (newer contract field): false = a kit this browser may look at but not change
+            const canFix = (body as ReadinessResponse & { canFix?: boolean }).canFix;
+            setState({ kind: "ready", report: body.report, canFix: typeof canFix === "boolean" ? canFix : undefined });
             return;
           }
           const code = body && "code" in body ? body.code : undefined;
@@ -110,5 +112,5 @@ export function KitReadiness({
       </div>
     );
   }
-  return <ReadinessPanel initial={state.report} {...panel} />;
+  return <ReadinessPanel initial={state.report} canFix={state.canFix} {...panel} />;
 }

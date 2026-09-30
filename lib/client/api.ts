@@ -26,7 +26,7 @@ import type {
 } from "../api-contract";
 import { getSample } from "../showcase";
 import type { Scene, SceneView, Sku } from "../types";
-import { ApiFailure } from "./errors";
+import { ApiFailure, isReadOnly, READ_ONLY_FALLBACK } from "./errors";
 import * as mock from "./mock";
 import { sleep } from "./util";
 
@@ -38,7 +38,7 @@ export interface Sourced<T> {
   source: DataSource;
 }
 
-export { ApiFailure };
+export { ApiFailure, isReadOnly };
 
 class Pending extends Error {
   constructor(public retryAfterMs: number) {
@@ -168,6 +168,7 @@ export const usage = (signal?: AbortSignal) => call<UsageResponse>("/api/usage",
 
 /** Human message for any thrown error. Server messages are shown as written. */
 export function messageFor(e: unknown): string {
+  if (isReadOnly(e)) return e.body.error || READ_ONLY_FALLBACK;
   if (e instanceof ApiFailure) {
     switch (e.body.code) {
       case "locked":

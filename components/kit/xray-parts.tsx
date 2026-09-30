@@ -40,18 +40,30 @@ export function XrayLegend({ segments, className }: { segments: XraySegment[]; c
   );
 }
 
+const same = (a: string, b: string) => a.trim().replace(/\.$/, "").toLowerCase() === b.trim().replace(/\.$/, "").toLowerCase();
+
 export function XraySteps({ segments, withCode, className }: { segments: XraySegment[]; withCode?: boolean; className?: string }) {
   return (
     <ol className={cn("grid content-start gap-4", className)}>
-      {segments.map((s, i) => (
+      {segments.map((s, i) => {
+        const legend = XRAY_KINDS[s.kind].legend;
+        // a plain stored asset's label is its legend ("Source asset"): say it once
+        const label = same(s.label, legend) ? null : s.label;
+        return (
         <li key={i} className="grid grid-cols-[auto_1fr] gap-x-3">
           <span aria-hidden className="mt-[0.45em] size-2.5 rounded-full" style={{ background: xrayColor(s.kind) }} />
           <div className="min-w-0">
             <p className="text-[0.95rem] text-dim">
               <span className="font-semibold" style={{ color: xrayColor(s.kind) }}>
-                {XRAY_KINDS[s.kind].legend}.
-              </span>{" "}
-              <span className="text-paper/90">{s.label}</span>
+                {legend}
+                {label ? "." : null}
+              </span>
+              {label ? (
+                <>
+                  {" "}
+                  <span className="text-paper/90">{label}</span>
+                </>
+              ) : null}
             </p>
             {withCode ? (
               <code className="mt-1 block truncate font-mono text-[0.75rem] text-faint" title={s.text}>
@@ -60,7 +72,8 @@ export function XraySteps({ segments, withCode, className }: { segments: XraySeg
             ) : null}
           </div>
         </li>
-      ))}
+        );
+      })}
     </ol>
   );
 }

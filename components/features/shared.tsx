@@ -1,9 +1,10 @@
 "use client";
 
-import { RefreshCw, Sparkles } from "lucide-react";
+import { ImageUp, RefreshCw, Sparkles } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import Link from "next/link";
 import * as React from "react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/client/util";
 
 /** Marks a field that AI Vision filled in (as opposed to the seller's words or a preset). */
@@ -21,9 +22,20 @@ export function AiBadge({ className, label = "AI Vision" }: { className?: string
   );
 }
 
+const useIsoLayoutEffect = typeof window === "undefined" ? React.useEffect : React.useLayoutEffect;
+
+/** Rewrite the span's own text node, so React keeps a live reference to it. */
+function write(el: HTMLElement, text: string) {
+  if (el.firstChild) el.firstChild.nodeValue = text;
+  else el.textContent = text;
+}
+
 /**
- * A number that counts to `value` once `start` is true (ease-out-expo). Writes to
- * the DOM directly, so it never re-renders React; screen readers get the final value.
+ * A number that counts to `value` once `start` is true (ease-out-expo). One text
+ * node: the server HTML (and anything reading the page without script) carries the
+ * final value; before the first paint the layout effect rewinds it to `from` and
+ * counts up, writing to the DOM directly so React never re-renders. Screen
+ * readers and text extraction read the number once.
  */
 export function CountUp({
   value,
@@ -48,11 +60,15 @@ export function CountUp({
     fmt.current = format;
   });
 
-  React.useEffect(() => {
+  useIsoLayoutEffect(() => {
     const el = ref.current;
-    if (!el || !start) return;
+    if (!el) return;
+    if (!start) {
+      write(el, fmt.current(from));
+      return;
+    }
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || from === value) {
-      el.textContent = fmt.current(value);
+      write(el, fmt.current(value));
       return;
     }
     let raf = 0;
@@ -60,20 +76,17 @@ export function CountUp({
     const ease = (t: number) => (t >= 1 ? 1 : 1 - Math.pow(2, -10 * t));
     const tick = (now: number) => {
       const t = Math.max(0, (now - t0) / duration);
-      el.textContent = fmt.current(from + (value - from) * ease(t));
+      write(el, fmt.current(from + (value - from) * ease(t)));
       if (t < 1) raf = requestAnimationFrame(tick);
     };
-    el.textContent = fmt.current(from);
+    write(el, fmt.current(from));
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
   }, [value, from, duration, delay, start]);
 
   return (
-    <span className={cn("tabular", className)}>
-      <span ref={ref} aria-hidden>
-        {format(from)}
-      </span>
-      <span className="sr-only">{format(value)}</span>
+    <span ref={ref} className={cn("tabular", className)} suppressHydrationWarning>
+      {format(value)}
     </span>
   );
 }
@@ -124,6 +137,34 @@ export function useCountdown(until: number | null): number {
     return () => clearInterval(t);
   }, [until]);
   return until ? Math.max(0, Math.ceil((until - now) / 1000)) : 0;
+}
+
+/**
+ * The server's write lock (403 "read_only"), said calmly: this product can be
+ * looked at, not changed, and the visitor's own photo can be. Never the
+ * access-code dialog. Pass `onUpload` where a plain link to /studio wouldn't
+ * leave the current screen (inside the studio itself).
+ */
+export function ReadOnlyNote({ message, onUpload, className }: { message: string; onUpload?: () => void; className?: string }) {
+  return (
+    <div role="status" className={cn("flex flex-col gap-3 rounded-2xl bg-stage-2 p-4 text-sm ring-1 ring-line sm:flex-row sm:items-center sm:justify-between", className)}>
+      <div className="min-w-0">
+        <p className="font-semibold text-paper">View only</p>
+        <p className="mt-0.5 text-dim">{message}</p>
+      </div>
+      {onUpload ? (
+        <Button size="sm" variant="secondary" onClick={onUpload} className="self-start sm:self-center">
+          <ImageUp />
+          Upload your photo
+        </Button>
+      ) : (
+        <Link href="/studio" className={cn(buttonVariants({ size: "sm", variant: "secondary" }), "self-start sm:self-center")}>
+          <ImageUp />
+          Upload your photo
+        </Link>
+      )}
+    </div>
+  );
 }
 
 /**

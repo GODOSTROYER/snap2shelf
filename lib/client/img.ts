@@ -5,7 +5,20 @@
 import { deliveryBase } from "../transform/composite";
 import type { BuiltUrl, KitAsset } from "../types";
 
-export const isBuiltUrl = (x: KitAsset["xray"] | undefined): x is BuiltUrl =>
+/**
+ * The only display widths the site asks Cloudinary for. Every distinct width of
+ * an asset is a new derived image (a billable transformation), so layouts pick
+ * from this set (srcset + sizes) instead of computing a w_ from their own size.
+ * 480/720/1080 were already warm from earlier builds; 360 covers small frames.
+ */
+export const WIDTHS = [360, 480, 720, 1080] as const;
+
+/** The smallest fixed width that covers `w` (the largest one past the end). */
+export function snapWidth(w: number): number {
+  return WIDTHS.find((x) => x >= w) ?? WIDTHS[WIDTHS.length - 1];
+}
+
+export const isBuiltUrl =(x: KitAsset["xray"] | undefined): x is BuiltUrl =>
   !!x && typeof (x as BuiltUrl).transformation === "string" && typeof (x as BuiltUrl).url === "string";
 
 /** Does this asset run a generative transformation? Resizing it would re-run the AI step. */
@@ -18,7 +31,7 @@ export const isGenerative = (a: Pick<KitAsset, "xray">) =>
  * is a cheap, cacheable transformation, never a re-run of an AI step.
  */
 export function storedUrl(publicId: string, w?: number, cloud?: string) {
-  return `${deliveryBase(cloud)}/${w ? `c_limit,w_${w}/` : ""}f_auto,q_auto/${publicId}`;
+  return `${deliveryBase(cloud)}/${w ? `c_limit,w_${snapWidth(w)}/` : ""}f_auto,q_auto/${publicId}`;
 }
 
 const STORED = /\/image\/upload\/f_auto,q_auto\/(?:v\d+\/)?[^/].*$/;
@@ -29,7 +42,8 @@ const STORED = /\/image\/upload\/f_auto,q_auto\/(?:v\d+\/)?[^/].*$/;
  * never stored are returned untouched: a new URL would re-run the AI step
  * (≈50 transformations, and a different outpaint).
  */
-export function sizedUrl(asset: Pick<KitAsset, "url" | "xray"> & { publicId?: string }, w: number): string {
+export function sizedUrl(asset: Pick<KitAsset, "url" | "xray"> & { publicId?: string }, width: number): string {
+  const w = snapWidth(width);
   if (asset.publicId && STORED.test(asset.url) && asset.url.endsWith(asset.publicId)) {
     return asset.url.replace("/image/upload/f_auto,q_auto/", `/image/upload/c_limit,w_${w}/f_auto,q_auto/`);
   }
@@ -51,7 +65,7 @@ export function publicUrl(publicId: string, opts: { w?: number; h?: number; crop
   return `${deliveryBase(opts.cloud)}/${parts.join("/")}/${publicId}`;
 }
 
-export function srcSet(make: (w: number) => string, widths: number[]) {
+export function srcSet(make: (w: number) => string, widths: readonly number[] = WIDTHS) {
   return widths.map((w) => `${make(w)} ${w}w`).join(", ");
 }
 

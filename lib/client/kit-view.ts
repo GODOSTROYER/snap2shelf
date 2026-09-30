@@ -82,6 +82,15 @@ const rank = (i: ShelfItem) => {
 
 export const countAssets = (kit: Kit) => kit.assets.length + (kit.reel ? 1 : 0);
 
+/** "8 images and a reel": the images are the files in the ZIP; the reel is a video streamed from its URL, not in the ZIP. */
+export function kitContents(kit: Pick<Kit, "assets" | "reel">) {
+  const n = kit.assets.length;
+  return `${n} ${n === 1 ? "image" : "images"}${kit.reel ? " and a reel" : ""}`;
+}
+
+/** What the ZIP holds: every image format of the kit. */
+export const zipLabel = (kit: Pick<Kit, "assets">) => `Download ${kit.assets.length} images (.zip)`;
+
 /** Copy for the mock storefronts inside frames. */
 export function frameProduct(kit: Kit) {
   return {

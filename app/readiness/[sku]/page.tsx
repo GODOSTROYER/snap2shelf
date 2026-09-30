@@ -11,7 +11,7 @@ import { SKU_RE } from "@/lib/types";
 
 /** Demo/verification route for the Readiness Score; the kit view embeds <ReadinessGauge> directly. */
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Readiness · Snap2Shelf", robots: { index: false } };
+export const metadata: Metadata = { title: "Readiness", robots: { index: false } }; // the root layout adds " · Snap2Shelf"
 
 export default async function ReadinessPage({ params }: { params: Promise<{ sku: string }> }) {
   const { sku } = await params;

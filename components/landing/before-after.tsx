@@ -12,30 +12,49 @@ interface Img {
 }
 
 /**
- * Drag to compare: the phone photo (left) against the finished hero, aligned
+ * Drag to compare: the input photo (left) against the finished hero, aligned
  * so the product stays put while the world around it changes.
  *
  * Once both images are decoded, one intro plays (CSS, on the registered --pos
- * property): the phone photo slides over, then the stage sweeps in behind the
+ * property): the input photo slides over, then the stage sweeps in behind the
  * product and the handle settles in the middle. Touching the slider stops it.
  * The range input covers the whole frame, so it works with drag, tap and arrow
  * keys, and reads as a slider to screen readers. Dragging never re-renders React.
  */
-export function BeforeAfter({ before, after, sizes, width, height }: { before: Img; after: Img; sizes: string; width: number; height: number }) {
+export function BeforeAfter({
+  before,
+  after,
+  sizes,
+  width,
+  height,
+  beforeLabel = "Your photo",
+}: {
+  before: Img;
+  after: Img;
+  sizes: string;
+  width: number;
+  height: number;
+  /** What the input photo is: "Your photo", or the sample label (the samples are AI-generated test images). */
+  beforeLabel?: string;
+}) {
+  const what = beforeLabel.toLowerCase();
   const box = React.useRef<HTMLDivElement>(null);
   const input = React.useRef<HTMLInputElement>(null);
   const loaded = React.useRef(0);
 
-  const set = React.useCallback((v: number) => {
-    const el = box.current;
-    if (!el) return;
-    el.dataset.intro = "done";
-    el.style.setProperty("--pos", `${v}%`);
-    if (input.current) {
-      input.current.value = String(Math.round(v));
-      input.current.setAttribute("aria-valuetext", `${Math.round(v)}% phone photo`);
-    }
-  }, []);
+  const set = React.useCallback(
+    (v: number) => {
+      const el = box.current;
+      if (!el) return;
+      el.dataset.intro = "done";
+      el.style.setProperty("--pos", `${v}%`);
+      if (input.current) {
+        input.current.value = String(Math.round(v));
+        input.current.setAttribute("aria-valuetext", `${Math.round(v)}% ${what}`);
+      }
+    },
+    [what],
+  );
 
   const arm = React.useCallback(() => {
     const el = box.current;
@@ -92,7 +111,7 @@ export function BeforeAfter({ before, after, sizes, width, height }: { before: I
         className="absolute inset-0 size-full bg-cover bg-center object-cover [clip-path:inset(0_calc(100%_-_var(--pos))_0_0)]"
       />
 
-      <span className="pointer-events-none absolute top-3.5 left-3.5 rounded-full bg-black/55 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-sm sm:top-4 sm:left-4">Your phone photo</span>
+      <span className="pointer-events-none absolute top-3.5 left-3.5 rounded-full bg-black/55 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-sm sm:top-4 sm:left-4">{beforeLabel}</span>
       <span className="pointer-events-none absolute top-3.5 right-3.5 rounded-full bg-marigold px-3 py-1.5 text-xs font-semibold text-marigold-ink sm:top-4 sm:right-4">Shelf-ready hero</span>
 
       {/* a full-width layer moved by transform (never layout), so the handle can follow --pos without shifting anything */}
@@ -110,8 +129,8 @@ export function BeforeAfter({ before, after, sizes, width, height }: { before: I
         min={0}
         max={100}
         defaultValue={50}
-        aria-label="Compare your phone photo with the finished hero"
-        aria-valuetext="50% phone photo"
+        aria-label={`Compare the ${what} with the finished hero`}
+        aria-valuetext={`50% ${what}`}
         onPointerDown={() => {
           if (box.current) box.current.dataset.intro = "done";
         }}

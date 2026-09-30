@@ -7,12 +7,12 @@ import * as React from "react";
 import { XraySheet } from "@/components/kit/xray-sheet";
 import { Button } from "@/components/ui/button";
 import type { RetouchPendingResponse, RetouchResponse } from "@/lib/api-contract";
-import { featureMessage, featuresClient, fixMeta, isBusy, rawViewPath, retouchUntilDone, withBusyRetry, type FeaturesClient } from "@/lib/client/features";
+import { featureMessage, featuresClient, fixMeta, isBusy, isReadOnly, rawViewPath, retouchUntilDone, withBusyRetry, type FeaturesClient } from "@/lib/client/features";
 import { publicUrl } from "@/lib/client/img";
 import { XRAY_KINDS } from "@/lib/transform/xray";
 import { cn, isAborted } from "@/lib/client/util";
 import type { KitAsset, RetouchFix, Sku } from "@/lib/types";
-import { Narration, Notice, useCountdown } from "./shared";
+import { Narration, Notice, ReadOnlyNote, useCountdown } from "./shared";
 
 const EXPO = [0.16, 1, 0.3, 1] as const;
 
@@ -39,7 +39,7 @@ type Phase =
   | { kind: "reading"; busyUntil?: number }
   | { kind: "fixing"; plan: RetouchPendingResponse }
   | { kind: "done"; res: RetouchResponse }
-  | { kind: "error"; message: string; busy: boolean };
+  | { kind: "error"; message: string; busy: boolean; readOnly?: boolean };
 
 /**
  * Q4 auto-retouch, narrated: AI Vision reads the photo, the planned fixes are
@@ -72,7 +72,7 @@ export function RetouchCard({ sku, autoStart = true, onDone, onError, client = f
       done.current?.(res.fixes.applied, res);
     } catch (e) {
       if (isAborted(e) || ctl.signal.aborted) return;
-      setPhase({ kind: "error", message: featureMessage(e), busy: isBusy(e) });
+      setPhase({ kind: "error", message: featureMessage(e), busy: isBusy(e), readOnly: isReadOnly(e) });
       failed.current?.(featureMessage(e));
     }
   }, [client, sku]);
@@ -165,9 +165,13 @@ export function RetouchCard({ sku, autoStart = true, onDone, onError, client = f
         ) : phase.kind === "error" ? (
           <div className="grid gap-3">
             {frame === "always" ? <Frame src={rawView} scanning={false} /> : null}
-            <Notice tone={phase.busy ? "busy" : "error"} title={phase.busy ? "Busy for a moment" : "Retouch failed"} onRetry={() => void start()}>
-              {phase.busy ? "Cloudinary's limit refills shortly. Try again in a minute." : phase.message}
-            </Notice>
+            {phase.readOnly ? (
+              <ReadOnlyNote message={phase.message} />
+            ) : (
+              <Notice tone={phase.busy ? "busy" : "error"} title={phase.busy ? "Busy for a moment" : "Retouch failed"} onRetry={() => void start()}>
+                {phase.busy ? "Cloudinary's limit refills shortly. Try again in a minute." : phase.message}
+              </Notice>
+            )}
           </div>
         ) : fixed && res ? (
           <Compare before={res.beforeUrl ?? rawView} after={res.url!} />
