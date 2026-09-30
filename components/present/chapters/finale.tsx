@@ -140,7 +140,7 @@ export function Closing({ d }: ChapterProps) {
         <Rise delay={0.6} y={24} as="h1" className="pz-display" style={{ fontSize: 196, margin: "18px 0 0", fontWeight: 780 }}>
           Snap2Shelf
         </Rise>
-        <Rise delay={1.1} as="p" className="pz-display" style={{ fontSize: 48, margin: "28px 0 0", fontWeight: 600, letterSpacing: "-0.02em" }}>
+        <Rise delay={1.1} as="p" className="pz-display" style={{ fontSize: 48, margin: "28px 0 0", fontWeight: 600, letterSpacing: "-0.01em" }}>
           One photo. A whole shelf.
         </Rise>
         <Rise delay={1.4} as="p" className="pz-lede" style={{ margin: "14px 0 0", maxWidth: "none", fontSize: 30 }}>
@@ -150,7 +150,7 @@ export function Closing({ d }: ChapterProps) {
       <Rise delay={2.2} style={abs(0, 800, { width: 1920, display: "flex", justifyContent: "center", alignItems: "center", gap: 40 })}>
         <QrCode value={d.site.url} size={168} />
         <div style={{ display: "grid", gap: 8, textAlign: "left" }}>
-          <a href={d.site.url} className="pz-display" style={{ fontSize: 46, color: "var(--pz-marigold-hi)", textDecoration: "none", letterSpacing: "-0.02em" }}>
+          <a href={d.site.url} className="pz-display" style={{ fontSize: 46, color: "var(--pz-marigold-hi)", textDecoration: "none", letterSpacing: "-0.01em" }}>
             {d.site.host}
           </a>
           <span className="pz-body" style={{ fontSize: 22 }}>

@@ -3,7 +3,7 @@
 import { Layers, Package, ScanLine, Scissors, ShieldCheck, SunMedium, WandSparkles } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import type { PipelineStepId } from "@/lib/types";
-import { CountUp, EASE, Img, useBeat } from "../stage";
+import { EASE, Img, useBeat, useImagesReady } from "../stage";
 import { abs, fmtBytes, Rise, type ChapterProps } from "./common";
 
 // ─── 1. Cold open ─────────────────────────────────────────────────────────────
@@ -23,13 +23,19 @@ function Corners({ w, h, len = 46, t = 3, color = "var(--pz-marigold-hi)" }: { w
 export function ColdOpen({ d }: ChapterProps) {
   const reduced = useReducedMotion();
   const raw = d.product.raw;
+  // the timeline starts once the photo is decoded (it is preloaded by the page), so it never pops into an empty card
+  const ready = useImagesReady([raw.url], 2000);
   const h = 800;
   const w = Math.round((h * raw.width) / raw.height);
   const cx = 1390;
   const left = cx - w / 2;
   const top = 132;
   const shot = 0.85; // shutter moment
+  // a slow camera push for the whole chapter, so the opening seconds of the video are never a still frame
+  const push = reduced ? {} : { initial: { scale: 1 }, animate: { scale: 1.045 }, transition: { delay: shot, duration: 6, ease: "linear" as const } };
+  const drift = reduced ? {} : { initial: { x: 0 }, animate: { x: -14 }, transition: { delay: 1.2, duration: 6, ease: "linear" as const } };
 
+  if (!ready) return null;
   return (
     <>
       {/* focus lock, then the shutter */}
@@ -42,47 +48,53 @@ export function ColdOpen({ d }: ChapterProps) {
         <Corners w={w + 72} h={h + 72} />
       </motion.div>
 
-      <motion.figure
-        style={{ ...abs(left, top), width: w, height: h, margin: 0 }}
-        initial={{ opacity: 0, y: reduced ? 0 : -70, rotate: reduced ? -2.5 : -8, scale: reduced ? 1 : 1.07 }}
-        animate={{ opacity: 1, y: 0, rotate: -2.5, scale: 1 }}
-        transition={{ delay: shot, type: "spring", stiffness: 150, damping: 17, mass: 1.1 }}
-      >
-        <div className="pz-plate" style={{ inset: 0, borderRadius: 22, boxShadow: "0 60px 90px -30px rgb(0 0 0 / 0.95), 0 0 0 1px rgb(255 255 255 / 0.08)" }}>
-          <Img src={raw.url} alt={raw.alt} fade={false} fetchPriority="high" />
-        </div>
-      </motion.figure>
+      <motion.div style={{ ...abs(left, top), width: w, height: h, transformOrigin: "50% 60%" }} {...push}>
+        <motion.figure
+          style={{ position: "absolute", inset: 0, margin: 0 }}
+          initial={{ opacity: 0, y: reduced ? 0 : -70, rotate: reduced ? -2.5 : -8, scale: reduced ? 1 : 1.07 }}
+          animate={{ opacity: 1, y: 0, rotate: -2.5, scale: 1 }}
+          transition={{ delay: shot, type: "spring", stiffness: 150, damping: 17, mass: 1.1 }}
+        >
+          <div className="pz-plate" style={{ inset: 0, borderRadius: 22, boxShadow: "0 60px 90px -30px rgb(0 0 0 / 0.95), 0 0 0 1px rgb(255 255 255 / 0.08)" }}>
+            <Img src={raw.url} alt={raw.alt} fade={false} fetchPriority="high" />
+          </div>
+        </motion.figure>
+      </motion.div>
 
+      {/* shutter: a soft warm lift, not a full-frame white flash (no strobe in the encoded video) */}
       <motion.div
         aria-hidden
-        style={{ position: "absolute", inset: -40, background: "#fff8ec", zIndex: 40, pointerEvents: "none" }}
+        style={{ position: "absolute", inset: -40, background: "radial-gradient(ellipse 55% 60% at 72% 45%, #fff1d6, rgb(255 241 214 / 0))", zIndex: 40, pointerEvents: "none" }}
         initial={{ opacity: 0 }}
-        animate={{ opacity: [0, reduced ? 0.35 : 0.95, 0] }}
-        transition={{ delay: shot - 0.05, duration: 0.55, times: [0, 0.1, 1], ease: "easeOut" }}
+        animate={{ opacity: [0, reduced ? 0.1 : 0.22, 0] }}
+        transition={{ delay: shot - 0.05, duration: 0.7, times: [0, 0.2, 1], ease: "easeOut" }}
       />
 
-      {/* 164 px: "A whole shelf." is 871 px wide at wdth 92, so it holds one line clear of the photo (x 1070) */}
-      <div style={abs(120, 300, { width: 920 })}>
-        <Rise delay={1.2} y={26} as="h1" className="pz-display" style={{ fontSize: 164, margin: 0, whiteSpace: "nowrap" }}>
-          One photo.
-        </Rise>
-        <Rise delay={2.7} y={26} as="p" className="pz-display" style={{ fontSize: 164, margin: "6px 0 0", color: "var(--pz-faint)", whiteSpace: "nowrap" }}>
-          A whole shelf.
-        </Rise>
-      </div>
-
-      <div style={abs(120, 790, { display: "flex", gap: 12 })}>
-        {[raw.source, `${raw.width} × ${raw.height}`, `${raw.format} · ${fmtBytes(raw.bytes)}`].map((t, i) => (
-          <Rise key={t} delay={1.7 + i * 0.12} y={10} className="pz-chip" style={i === 0 && raw.disclosure ? { borderColor: "rgb(245 165 36 / 0.55)", color: "var(--pz-marigold-hi)" } : undefined}>
-            {t}
+      {/* the copy column drifts left as the camera pushes in toward the photo.
+          164 px: "A whole shelf." is ~910 px wide at wdth 92 / -0.006em, so it holds one line clear of the photo (x 1070) */}
+      <motion.div style={{ position: "absolute", inset: 0 }} {...drift}>
+        <div style={abs(120, 300, { width: 920 })}>
+          <Rise delay={1.2} y={26} as="h1" className="pz-display" style={{ fontSize: 164, margin: 0, whiteSpace: "nowrap" }}>
+            One photo.
           </Rise>
-        ))}
-      </div>
-      {raw.disclosure && (
-        <Rise delay={2.1} y={8} as="p" className="pz-small" style={abs(120, 852, { margin: 0, width: 800, fontSize: 19, color: "var(--pz-dim)" })}>
-          {raw.disclosure}
-        </Rise>
-      )}
+          <Rise delay={2.7} y={26} as="p" className="pz-display" style={{ fontSize: 164, margin: "6px 0 0", color: "var(--pz-faint)", whiteSpace: "nowrap" }}>
+            A whole shelf.
+          </Rise>
+        </div>
+
+        <div style={abs(120, 790, { display: "flex", gap: 12 })}>
+          {[raw.source, `${raw.width} × ${raw.height}`, `${raw.format} · ${fmtBytes(raw.bytes)}`].map((t, i) => (
+            <Rise key={t} delay={1.7 + i * 0.12} y={10} className="pz-chip" style={i === 0 && raw.disclosure ? { borderColor: "rgb(245 165 36 / 0.55)", color: "var(--pz-marigold-hi)" } : undefined}>
+              {t}
+            </Rise>
+          ))}
+        </div>
+        {raw.disclosure && (
+          <Rise delay={2.1} y={8} as="p" className="pz-small" style={abs(120, 852, { margin: 0, width: 800, fontSize: 19, color: "var(--pz-dim)" })}>
+            {raw.disclosure}
+          </Rise>
+        )}
+      </motion.div>
     </>
   );
 }
@@ -100,7 +112,8 @@ const STEP_ICON: Record<PipelineStepId, typeof Layers> = {
 
 export function Pipeline({ d }: ChapterProps) {
   const steps = d.pipeline.steps;
-  const total = d.pipeline.totalSeconds;
+  const [lo, hi] = d.pipeline.range;
+  const headline = d.pipeline.headline.charAt(0).toUpperCase() + d.pipeline.headline.slice(1);
   const T0 = 1.0;
   const SPAN = 5.2;
   const minSeg = 0.35;
@@ -129,7 +142,7 @@ export function Pipeline({ d }: ChapterProps) {
     <>
       <div style={abs(120, 110, { width: 1500 })}>
         <Rise as="h1" className="pz-display pz-h1" style={{ margin: 0 }}>
-          Six steps. {total} seconds.
+          Six steps. {headline}.
         </Rise>
         <Rise delay={0.25} as="p" className="pz-lede" style={{ margin: "22px 0 0", maxWidth: "none" }}>
           From one photo to a finished, approved kit, zipped and ready to download.
@@ -181,10 +194,10 @@ export function Pipeline({ d }: ChapterProps) {
         );
       })}
 
-      {/* one clock for the whole run: it reaches the measured total as the last step lands */}
+      {/* the measured range, never one run's time on its own (lib/claims MEASURED_PHOTO_TO_ZIP_RANGE_S) */}
       <Rise delay={0.6} style={abs(120, 880, { display: "flex", alignItems: "center", gap: 18 })}>
-        <span className="pz-chip" data-tone="lit" style={{ height: 52, fontSize: 24, padding: "0 22px" }}>
-          <CountUp to={total} delay={T0} duration={end[n - 1] - T0} linear format={(v) => `${Math.floor(v)} s photo → ZIP`} />
+        <span className="pz-chip pz-num" data-tone="lit" style={{ height: 52, fontSize: 24, padding: "0 22px" }}>
+          {lo}–{hi} s photo → ZIP
         </span>
         <motion.span className="pz-small" style={{ fontSize: 19 }} initial={{ opacity: 0 }} animate={{ opacity: finished >= n ? 1 : 0 }} transition={{ duration: 0.5 }}>
           {d.pipeline.note}

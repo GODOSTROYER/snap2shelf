@@ -10,7 +10,7 @@ import { motion, MotionConfig, useReducedMotion } from "motion/react";
 import { useEffect, useState } from "react";
 import { PRESENT } from "@/lib/present/data";
 import { QrCode } from "../QrCode";
-import { Artboard, Backdrop, EASE, Img, Mark } from "../stage";
+import { Artboard, Backdrop, EASE, Img, Mark, useImagesReady } from "../stage";
 
 const LOOP = 6;
 
@@ -50,29 +50,6 @@ function Breath({ cx, cy, r }: { cx: number; cy: number; r: number }) {
   );
 }
 
-/** True once every image is decoded (or after `maxMs`), so a build never starts on missing pixels. */
-function useImagesReady(urls: readonly string[], maxMs = 2500) {
-  const [ready, setReady] = useState(false);
-  const key = urls.join("|");
-  useEffect(() => {
-    let live = true;
-    const done = () => live && setReady(true);
-    const timer = window.setTimeout(done, maxMs);
-    Promise.all(
-      key.split("|").map((u) => {
-        const img = new Image();
-        img.src = u;
-        return img.decode().catch(() => {});
-      }),
-    ).then(done);
-    return () => {
-      live = false;
-      window.clearTimeout(timer);
-    };
-  }, [key, maxMs]);
-  return ready;
-}
-
 /**
  * Standing height on the title shelf (px), so the products keep believable
  * relative sizes. Every cutout is drawn at or below its native resolution
@@ -109,14 +86,14 @@ export function TitleCard({ hold = false }: { hold?: boolean }) {
       <div key={run} style={{ position: "absolute", inset: 0 }}>
         <Breath cx={960} cy={SHELF_Y - 60} r={620} />
 
-        {/* shutter flash */}
+        {/* shutter: a soft warm lift, not a full-frame white flash (no strobe once the video is re-encoded) */}
         {!skip && (
           <motion.div
             aria-hidden
-            style={{ position: "absolute", inset: 0, background: "#fff8ec", zIndex: 30 }}
+            style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 60% 55% at 50% 40%, #fff1d6, rgb(255 241 214 / 0))", zIndex: 30, pointerEvents: "none" }}
             initial={{ opacity: 0 }}
-            animate={{ opacity: [0, reduced ? 0.3 : 0.9, 0] }}
-            transition={{ delay: 0.15, duration: 0.5, times: [0, 0.12, 1] }}
+            animate={{ opacity: [0, reduced ? 0.08 : 0.18, 0] }}
+            transition={{ delay: 0.15, duration: 0.8, times: [0, 0.3, 1], ease: "easeOut" }}
           />
         )}
 
@@ -176,9 +153,14 @@ export function TitleCard({ hold = false }: { hold?: boolean }) {
           <motion.div
             key={it.sku}
             style={{ position: "absolute", left: xs[i], top: BASE_Y - it.h, width: it.w, height: it.h }}
-            initial={skip ? false : { y: reduced ? 0 : -380, opacity: reduced ? 0 : 1 }}
+            // starts wholly above the frame (and transparent), so nothing waits at the top edge before its drop
+            initial={skip ? false : { y: reduced ? 0 : -(BASE_Y + 40), opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            transition={reduced ? { delay: t(0.6 + i * 0.16), duration: 0.5 } : { delay: t(0.6 + i * 0.16), type: "spring", stiffness: 240, damping: 17 }}
+            transition={
+              reduced
+                ? { delay: t(0.6 + i * 0.16), duration: 0.5 }
+                : { default: { delay: t(0.6 + i * 0.16), type: "spring", stiffness: 240, damping: 17 }, opacity: { delay: t(0.6 + i * 0.16), duration: 0.12 } }
+            }
           >
             <Img src={it.url} alt={it.alt} className="pz-fill" fade={false} fetchPriority="high" style={{ objectFit: "contain" }} />
           </motion.div>
@@ -187,7 +169,7 @@ export function TitleCard({ hold = false }: { hold?: boolean }) {
         <div style={{ position: "absolute", left: 0, top: 540, width: 1920, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
           <motion.h1
             className="pz-display"
-            style={{ fontSize: 232, margin: 0, fontWeight: 790, letterSpacing: "-0.026em" }}
+            style={{ fontSize: 232, margin: 0, fontWeight: 790, letterSpacing: "-0.01em" }}
             initial={skip ? false : { opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: t(1.15), duration: dur(0.9), ease: EASE }}
@@ -196,7 +178,7 @@ export function TitleCard({ hold = false }: { hold?: boolean }) {
           </motion.h1>
           <motion.p
             className="pz-display"
-            style={{ fontSize: 46, margin: "18px 0 0", fontWeight: 560, letterSpacing: "-0.02em", color: "var(--pz-paper)" }}
+            style={{ fontSize: 46, margin: "18px 0 0", fontWeight: 560, letterSpacing: "-0.01em", color: "var(--pz-paper)" }}
             initial={skip ? false : { opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: t(1.6), duration: dur(0.8), ease: EASE }}
@@ -259,7 +241,7 @@ export function OutroCard({ hold = false }: { hold?: boolean }) {
           <motion.a
             href={d.site.url}
             className="pz-display"
-            style={{ display: "block", fontSize: 76, marginTop: 64, color: "var(--pz-marigold-hi)", textDecoration: "none", fontWeight: 700, letterSpacing: "-0.03em" }}
+            style={{ display: "block", fontSize: 76, marginTop: 64, color: "var(--pz-marigold-hi)", textDecoration: "none", fontWeight: 700, letterSpacing: "-0.01em" }}
             {...rise(0.7)}
           >
             {d.site.host}
@@ -289,7 +271,7 @@ export function OutroCard({ hold = false }: { hold?: boolean }) {
         >
           <span style={{ display: "inline-flex", alignItems: "center", gap: 14 }}>
             <Mark size={40} />
-            <span className="pz-display" style={{ fontSize: 40, fontWeight: 760, letterSpacing: "-0.03em" }}>
+            <span className="pz-display" style={{ fontSize: 40, fontWeight: 760, letterSpacing: "-0.012em" }}>
               Snap2Shelf
             </span>
           </span>

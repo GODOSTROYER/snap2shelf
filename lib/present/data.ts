@@ -28,7 +28,10 @@
 import {
   CREDITS_SAVED_COPY,
   DEMO_SHELF,
-  MEASURED_PHOTO_TO_ZIP_S,
+  heroWeightConditions,
+  MEASURED_HERO_WEIGHT,
+  MEASURED_PHOTO_TO_ZIP_RANGE_S,
+  PHOTO_TO_KIT_COPY,
   PHOTO_TO_KIT_MEASURED_COPY,
   PHOTOSHOOT_INR_ESTIMATE,
   PHOTOSHOOT_NOTE,
@@ -100,7 +103,7 @@ export interface PipelineStat {
   label: string;
   /**
    * Relative share of a run, used ONLY to pace the animation. Never shown as a
-   * time: the one speed number the deck states is MEASURED_PHOTO_TO_ZIP_S.
+   * time: the one speed claim the deck states is the measured range, MEASURED_PHOTO_TO_ZIP_RANGE_S.
    */
   weight: number;
   detail: string;
@@ -157,8 +160,12 @@ export interface PresentData {
   /** clips are read back from the reel URL itself, so the count can't drift from the video. */
   reel: { url: string; poster: string; seconds: number; clips: ReelClip[]; built: BuiltUrl } | null;
   xray: { hero: BuiltUrl; extras: { title: string; segment: XraySegment }[] };
-  /** totalSeconds / claim: the one measured speed number (lib/claims), used by every chapter. */
-  pipeline: { steps: PipelineStat[]; totalSeconds: number; claim: string; note: string };
+  /**
+   * The one speed claim (lib/claims), used by every chapter: the measured photo → ZIP range
+   * ("36–58 s"), its headline form ("about a minute") and the full measured sentence.
+   * Never a single run's time on its own.
+   */
+  pipeline: { steps: PipelineStat[]; range: readonly [number, number]; headline: string; claim: string; note: string };
   cost: {
     generationCredits: number;
     sceneTitle: string;
@@ -166,10 +173,12 @@ export interface PresentData {
     creditsSavedByReuse: number; // the app's per-kit number (= that scene's cost)
     reuseNote: string;
     transformations: number; // tx estimate for the whole kit
-    bytesOriginal: number;
-    bytesDeliveredFallback: number; // measured offline for deliveredUrl; the deck re-measures live
-    formatDeliveredFallback: string | null; // the format f_auto answered in that measurement ("webp")
-    deliveredUrl: string; // image whose delivered size the deck measures live
+    /**
+     * Upload → delivered hero, the SAME figure the studio and kit receipts show (lib/claims
+     * MEASURED_HERO_WEIGHT): the photo as uploaded vs the stored 1080 × 1350 hero at
+     * f_auto,q_auto, and the conditions sentence that goes next to it.
+     */
+    weight: { original: number; delivered: number; format: string; conditions: string };
     photoshootInr: number;
     photoshootNote: string;
     inrPerCredit: number;
@@ -196,8 +205,6 @@ export interface PresentExtras {
   stageScenes: Scene[];
   /** The six steps, with animation weights. */
   pipeline: { steps: PipelineStat[] };
-  /** The raw photo URL as Chrome receives it (Accept: image/avif,image/webp,…), keyed by raw public id. */
-  rawDelivered: Record<string, { bytes: number; format: string }>;
   /** Reference-vs-candidate evidence for the QA chapter when no kit carries a creative pair. */
   qaFallback: { approved: QaCard; rejected: QaCard } | null;
   /** Reel inputs when the featured kit has none. */
@@ -478,9 +485,6 @@ export const EXTRAS: PresentExtras = {
       { id: "pack", label: "Pack", weight: 10.8, detail: "Every channel format, zipped" },
     ],
   },
-  // GET with Chrome's UA and Accept (image/avif,image/webp,…), 30 Sep 2026: f_auto answered WebP,
-  // 1122×1402 (same pixels as the 2,249,535-byte PNG upload), Content-Length 157588
-  rawDelivered: { "snap2shelf/products/shmessy1/raw": { bytes: 157588, format: "webp" } },
   qaFallback: QA_EVIDENCE,
   reelFallback: null,
   shelf: DEMO_SHELF_SNAPSHOT,
@@ -598,8 +602,13 @@ export function fromKits(kits: Kit[], x: PresentExtras = EXTRAS, featuredSku?: s
     };
   });
 
-  // stages[0] is this same URL: the hero on screen, the X-ray and the pixel proof share one geometry (g)
+  // stages[0] is this same URL: the hero on screen and the pixel proof share one geometry (g)
   const heroBuilt = compositeUrl({ scenePublicId: sc.publicId, dna: sc.dna, cutout: cut, placement, controls, format: VERIFIED_FMT, cloud });
+  // upload → delivered hero: the figure every receipt shows (lib/claims), else this kit's own record
+  const measured = MEASURED_HERO_WEIGHT[k.sku];
+  const heroWeight: PresentData["cost"]["weight"] = measured
+    ? { original: measured.original, delivered: measured.delivered, format: measured.format, conditions: heroWeightConditions(measured.format) }
+    : { original: k.cost.bytesOriginal || p.rawBytes, delivered: k.cost.bytesDelivered, format: "", conditions: heroWeightConditions() };
   const offerAsset = k.assets.find((a) => a.format === "offer");
   const offerText = { hindi: OFFER.hindi, english: OFFER.english };
   const card = offerLayout(sc.dna.text_zone, g, offerText).card;
@@ -692,12 +701,14 @@ export function fromKits(kits: Kit[], x: PresentExtras = EXTRAS, featuredSku?: s
     qa: qaFromKits(kits) ?? x.qaFallback,
     pack,
     reel,
-    xray: { hero: heroBuilt, extras },
+    // the X-ray shows the kit's own stored hero URL: the same URL (and character count) as the landing's
+    xray: { hero: isBuilt(k.hero.xray) ? k.hero.xray : heroBuilt, extras },
     pipeline: {
       steps: x.pipeline.steps,
-      totalSeconds: MEASURED_PHOTO_TO_ZIP_S,
+      range: MEASURED_PHOTO_TO_ZIP_RANGE_S,
+      headline: PHOTO_TO_KIT_COPY,
       claim: PHOTO_TO_KIT_MEASURED_COPY,
-      note: "Measured on the live site: one run on 30 Sep 2026, from choosing the file to the ZIP link, upload included.",
+      note: "Timed live runs, 30 Sep 2026: from choosing the file to the ZIP link, upload included. Most of the spread is upload time.",
     },
     cost: {
       generationCredits: k.cost.generationCredits,
@@ -706,10 +717,7 @@ export function fromKits(kits: Kit[], x: PresentExtras = EXTRAS, featuredSku?: s
       creditsSavedByReuse: k.cost.creditsSavedByReuse,
       reuseNote: CREDITS_SAVED_COPY,
       transformations: k.cost.transformationsEstimate,
-      bytesOriginal: k.cost.bytesOriginal || p.rawBytes,
-      bytesDeliveredFallback: x.rawDelivered[p.rawPublicId]?.bytes ?? k.cost.bytesDelivered,
-      formatDeliveredFallback: x.rawDelivered[p.rawPublicId]?.format ?? null,
-      deliveredUrl: rawUrl,
+      weight: heroWeight,
       photoshootInr: x.photoshootInr,
       photoshootNote: x.photoshootNote,
       inrPerCredit: x.inrPerCredit,

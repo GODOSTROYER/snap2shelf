@@ -42,6 +42,9 @@ const KEYS: [string[], string][] = [
   [["?"], "This list"],
 ];
 
+/** Chapter exit (s). Short, because the next chapter waits for it (AnimatePresence mode="wait"). */
+const EXIT_S = 0.18;
+
 const noSubscribe = () => () => {};
 /**
  * True once hydrated. Chapters render on the client only: they branch on
@@ -271,7 +274,11 @@ export function Deck({ data, initial }: DeckProps) {
         <Backdrop light={ch.light} />
 
         <Artboard label={`Chapter ${index + 1} of ${count}: ${ch.title}`}>
-          <AnimatePresence initial={false}>
+          {/* mode="wait": the old chapter is fully gone before the new one mounts, so two headlines never
+              share the frame. The new chapter's own timeline starts EXIT_S after the switch.
+              No initial={false}: it would pass initial=false to every motion child of the FIRST chapter,
+              so a fresh load skipped the cold open's whole build (a static first 6 s). */}
+          <AnimatePresence mode="wait">
             <motion.section
               key={`${ch.id}-${run}`}
               className="pz-chapter"
@@ -279,8 +286,8 @@ export function Deck({ data, initial }: DeckProps) {
               aria-label={ch.title}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              exit={{ opacity: 0, transition: { duration: 0.35 } }}
-              transition={{ duration: 0.5 }}
+              exit={{ opacity: 0, transition: { duration: EXIT_S, ease: "easeIn" } }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
             >
               {hydrated && <View d={data} />}
             </motion.section>
