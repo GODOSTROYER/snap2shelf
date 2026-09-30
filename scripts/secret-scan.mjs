@@ -23,7 +23,7 @@ for (const f of tracked) { try { sources.push({ where: `file ${f}`, text: readFi
 try { sources.push({ where: 'staged diff', text: sh('git diff --cached') }); } catch {}
 try { sources.push({ where: 'git history', text: sh('git log -p --all --no-color') }); } catch {}
 
-const generic = [/cloudinary:\/\/\d{6,}:[A-Za-z0-9_-]{10,}@/, /api_secret["' \t:=]+[A-Za-z0-9_-]{20,}/i]; // separator must not span lines (an empty KEY= line is not a leak)
+const generic = [/AIza[0-9A-Za-z_-]{35}/, /cloudinary:\/\/\d{6,}:[A-Za-z0-9_-]{10,}@/, /api_secret["' \t:=]+[A-Za-z0-9_-]{20,}/i]; // separator must not span lines (an empty KEY= line is not a leak)
 let bad = 0;
 for (const s of sources) {
   for (const n of checks) if (s.text.includes(n.value)) { console.error(`LEAK: value of ${n.name} found in ${s.where}`); bad++; }
