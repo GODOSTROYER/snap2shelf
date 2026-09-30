@@ -10,9 +10,11 @@
 import type {
   CutoutRecord,
   KitAsset,
+  ProductRecord,
   ProductUnderstanding,
   QaResult,
   Scene,
+  SceneDNA,
   Sku,
 } from "./types";
 
@@ -88,11 +90,20 @@ export interface PackRequest {
   sceneSlug: string; // used for the hero public_id
   offer?: { hindi?: string; english?: string };
   recolor?: string[]; // hex swatches without '#', max 4
+  textZone?: SceneDNA["text_zone"]; // (additive) where the offer text goes; from the scene's DNA
 }
-export interface PackResponse { sku: Sku; heroPublicId: string; assets: KitAsset[]; pending: string[] }
+// heroPublicId is snap2shelf/products/<sku>/hero-<sceneSlug>-<hash8 of heroUrl>.
+// failed (additive): formats Cloudinary refused to render; they are not retried.
+export interface PackResponse { sku: Sku; heroPublicId: string; assets: KitAsset[]; pending: string[]; failed?: string[] }
 
 // GET /api/pack/:sku  → poll until pending is empty; zipUrl is a signed download_zip_url
-export interface PackStatusResponse { assets: KitAsset[]; pending: string[]; zipUrl?: string }
+export interface PackStatusResponse { assets: KitAsset[]; pending: string[]; zipUrl?: string; failed?: string[]; heroPublicId?: string }
+
+// GET /api/capture/:sku  (additive) → has the phone's upload of snap2shelf/products/<sku>/raw landed?
+// Cheapest path is client-side: lib/capture.ts waitForCapture() HEADs the delivery URL with a
+// version buster (no server, no Admin API). This route does the same check server-side and,
+// once ready, returns the ProductRecord (one Admin API lookup).
+export interface CaptureResponse { ready: boolean; product?: ProductRecord }
 
 // GET /api/usage  → totals only (the key pool is disclosed but accounts are never listed)
 export interface UsageResponse {
