@@ -1820,11 +1820,13 @@ def write_cue_sheet(parts: list[Part], total: float, path: Path, files: dict, me
     live = next((p for p in parts if p.name == "live"), None)
     if live is not None:
         run = getattr(live, "run_s", None)
+        cut_s = getattr(live, "cut_s", 0.0)
         lines += [
             "",
-            f"The live run is sped up ×{getattr(live, 'speed', '?')} between its real-time moments (upload, deal, ZIP link), with a \"Sped up ×N\" badge on screen whenever it is. "
-            + (f"This take's photo → ZIP time was {run:.0f} s (from choosing the file to the ZIP link). " if run else "")
-            + "Say \"about a minute\" in the voice-over.",
+            f"The live run plays in real time where something happens (the upload, the deal, the ZIP link) and at ×{getattr(live, 'speed', '?')} in between, with a \"Sped up ×{getattr(live, 'speed', '?')}\" badge on screen whenever it is. "
+            + (f"The {cut_s:.0f} s the file dialog sat idle before the photo was chosen is cut, with a dissolve: it is before the photo → ZIP clock starts. " if cut_s else "")
+            + (f"This take measured {run:.1f} s from choosing the file to the ZIP link; that is for the record only. " if run else "")
+            + "In the voice-over, say \"about a minute\" (the claimed range is the timed runs in lib/claims.ts).",
         ]
     lines += [
         "",
