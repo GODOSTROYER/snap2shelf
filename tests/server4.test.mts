@@ -340,6 +340,12 @@ test("facts: fresh product → no doc until the first write; writes merge and bu
   await assert.rejects(facts.loadProduct("zzzz0000"), (e: unknown) => (e as { status?: number }).status === 404);
 });
 
+test("facts: no doc is ever created for a sku that was never uploaded", async () => {
+  assert.equal(await facts.updateProduct("zzzz0000", { ctx: { sc_saved: "5" } }, { critical: false }), null);
+  await assert.rejects(facts.updateProduct("zzzz0000", { ctx: { hero: "x" } }), (e: unknown) => (e as { status?: number }).status === 404);
+  assert.ok(!store.has(key("raw", facts.factsId("zzzz0000"))));
+});
+
 test("facts: concurrent writes in one process are serialised (no lost update)", async () => {
   put("image", rawId);
   await Promise.all(Array.from({ length: 6 }, (_, i) => facts.updateProduct(SKU, { ctx: { [`k${i}`]: String(i) } })));

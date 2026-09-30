@@ -347,6 +347,12 @@ export async function updateProduct(sku: Sku, patch: FactsPatch, opts: { critica
       : Promise.resolve();
     try {
       const cur = await readFacts(sku);
+      if (!cur.facts && !rawCache.get(sku)) {
+        // Never create a facts doc for a product that was never uploaded (e.g. a made-up sku in a bookkeeping call).
+        const info = await assetInfo(rawIdOf(sku));
+        if (!info) throw notFound("No upload found for this product yet.");
+        remember(rawCache, sku, rawFactsOf(info));
+      }
       const base: ProductFacts = cur.facts ?? emptyFacts(sku, rawCache.get(sku));
       const next: ProductFacts = structuredClone(base);
       if (!next.raw && rawCache.get(sku)) next.raw = rawCache.get(sku);
