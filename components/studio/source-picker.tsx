@@ -168,7 +168,7 @@ function SampleTile({ sample: s, featured, onPick }: { sample: SampleProduct; fe
           className="absolute inset-0 size-full object-cover opacity-0 transition-opacity duration-500 group-hover:opacity-100 group-focus-visible:opacity-100"
         />
         <span aria-hidden className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/45 to-transparent px-2.5 pt-10 pb-2.5 sm:px-3">
-          <span className={cn("block leading-tight font-semibold text-white", featured ? "text-[0.95rem] lg:text-base" : "text-[0.8rem]")}>{s.title}</span>
+          <span className={cn("block leading-tight font-semibold text-white", featured ? "text-[0.8rem] sm:text-[0.95rem] lg:text-base" : "text-[0.8rem]")}>{s.title}</span>
           {/* the photo's story, then (with the hero) where it was staged */}
           <span className={cn("mt-0.5 grid text-[0.72rem] leading-snug", !featured && "lg:hidden")}>
             <span className="text-white/75 transition-opacity duration-300 [grid-area:1/1] group-hover:opacity-0 group-focus-visible:opacity-0">{s.blurb}</span>
