@@ -1,14 +1,16 @@
 "use client";
 
 import * as Tabs from "@radix-ui/react-tabs";
-import { ArrowUpRight, ChevronDown, Download, ImageUp, Link2, RefreshCw, RotateCcw, WandSparkles } from "lucide-react";
+import { ArrowUpRight, ChevronDown, Download, ImageUp, Link2, RefreshCw, RotateCcw, Store, WandSparkles } from "lucide-react";
 import { MotionConfig } from "motion/react";
+import Link from "next/link";
 import * as React from "react";
 import { BriefBar } from "@/components/features/brief-bar";
 import { CostReceipt } from "@/components/features/cost-receipt";
 import { RetouchCard } from "@/components/features/retouch-card";
 import { SceneGenerator } from "@/components/features/scene-generator";
 import { KitShelves, type DealRequest } from "@/components/kit/kit-shelves";
+import { ProductTitle } from "@/components/kit/product-title";
 import { KitReadiness } from "@/components/readiness/KitReadiness";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Tip, TooltipProvider } from "@/components/ui/controls";
@@ -17,13 +19,14 @@ import * as api from "@/lib/client/api";
 import { fixMeta } from "@/lib/client/features";
 import { useDebounced } from "@/lib/client/hooks";
 import { isBuiltUrl, publicUrl, sizedUrl, storedUrl } from "@/lib/client/img";
-import { countAssets } from "@/lib/client/kit-view";
-import { sampleCost } from "@/lib/client/sample-data";
+import { DEMO_SHELF, SAMPLE_PHOTO_DISCLOSURE, SAMPLE_PHOTO_LABEL } from "@/lib/claims";
+import { kitContents, zipLabel } from "@/lib/client/kit-view";
+import { sampleCost, sampleProcessingNote } from "@/lib/client/sample-data";
 import { canRecolor, MAX_SWATCHES, recolorExplain, recolorLabel, swatchName } from "@/lib/client/swatches";
 import { rawInfo, rawPublicId, waitForRaw } from "@/lib/client/upload";
 import { Aborted, atLeast, cn, isAborted, preloadImage, sleep } from "@/lib/client/util";
 import type { ReadinessReport } from "@/lib/readiness";
-import { beforeAt, getSample, heroAlt, heroAt, reelClips, SAMPLES, SCENE_LIBRARY, type SampleProduct } from "@/lib/showcase";
+import { beforeAt, getSample, heroAlt, heroAt, PRIMARY_SAMPLE, reelClips, SCENE_LIBRARY, type SampleProduct } from "@/lib/showcase";
 import { compositeUrl, defaultControls, geometry, lqip, OFFSET_RANGE, quantise, SCALE_RANGE } from "@/lib/transform/composite";
 import { reelUrl } from "@/lib/transform/reel";
 import {
@@ -221,10 +224,12 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
   const sampleShot = sample && !heroOverride && status.stage !== "waiting" ? (replayShot ?? (atSampleDefaults ? heroAt(sample.kit, 1080) : null)) : null;
   const retouched = retouch?.sku === source?.sku ? retouch?.url : undefined;
   const rawView = source ? (sample ? beforeAt(sample, 1080) : (retouched ?? publicUrl(rawPublicId(source.sku), { w: 1080, h: 1350, crop: "c_pad,b_auto:border" }))) : null;
-  const rawThumb = source ? (sample ? beforeAt(sample, 48) : publicUrl(rawPublicId(source.sku), { w: 48, h: 60, crop: "c_pad,b_auto:border" })) : null;
+  // a sample's photo is already a cached stored asset: no extra tiny derivative for it
+  const rawThumb = source && !sample ? publicUrl(rawPublicId(source.sku), { w: 48, h: 60, crop: "c_pad,b_auto:border" }) : null;
   const cutoutView = product?.cutout ? publicUrl(product.cutout.publicId, { w: 1080, h: 1350, crop: "c_mpad,b_rgb:00000000" }) : null;
   const stageSrc = heroOverride ? sizedUrl(heroOverride, 1080) : (sampleShot ?? preview?.url ?? cutoutView ?? rawView);
-  const stageAlt = heroOverride?.alt ?? ((sampleShot || preview) && product && scene ? heroAlt(product, scene) : product?.caption ? `Your photo: ${product.caption}` : "Your product photo");
+  const photoWord = sample ? `${SAMPLE_PHOTO_LABEL} (AI-generated test image)` : "Your photo";
+  const stageAlt = heroOverride?.alt ?? ((sampleShot || preview) && product && scene ? heroAlt(product, scene) : product?.caption ? `${photoWord}: ${product.caption}` : photoWord);
   const scanning = status.fix === "active" ? (retouch?.state === "running" ? "Touching up" : "Reading your photo") : status.cutout === "active" ? "Cutting out" : null;
   const composite = !!scene && !heroOverride && !!(sampleShot || preview);
   const stageXray: KitAsset | null =
@@ -471,7 +476,7 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
         setKit(next);
         setPendingFormats(pending);
         setPackedSig(sigOf(sc.publicId, c, st, hero));
-        mark("pack", "done", pending.length ? `${next.assets.length} formats ready, ${pending.length} still rendering` : `Kit ready: ${countAssets(next)} assets`);
+        mark("pack", "done", pending.length ? `${next.assets.length} formats ready, ${pending.length} still rendering` : `Kit ready: ${kitContents(next)}`);
         setDeal((d) => ({ key: (d?.key ?? 0) + 1, from: () => stageRef.current?.getBoundingClientRect() ?? null }));
       } catch (e) {
         setDnaFlash(false);
@@ -659,7 +664,7 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
         });
         setPendingFormats(s.data.pending);
         if (!s.data.pending.length) {
-          mark("pack", "done", `Kit ready: ${ready.length + 1} assets`);
+          mark("pack", "done", `Kit ready: ${kitContents({ assets: ready, reel: kit.reel })}`);
           return;
         }
       }
@@ -836,7 +841,7 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
     : sample
       ? dirty
         ? "Your changes preview live. Upload your own photo to build a kit with them."
-        : "This sample replays a finished run. Upload your photo to make your own."
+        : SAMPLE_PHOTO_DISCLOSURE
       : dirty
         ? "You've made changes."
         : kit
@@ -853,11 +858,11 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <h1 className="font-display text-2xl leading-tight font-bold tracking-[-0.02em] sm:text-3xl">
-                  {product?.understanding?.name ?? (sample ? sample.title : "Your product")}
+                  <ProductTitle name={sample ? sample.title : (product?.understanding?.name ?? "Your product")} qualifierClassName="mt-0.5 text-base sm:text-lg" />
                 </h1>
                 {sample ? (
-                  <Tip label="These are the real Cloudinary results from a live run of this photo, saved and replayed, so a sample uses no AI quota. Upload your own photo to run every step live.">
-                    <button type="button" className="mt-1.5 inline-flex items-center gap-1.5 rounded-full text-[0.8rem] font-medium text-dim underline decoration-dotted underline-offset-4 hover:text-paper">
+                  <Tip label="These are the real Cloudinary results from a live run of this sample photo, saved and replayed step by step, so a sample uses no AI quota. Upload your own photo to run every step live.">
+                    <button type="button" className="mt-0.5 inline-flex min-h-8 items-center gap-1.5 rounded-full text-[0.8rem] font-medium text-dim underline decoration-dotted underline-offset-4 hover:text-paper">
                       <span aria-hidden className="size-1.5 rounded-full bg-marigold" />
                       Sample replay, no quota used
                     </button>
@@ -901,7 +906,7 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
                 {failure.quota ? <SamplePicker onPick={(s) => void start(sourceOf(s))} compact className="bg-stage/80" /> : null}
                 <div className="flex flex-wrap gap-2">
                   {failure.quota ? null : (
-                    <Button size="sm" onClick={() => void start(sourceOf(SAMPLES[0]))}>
+                    <Button size="sm" onClick={() => void start(sourceOf(PRIMARY_SAMPLE))}>
                       Open a finished sample
                     </Button>
                   )}
@@ -925,7 +930,7 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
                     </Button>
                   ) : null}
                   {failure.from === "fix" && !sample ? (
-                    <Button size="sm" onClick={() => void start(sourceOf(SAMPLES[0]))}>
+                    <Button size="sm" onClick={() => void start(sourceOf(PRIMARY_SAMPLE))}>
                       Try the sample
                     </Button>
                   ) : null}
@@ -941,7 +946,7 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
               alt={stageAlt}
               placeholder={scene && (sampleShot || preview) ? lqip(scene.publicId) : (rawThumb ?? undefined)}
               originalSrc={status.stage === "done" || heroOverride ? rawView : null}
-              originalLabel={sample && atSampleDefaults ? "Hold to compare" : "Hold to see your photo"}
+              originalLabel={sample ? (atSampleDefaults ? "Hold to compare" : "Hold to see the sample photo") : "Hold to see your photo"}
               scanning={scanning}
               qa={qa}
               qaStory={qaStory}
@@ -985,7 +990,7 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
                 ))}
               </Tabs.List>
               <p className="mt-3 text-[0.85rem] text-dim">
-                {tab === "exact" ? "Your real photo, composited. Free, instant and pixel-faithful." : "A generated reshoot. Slower and uses credits, always QA-checked."}
+                {tab === "exact" ? "The photo itself, composited onto a stage. No generation credits, and the product's pixels are never redrawn." : "A generated reshoot. Slower and uses credits, always QA-checked."}
               </p>
 
               <Tabs.Content value="exact" className="mt-6 focus-visible:outline-none">
@@ -1080,7 +1085,7 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
             <div className="flex flex-col gap-4 px-4 sm:flex-row sm:items-end sm:justify-between sm:px-8">
               <div>
                 <h2 id="kit-title" className="text-[clamp(1.9rem,4.5vw,3rem)] leading-none font-bold tracking-[-0.03em]">
-                  Your shelf: {countAssets(kit)} assets
+                  {sample ? "The shelf" : "Your shelf"}: {kitContents(kit)}
                 </h2>
                 <p className="mt-3 text-dim">Tap the code button under any asset to see the Cloudinary URL that makes it.</p>
               </div>
@@ -1089,7 +1094,7 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
                   {kit.zipUrl ? (
                     <a href={kit.zipUrl} className={buttonVariants({})}>
                       <Download />
-                      Download all (.zip)
+                      {zipLabel(kit)}
                     </a>
                   ) : sample ? (
                     <a href={`/kit/${kit.sku}`} className={buttonVariants({})}>
@@ -1111,6 +1116,14 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
                   <p id="zip-note" className="max-w-80 text-[0.8rem] leading-snug text-dim sm:text-right">
                     {sample ? "This sample's formats are saved one by one. A kit from your own photo downloads as one zip." : pendingFormats.length ? "The zip is ready once the last formats finish rendering." : "Cloudinary is packing the zip. It appears here in a moment."}
                   </p>
+                ) : kit.reel ? (
+                  <p className="max-w-80 text-[0.8rem] leading-snug text-dim sm:text-right">The zip holds every image; the reel plays from its Cloudinary URL.</p>
+                ) : null}
+                {sample ? (
+                  <Link href={DEMO_SHELF.path} className="inline-flex min-h-8 items-center gap-1.5 text-sm font-medium text-paper underline decoration-marigold/60 underline-offset-4 hover:decoration-marigold">
+                    <Store aria-hidden className="size-4 text-marigold" />
+                    See a shop built from the sample kits
+                  </Link>
                 ) : null}
               </div>
             </div>
@@ -1127,6 +1140,7 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
                   sample={!!sample}
                   measureKey={`${kit.hero.publicId}-${kit.createdAt}`}
                   readOnly={sample ? "This is a saved sample, so it stays as measured. On a kit from your own photo, each fix is one click." : undefined}
+                  photoLabel={sample ? SAMPLE_PHOTO_LABEL : undefined}
                   busy={running}
                   onReport={onReadiness}
                   onRestage={(patch) => restageFix(patch)}
@@ -1140,6 +1154,7 @@ export function Studio({ initialSample, initialSku }: { initialSample?: string; 
                 refreshKey={`${kit.createdAt}-${creditsUsed}`}
                 // a sample's receipt prints from its saved run: no request
                 initial={sample && kit.sku === sample.sku ? sampleCost(sample, kit) : undefined}
+                replay={sample && kit.sku === sample.sku ? sampleProcessingNote(sample) : undefined}
                 className="lg:mx-0"
               />
             </div>

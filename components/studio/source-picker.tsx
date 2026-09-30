@@ -10,6 +10,7 @@ import type { UsageResponse } from "@/lib/api-contract";
 import * as api from "@/lib/client/api";
 import { UPLOAD_WIDGET_STYLES } from "@/lib/client/theme";
 import { rawPublicId, rawTags, UPLOAD_PRESET, type RawInfo } from "@/lib/client/upload";
+import { PHOTO_TO_KIT_COPY } from "@/lib/claims";
 import { cn, newSku } from "@/lib/client/util";
 import { heroAt, LISTED_SAMPLES, rawAt, type SampleProduct } from "@/lib/showcase";
 import type { Sku } from "@/lib/types";
@@ -57,7 +58,7 @@ export function SourcePicker({ onReady }: { onReady: (s: SourceReady) => void })
     <div className="mx-auto grid w-full max-w-[64rem] gap-10 py-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-center lg:gap-16 lg:py-14">
       <div className={cn(paused && "order-last lg:order-none")}>
         <h1 className="text-[clamp(2.4rem,6vw,4rem)] leading-[0.95] font-extrabold tracking-[-0.035em] [font-variation-settings:'wdth'_86,'opsz'_96]">Add one product photo</h1>
-        <p className="mt-4 max-w-[30rem] text-lg text-dim">Any background, any light. A phone photo on your table is perfect. We&apos;ll do the rest in about a minute.</p>
+        <p className="mt-4 max-w-[30rem] text-lg text-dim">Any background, any light. A phone photo on your table is perfect. We&apos;ll do the rest in {PHOTO_TO_KIT_COPY}.</p>
         {paused ? (
           <p role="status" className="mt-5 max-w-[30rem] rounded-xl bg-marigold/10 px-4 py-3 text-sm text-paper ring-1 ring-marigold/30">
             <span className="font-semibold text-marigold">Live kits are paused for now</span> to protect the shared Cloudinary quota. Every sample still replays the whole
@@ -113,9 +114,9 @@ export function SourcePicker({ onReady }: { onReady: (s: SourceReady) => void })
 }
 
 /**
- * Every sample as a phone photo that turns into its hero on hover or focus.
- * Phones: a swipeable row. Tablets: one row. Desktop: the featured sneaker
- * large, the other four around it.
+ * Every sample as its input photo that turns into its hero on hover or focus.
+ * Phones: a swipeable row. Tablets: one row. Desktop: the primary sample (the
+ * QA catch) large, the other four around it.
  */
 export function SamplePicker({ onPick, compact, className }: { onPick: (s: SampleProduct) => void; compact?: boolean; className?: string }) {
   const [featured, ...rest] = LISTED_SAMPLES;
@@ -127,7 +128,7 @@ export function SamplePicker({ onPick, compact, className }: { onPick: (s: Sampl
             <Sparkles className="size-5 text-marigold" aria-hidden />
             No photo handy? Try a sample
           </p>
-          <p className="mt-1 text-sm text-dim">Each one replays a finished live run: instant, and no AI quota used.</p>
+          <p className="mt-1 text-sm text-dim">Each one replays a finished live run step by step, in about 10 to 15 seconds, with no AI quota used.</p>
         </>
       )}
       <ul
@@ -147,16 +148,16 @@ export function SamplePicker({ onPick, compact, className }: { onPick: (s: Sampl
 }
 
 function SampleTile({ sample: s, featured, onPick }: { sample: SampleProduct; featured?: boolean; onPick: (s: SampleProduct) => void }) {
-  // the phone photo as taken; the hero at the landing's size for the featured tile (already rendered)
-  const w = featured ? 384 : 192;
+  // the sample photo as taken, then its hero on hover (fixed widths: lib/client/img.ts)
+  const w = featured ? 720 : 360;
   const before = rawAt(s.product, w);
-  const after = heroAt(s.kit, featured ? 480 : w);
+  const after = heroAt(s.kit, w);
   return (
     <li className={cn("w-[42%] max-w-44 shrink-0 snap-start sm:w-auto sm:max-w-none", featured && "lg:col-span-2 lg:row-span-2")}>
       <button
         type="button"
         onClick={() => onPick(s)}
-        aria-label={`Stage the ${s.title.toLowerCase()} sample: ${s.blurb.toLowerCase()}, staged on ${s.scene.title}`}
+        aria-label={`Replay the ${s.title} sample: ${s.blurb.toLowerCase()}, staged on ${s.scene.title}.${s.highlight ? ` ${s.highlight}.` : ""}`}
         className="group relative block aspect-[4/5] w-full overflow-hidden rounded-2xl bg-stage-2 text-left ring-1 ring-line transition-[box-shadow,transform] duration-300 ease-(--ease-out-expo) ring-inset hover:-translate-y-0.5 hover:shadow-[0_24px_40px_-24px_rgb(0_0_0/0.95)] hover:ring-marigold/50 focus-visible:ring-marigold"
       >
         <CloudImg src={before} alt="" width={w} height={w * 1.25} className="absolute inset-0 size-full object-cover" />
@@ -167,6 +168,11 @@ function SampleTile({ sample: s, featured, onPick }: { sample: SampleProduct; fe
           height={w * 1.25}
           className="absolute inset-0 size-full object-cover opacity-0 transition-opacity duration-500 group-hover:opacity-100 group-focus-visible:opacity-100"
         />
+        {featured && s.highlight ? (
+          <span aria-hidden className="absolute top-2 left-2 hidden max-w-[calc(100%-1rem)] rounded-full bg-marigold px-2.5 py-1 text-[0.75rem] leading-tight font-semibold text-marigold-ink shadow-[0_6px_16px_-6px_rgb(0_0_0/0.8)] lg:inline-block">
+            {s.highlight}
+          </span>
+        ) : null}
         <span aria-hidden className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/45 to-transparent px-2.5 pt-10 pb-2.5 sm:px-3">
           <span className={cn("block leading-tight font-semibold text-white", featured ? "text-[0.8rem] sm:text-[0.95rem] lg:text-base" : "text-[0.8rem]")}>{s.title}</span>
           {/* the photo's story, then (with the hero) where it was staged */}

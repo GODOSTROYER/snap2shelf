@@ -105,7 +105,8 @@ export const Stage = React.forwardRef<
         </div>
       ) : null}
 
-      <div className="absolute top-3 left-3 flex flex-wrap gap-2">
+      {/* phones: the QA story card takes the top edge while it tells its story, so these step aside */}
+      <div className={cn("absolute top-3 left-3 flex flex-wrap gap-2", qaStory && "max-sm:invisible")}>
         <AnimatePresence>
           {qa ? (
             <motion.span
@@ -138,7 +139,10 @@ export const Stage = React.forwardRef<
         <button
           type="button"
           onClick={() => setXrayOpen(true)}
-          className="absolute top-3 right-3 inline-flex h-9 items-center gap-2 rounded-full bg-studio/85 px-3.5 text-[0.8rem] font-semibold text-paper backdrop-blur-sm transition-colors hover:bg-studio hover:text-marigold"
+          className={cn(
+            "absolute top-3 right-3 inline-flex h-9 items-center gap-2 rounded-full bg-studio/85 px-3.5 text-[0.8rem] font-semibold text-paper backdrop-blur-sm transition-colors hover:bg-studio hover:text-marigold",
+            qaStory && "max-sm:invisible",
+          )}
         >
           <CodeXml className="size-4" aria-hidden />
           See the URL
@@ -164,14 +168,17 @@ export const Stage = React.forwardRef<
 
       <AnimatePresence>
         {qaStory ? (
+          // Top of the frame: a standing product rests on the surface in the lower half, which is
+          // exactly where a "floating" fix happens, so the story never covers it. Phones get a
+          // compact card on the top edge (the chips step aside); wider stages keep the chips.
           <motion.div
             key="qa-story"
             role="status"
-            initial={{ opacity: 0, y: 16 }}
+            initial={{ opacity: 0, y: -12 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 8, transition: { duration: 0.25 } }}
+            exit={{ opacity: 0, y: -8, transition: { duration: 0.25 } }}
             transition={{ type: "spring", stiffness: 260, damping: 24 }}
-            className="absolute inset-x-3 bottom-15 rounded-2xl bg-studio/90 p-3.5 text-[0.8rem] leading-snug text-paper shadow-[0_20px_40px_-16px_rgb(0_0_0/0.9)] ring-1 ring-line-strong backdrop-blur-md sm:inset-x-4"
+            className="absolute inset-x-2.5 top-2.5 rounded-xl bg-studio/90 px-3 py-2.5 text-[0.75rem] leading-snug text-paper shadow-[0_20px_40px_-16px_rgb(0_0_0/0.9)] ring-1 ring-line-strong backdrop-blur-md sm:inset-x-4 sm:top-15 sm:rounded-2xl sm:p-3.5 sm:text-[0.8rem]"
           >
             <ol className="flex flex-wrap items-center gap-x-2 gap-y-1 font-semibold">
               <li className="text-sindoor">QA caught it</li>
@@ -186,7 +193,7 @@ export const Stage = React.forwardRef<
                 {qaStory.phase === "fixed" ? "Approved" : "Re-checking"}
               </li>
             </ol>
-            <p className="mt-1.5 text-dim">
+            <p className="mt-1 text-dim sm:mt-1.5">
               {qaStory.caught} We {qaStory.fix}.
             </p>
           </motion.div>
