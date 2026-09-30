@@ -1,0 +1,2647 @@
+{
+  "generatedAt": "2026-09-30T04:26:14.297Z",
+  "note": "Sample products: synthetic test photos made for this demo, not real seller photos. Every URL points at an asset already stored on the demo cloud.",
+  "kits": [
+    {
+      "sku": "shmessy1",
+      "title": "Steel water bottle",
+      "sample": true,
+      "photo": {
+        "kind": "messy",
+        "file": "01_steel_bottle.png"
+      },
+      "product": {
+        "sku": "shmessy1",
+        "rawPublicId": "snap2shelf/products/shmessy1/raw",
+        "rawWidth": 1122,
+        "rawHeight": 1402,
+        "rawBytes": 2249535,
+        "caption": "A stainless steel water bottle stands on a granite countertop with a mug, paper towels, a potted plant, and a fruit bowl in the background.",
+        "focus": 0.654,
+        "understanding": {
+          "name": "Stainless steel water bottle",
+          "category": "drinkware",
+          "primary_color": "silver",
+          "material": "stainless steel",
+          "recolorable_part": "bottle body",
+          "placement": "standing",
+          "suggested_themes": [
+            "kitchen",
+            "marble"
+          ]
+        },
+        "cutout": {
+          "publicId": "snap2shelf/products/shmessy1/cutout",
+          "width": 317,
+          "height": 1182,
+          "version": 1790740402
+        }
+      },
+      "mode": "exact",
+      "scene": {
+        "publicId": "snap2shelf/scenes/marble/final-ca4c3ac1",
+        "theme": "marble",
+        "view": "eye-level",
+        "title": "Marble studio",
+        "prompt": "Photorealistic empty product-photography backdrop, professional commercial photo. Camera at eye level, about 15 degrees above the surface. A polished white Carrara marble tabletop with subtle grey veins fills the lower 40% of the frame. The centre foreground of the surface is completely empty and clear for placing a product. In the background a pale warm-grey plaster wall with a soft window shadow of leaves, softly out of focus with shallow depth of field. Bright soft daylight from the left. No products, no bottles, no packaging, no people, no hands, no text, no letters, no logos, no brand names.",
+        "modelId": "gpt-image-2.5-flare",
+        "credits": 5,
+        "dna": {
+          "anchor_x": 0.5,
+          "anchor_y": 0.75,
+          "surface_width": 1,
+          "light_azimuth": 315,
+          "light_elevation": 45,
+          "temperature": "neutral",
+          "glossy": true,
+          "text_zone": "none"
+        }
+      },
+      "controls": {
+        "scale": 0.48,
+        "offsetX": 0,
+        "offsetY": 20,
+        "shadow": true,
+        "contact": true,
+        "reflection": "auto",
+        "harmonise": true
+      },
+      "hero": {
+        "id": "hero",
+        "format": "hero",
+        "label": "Hero 4:5",
+        "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/snap2shelf/products/shmessy1/hero-marble-ca4c3ac1-a020d3e2",
+        "width": 1080,
+        "height": 1350,
+        "frame": "feed-post",
+        "alt": "Stainless steel water bottle, staged on the Marble studio scene",
+        "xray": {
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/c_fill,w_1080,h_1350/l_snap2shelf:products:shmessy1:cutout/c_scale,w_174,h_649/co_rgb:262626,e_colorize:100/e_distort:390:138:564:138:174:0:0:0/c_crop,g_north_west,x_0,y_0,w_564,h_138/c_mpad,w_700,h_274,b_transparent/e_blur:584/e_gradient_fade:40,y_-0.7/o_45/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_385,y_965/l_snap2shelf:products:shmessy1:cutout/c_scale,w_174,h_649/a_vflip/e_gradient_fade:50,y_-0.75/c_mpad,w_198,h_673,b_transparent/e_blur:120/o_26/fl_layer_apply,fl_no_overflow,g_north_west,x_441,y_995/l_snap2shelf:products:shmessy1:cutout/c_crop,g_south,w_317,h_142/c_scale,w_184,h_57/co_rgb:262626,e_colorize:100/c_mpad,w_320,h_193,b_transparent/e_blur:400/o_30/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_380,y_924/l_snap2shelf:products:shmessy1:cutout/c_crop,g_south,w_317,h_142/c_scale,w_167,h_23/co_rgb:262626,e_colorize:100/c_mpad,w_259,h_115,b_transparent/e_blur:200/o_90/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_411,y_973/l_snap2shelf:products:shmessy1:cutout/c_scale,w_174,h_649/e_brightness:-3/fl_layer_apply,g_north_west,x_453,y_384/l_snap2shelf:products:shmessy1:cutout/c_scale,w_174,h_649/co_rgb:262626,e_colorize:100/e_gradient_fade:25,x_0.85/o_30/e_multiply,fl_layer_apply,g_north_west,x_453,y_384/f_auto,q_auto/snap2shelf/scenes/marble/final-ca4c3ac1",
+          "transformation": "c_fill,w_1080,h_1350/l_snap2shelf:products:shmessy1:cutout/c_scale,w_174,h_649/co_rgb:262626,e_colorize:100/e_distort:390:138:564:138:174:0:0:0/c_crop,g_north_west,x_0,y_0,w_564,h_138/c_mpad,w_700,h_274,b_transparent/e_blur:584/e_gradient_fade:40,y_-0.7/o_45/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_385,y_965/l_snap2shelf:products:shmessy1:cutout/c_scale,w_174,h_649/a_vflip/e_gradient_fade:50,y_-0.75/c_mpad,w_198,h_673,b_transparent/e_blur:120/o_26/fl_layer_apply,fl_no_overflow,g_north_west,x_441,y_995/l_snap2shelf:products:shmessy1:cutout/c_crop,g_south,w_317,h_142/c_scale,w_184,h_57/co_rgb:262626,e_colorize:100/c_mpad,w_320,h_193,b_transparent/e_blur:400/o_30/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_380,y_924/l_snap2shelf:products:shmessy1:cutout/c_crop,g_south,w_317,h_142/c_scale,w_167,h_23/co_rgb:262626,e_colorize:100/c_mpad,w_259,h_115,b_transparent/e_blur:200/o_90/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_411,y_973/l_snap2shelf:products:shmessy1:cutout/c_scale,w_174,h_649/e_brightness:-3/fl_layer_apply,g_north_west,x_453,y_384/l_snap2shelf:products:shmessy1:cutout/c_scale,w_174,h_649/co_rgb:262626,e_colorize:100/e_gradient_fade:25,x_0.85/o_30/e_multiply,fl_layer_apply,g_north_west,x_453,y_384/f_auto,q_auto",
+          "segments": [
+            {
+              "text": "c_fill,w_1080,h_1350",
+              "kind": "crop",
+              "label": "Scene plate at the canonical 4:5 size"
+            },
+            {
+              "text": "l_snap2shelf:products:shmessy1:cutout/c_scale,w_174,h_649/co_rgb:262626,e_colorize:100/e_distort:390:138:564:138:174:0:0:0/c_crop,g_north_west,x_0,y_0,w_564,h_138/c_mpad,w_700,h_274,b_transparent/e_blur:584/e_gradient_fade:40,y_-0.7/o_45/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_385,y_965",
+              "kind": "shadow",
+              "label": "Cast shadow: the product's silhouette projected onto the surface, away from the light (azimuth 315°, elevation 45°), softened and fading with distance"
+            },
+            {
+              "text": "l_snap2shelf:products:shmessy1:cutout/c_scale,w_174,h_649/a_vflip/e_gradient_fade:50,y_-0.75/c_mpad,w_198,h_673,b_transparent/e_blur:120/o_26/fl_layer_apply,fl_no_overflow,g_north_west,x_441,y_995",
+              "kind": "reflection",
+              "label": "Surface reflection: the cutout mirrored, blurred and faded under the product (glossy scenes only)"
+            },
+            {
+              "text": "l_snap2shelf:products:shmessy1:cutout/c_crop,g_south,w_317,h_142/c_scale,w_184,h_57/co_rgb:262626,e_colorize:100/c_mpad,w_320,h_193,b_transparent/e_blur:400/o_30/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_380,y_924",
+              "kind": "shadow",
+              "label": "Ambient occlusion: a soft pool of shadow where the product meets the surface"
+            },
+            {
+              "text": "l_snap2shelf:products:shmessy1:cutout/c_crop,g_south,w_317,h_142/c_scale,w_167,h_23/co_rgb:262626,e_colorize:100/c_mpad,w_259,h_115,b_transparent/e_blur:200/o_90/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_411,y_973",
+              "kind": "shadow",
+              "label": "Contact shadow: the product's own footprint, squashed, darkened and blurred so it sits on the surface"
+            },
+            {
+              "text": "l_snap2shelf:products:shmessy1:cutout/c_scale,w_174,h_649/e_brightness:-3/fl_layer_apply,g_north_west,x_453,y_384",
+              "kind": "layer",
+              "label": "Your real product, placed where Scene DNA says the surface is, with a subtle neutral light-match"
+            },
+            {
+              "text": "l_snap2shelf:products:shmessy1:cutout/c_scale,w_174,h_649/co_rgb:262626,e_colorize:100/e_gradient_fade:25,x_0.85/o_30/e_multiply,fl_layer_apply,g_north_west,x_453,y_384",
+              "kind": "effect",
+              "label": "Light-match: the side facing away from the scene's light falls off gently"
+            },
+            {
+              "text": "f_auto,q_auto",
+              "kind": "format",
+              "label": "Best format and quality for the viewer's browser"
+            },
+            {
+              "text": "snap2shelf/scenes/marble/final-ca4c3ac1",
+              "kind": "asset",
+              "label": "Scene plate from the shared library"
+            }
+          ]
+        },
+        "publicId": "snap2shelf/products/shmessy1/hero-marble-ca4c3ac1-a020d3e2",
+        "qa": {
+          "status": "approved",
+          "matched": [
+            "product-visible"
+          ],
+          "reasons": [],
+          "checkedAt": "2026-09-30T05:10:00.000Z"
+        }
+      },
+      "assets": [
+        {
+          "id": "feed",
+          "format": "feed",
+          "label": "Feed post 4:5",
+          "width": 1080,
+          "height": 1350,
+          "frame": "feed-post",
+          "alt": "Stainless steel water bottle on the Marble studio scene, 4:5 feed post",
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/v1790741287/snap2shelf/products/shmessy1/pack/feed",
+          "xray": {
+            "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/snap2shelf/products/shmessy1/hero-marble-ca4c3ac1-a020d3e2",
+            "transformation": "f_auto,q_auto",
+            "segments": [
+              {
+                "text": "f_auto,q_auto",
+                "kind": "format",
+                "label": "Best format and quality for the viewer's browser"
+              },
+              {
+                "text": "snap2shelf/products/shmessy1/hero-marble-ca4c3ac1-a020d3e2",
+                "kind": "asset",
+                "label": "Source asset"
+              }
+            ]
+          },
+          "publicId": "snap2shelf/products/shmessy1/pack/feed"
+        },
+        {
+          "id": "marketplace",
+          "format": "marketplace",
+          "label": "Marketplace main 2000px",
+          "width": 2000,
+          "height": 2000,
+          "frame": "listing-card",
+          "alt": "Stainless steel water bottle on a pure white background, marketplace main image",
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/v1790741286/snap2shelf/products/shmessy1/pack/marketplace",
+          "xray": {
+            "url": "https://res.cloudinary.com/nyxyma1i/image/upload/c_fit,w_1700,h_1700/c_mpad,w_2000,h_2000,b_white/f_jpg,q_auto:best/snap2shelf/products/shmessy1/cutout",
+            "transformation": "c_fit,w_1700,h_1700/c_mpad,w_2000,h_2000,b_white/f_jpg,q_auto:best",
+            "segments": [
+              {
+                "text": "c_fit,w_1700,h_1700/c_mpad,w_2000,h_2000,b_white",
+                "kind": "crop",
+                "label": "Product fitted to 1700px (85% of the frame) on a pure white 2000×2000 canvas, as marketplaces require"
+              },
+              {
+                "text": "f_jpg,q_auto:best",
+                "kind": "format",
+                "label": "JPEG, best quality (transparency flattened onto white)"
+              },
+              {
+                "text": "snap2shelf/products/shmessy1/cutout",
+                "kind": "asset",
+                "label": "Source asset"
+              }
+            ]
+          },
+          "publicId": "snap2shelf/products/shmessy1/pack/marketplace"
+        },
+        {
+          "id": "story",
+          "format": "story",
+          "label": "Story 9:16",
+          "width": 1080,
+          "height": 1920,
+          "frame": "story",
+          "alt": "Stainless steel water bottle on the Marble studio scene, scene extended to a 9:16 story",
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/v1790741290/snap2shelf/products/shmessy1/pack/story",
+          "xray": {
+            "url": "https://res.cloudinary.com/nyxyma1i/image/upload/ar_9:16,b_gen_fill,c_pad,w_1080/f_auto,q_auto/snap2shelf/products/shmessy1/hero-marble-ca4c3ac1-a020d3e2",
+            "transformation": "ar_9:16,b_gen_fill,c_pad,w_1080/f_auto,q_auto",
+            "segments": [
+              {
+                "text": "ar_9:16,b_gen_fill,c_pad,w_1080",
+                "kind": "gen-ai",
+                "label": "Generative fill extends the scene to 9:16 (no new generation)"
+              },
+              {
+                "text": "f_auto,q_auto",
+                "kind": "format",
+                "label": "Best format and quality for the viewer's browser"
+              },
+              {
+                "text": "snap2shelf/products/shmessy1/hero-marble-ca4c3ac1-a020d3e2",
+                "kind": "asset",
+                "label": "Source asset"
+              }
+            ]
+          },
+          "publicId": "snap2shelf/products/shmessy1/pack/story"
+        },
+        {
+          "id": "banner",
+          "format": "banner",
+          "label": "Web banner 16:9",
+          "width": 1920,
+          "height": 1080,
+          "frame": "web-banner",
+          "alt": "Stainless steel water bottle on the Marble studio scene, scene extended to a 16:9 web banner",
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/v1790741290/snap2shelf/products/shmessy1/pack/banner",
+          "xray": {
+            "url": "https://res.cloudinary.com/nyxyma1i/image/upload/ar_16:9,b_gen_fill,c_pad,w_1920/f_auto,q_auto/snap2shelf/products/shmessy1/hero-marble-ca4c3ac1-a020d3e2",
+            "transformation": "ar_16:9,b_gen_fill,c_pad,w_1920/f_auto,q_auto",
+            "segments": [
+              {
+                "text": "ar_16:9,b_gen_fill,c_pad,w_1920",
+                "kind": "gen-ai",
+                "label": "Generative fill extends the scene to 16:9"
+              },
+              {
+                "text": "f_auto,q_auto",
+                "kind": "format",
+                "label": "Best format and quality for the viewer's browser"
+              },
+              {
+                "text": "snap2shelf/products/shmessy1/hero-marble-ca4c3ac1-a020d3e2",
+                "kind": "asset",
+                "label": "Source asset"
+              }
+            ]
+          },
+          "publicId": "snap2shelf/products/shmessy1/pack/banner"
+        },
+        {
+          "id": "whatsapp",
+          "format": "whatsapp",
+          "label": "WhatsApp catalog tile",
+          "width": 600,
+          "height": 600,
+          "frame": "catalog-tile",
+          "alt": "Stainless steel water bottle on the Marble studio scene, square catalog tile",
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/v1790741283/snap2shelf/products/shmessy1/pack/whatsapp",
+          "xray": {
+            "url": "https://res.cloudinary.com/nyxyma1i/image/upload/c_crop,g_north_west,x_53,y_247,w_974,h_974/c_scale,w_600,h_600/f_auto,q_auto:eco/snap2shelf/products/shmessy1/hero-marble-ca4c3ac1-a020d3e2",
+            "transformation": "c_crop,g_north_west,x_53,y_247,w_974,h_974/c_scale,w_600,h_600/f_auto,q_auto:eco",
+            "segments": [
+              {
+                "text": "c_crop,g_north_west,x_53,y_247,w_974,h_974/c_scale,w_600,h_600",
+                "kind": "crop",
+                "label": "Square crop centred on the product, 600px"
+              },
+              {
+                "text": "f_auto,q_auto:eco",
+                "kind": "format",
+                "label": "Light enough for a catalog"
+              },
+              {
+                "text": "snap2shelf/products/shmessy1/hero-marble-ca4c3ac1-a020d3e2",
+                "kind": "asset",
+                "label": "Source asset"
+              }
+            ]
+          },
+          "publicId": "snap2shelf/products/shmessy1/pack/whatsapp"
+        },
+        {
+          "id": "recolor-1f2937",
+          "format": "recolor",
+          "label": "Charcoal variant",
+          "width": 1080,
+          "height": 1350,
+          "frame": "feed-post",
+          "alt": "Stainless steel water bottle in charcoal, on the Marble studio scene",
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/v1790741288/snap2shelf/products/shmessy1/pack/recolor-1f2937",
+          "xray": {
+            "url": "https://res.cloudinary.com/nyxyma1i/image/upload/e_gen_recolor:prompt_bottle%20body;to-color_1f2937/f_auto,q_auto/snap2shelf/products/shmessy1/hero-marble-ca4c3ac1-a020d3e2",
+            "transformation": "e_gen_recolor:prompt_bottle%20body;to-color_1f2937/f_auto,q_auto",
+            "segments": [
+              {
+                "text": "e_gen_recolor:prompt_bottle%20body;to-color_1f2937",
+                "kind": "gen-ai",
+                "label": "Generative recolor of the bottle body only (shading kept)"
+              },
+              {
+                "text": "f_auto,q_auto",
+                "kind": "format",
+                "label": "Best format and quality for the viewer's browser"
+              },
+              {
+                "text": "snap2shelf/products/shmessy1/hero-marble-ca4c3ac1-a020d3e2",
+                "kind": "asset",
+                "label": "Source asset"
+              }
+            ]
+          },
+          "publicId": "snap2shelf/products/shmessy1/pack/recolor-1f2937"
+        },
+        {
+          "id": "recolor-0f766e",
+          "format": "recolor",
+          "label": "Teal variant",
+          "width": 1080,
+          "height": 1350,
+          "frame": "feed-post",
+          "alt": "Stainless steel water bottle in teal, on the Marble studio scene",
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/v1790741288/snap2shelf/products/shmessy1/pack/recolor-0f766e",
+          "xray": {
+            "url": "https://res.cloudinary.com/nyxyma1i/image/upload/e_gen_recolor:prompt_bottle%20body;to-color_0f766e/f_auto,q_auto/snap2shelf/products/shmessy1/hero-marble-ca4c3ac1-a020d3e2",
+            "transformation": "e_gen_recolor:prompt_bottle%20body;to-color_0f766e/f_auto,q_auto",
+            "segments": [
+              {
+                "text": "e_gen_recolor:prompt_bottle%20body;to-color_0f766e",
+                "kind": "gen-ai",
+                "label": "Generative recolor of the bottle body only (shading kept)"
+              },
+              {
+                "text": "f_auto,q_auto",
+                "kind": "format",
+                "label": "Best format and quality for the viewer's browser"
+              },
+              {
+                "text": "snap2shelf/products/shmessy1/hero-marble-ca4c3ac1-a020d3e2",
+                "kind": "asset",
+                "label": "Source asset"
+              }
+            ]
+          },
+          "publicId": "snap2shelf/products/shmessy1/pack/recolor-0f766e"
+        },
+        {
+          "id": "recolor-b91c1c",
+          "format": "recolor",
+          "label": "Crimson variant",
+          "width": 1080,
+          "height": 1350,
+          "frame": "feed-post",
+          "alt": "Stainless steel water bottle in crimson, on the Marble studio scene",
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/v1790741287/snap2shelf/products/shmessy1/pack/recolor-b91c1c",
+          "xray": {
+            "url": "https://res.cloudinary.com/nyxyma1i/image/upload/e_gen_recolor:prompt_bottle%20body;to-color_b91c1c/f_auto,q_auto/snap2shelf/products/shmessy1/hero-marble-ca4c3ac1-a020d3e2",
+            "transformation": "e_gen_recolor:prompt_bottle%20body;to-color_b91c1c/f_auto,q_auto",
+            "segments": [
+              {
+                "text": "e_gen_recolor:prompt_bottle%20body;to-color_b91c1c",
+                "kind": "gen-ai",
+                "label": "Generative recolor of the bottle body only (shading kept)"
+              },
+              {
+                "text": "f_auto,q_auto",
+                "kind": "format",
+                "label": "Best format and quality for the viewer's browser"
+              },
+              {
+                "text": "snap2shelf/products/shmessy1/hero-marble-ca4c3ac1-a020d3e2",
+                "kind": "asset",
+                "label": "Source asset"
+              }
+            ]
+          },
+          "publicId": "snap2shelf/products/shmessy1/pack/recolor-b91c1c"
+        },
+        {
+          "id": "offer",
+          "format": "offer",
+          "label": "Festive offer",
+          "width": 1080,
+          "height": 1350,
+          "frame": "feed-post",
+          "alt": "Stainless steel water bottle on the Marble studio scene with the offer \"Diwali Sale · 20% off\" in Hindi and English",
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/v1790741286/snap2shelf/products/shmessy1/pack/offer",
+          "xray": {
+            "url": "https://res.cloudinary.com/nyxyma1i/image/upload/l_snap2shelf:products:shmessy1:hero-marble-ca4c3ac1-a020d3e2/c_scale,w_571,h_249/co_rgb:1c130c,e_colorize:100/r_28/o_72/fl_layer_apply,g_north_west,x_255,y_48/l_text:Noto%20Sans%20Devanagari@google_84_700:%E0%A4%A6%E0%A4%BF%E0%A4%B5%E0%A4%BE%E0%A4%B2%E0%A5%80%20%E0%A4%B8%E0%A5%87%E0%A4%B2,co_white/c_limit,w_499/fl_layer_apply,g_north,x_0,y_84/l_text:Noto%20Sans@google_44_600:Diwali%20Sale%20%C2%B7%2020%2525%20off,co_rgb:ffc56b/c_limit,w_499/fl_layer_apply,g_north,x_0,y_201/f_auto,q_auto/snap2shelf/products/shmessy1/hero-marble-ca4c3ac1-a020d3e2",
+            "transformation": "l_snap2shelf:products:shmessy1:hero-marble-ca4c3ac1-a020d3e2/c_scale,w_571,h_249/co_rgb:1c130c,e_colorize:100/r_28/o_72/fl_layer_apply,g_north_west,x_255,y_48/l_text:Noto%20Sans%20Devanagari@google_84_700:%E0%A4%A6%E0%A4%BF%E0%A4%B5%E0%A4%BE%E0%A4%B2%E0%A5%80%20%E0%A4%B8%E0%A5%87%E0%A4%B2,co_white/c_limit,w_499/fl_layer_apply,g_north,x_0,y_84/l_text:Noto%20Sans@google_44_600:Diwali%20Sale%20%C2%B7%2020%2525%20off,co_rgb:ffc56b/c_limit,w_499/fl_layer_apply,g_north,x_0,y_201/f_auto,q_auto",
+            "segments": [
+              {
+                "text": "l_snap2shelf:products:shmessy1:hero-marble-ca4c3ac1-a020d3e2/c_scale,w_571,h_249/co_rgb:1c130c,e_colorize:100/r_28/o_72/fl_layer_apply,g_north_west,x_255,y_48",
+                "kind": "effect",
+                "label": "Offer card in the top band, placed from Scene DNA's text zone so it never covers the product"
+              },
+              {
+                "text": "l_text:Noto%20Sans%20Devanagari@google_84_700:%E0%A4%A6%E0%A4%BF%E0%A4%B5%E0%A4%BE%E0%A4%B2%E0%A5%80%20%E0%A4%B8%E0%A5%87%E0%A4%B2,co_white/c_limit,w_499/fl_layer_apply,g_north,x_0,y_84",
+                "kind": "text",
+                "label": "Hindi offer line (Google font, rendered by Cloudinary, conjuncts shaped correctly)"
+              },
+              {
+                "text": "l_text:Noto%20Sans@google_44_600:Diwali%20Sale%20%C2%B7%2020%2525%20off,co_rgb:ffc56b/c_limit,w_499/fl_layer_apply,g_north,x_0,y_201",
+                "kind": "text",
+                "label": "English offer line"
+              },
+              {
+                "text": "f_auto,q_auto",
+                "kind": "format",
+                "label": "Best format and quality for the viewer's browser"
+              },
+              {
+                "text": "snap2shelf/products/shmessy1/hero-marble-ca4c3ac1-a020d3e2",
+                "kind": "asset",
+                "label": "Source asset"
+              }
+            ]
+          },
+          "publicId": "snap2shelf/products/shmessy1/pack/offer"
+        }
+      ],
+      "reel": {
+        "url": "https://res.cloudinary.com/nyxyma1i/image/upload/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.0);to_(zoom_1.15)/c_scale,w_720,h_1280/fl_splice,l_snap2shelf:products:shmessy1:pack:recolor-1f2937/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.2);to_(zoom_1.02)/c_scale,w_720,h_1280/e_fade:400/fl_layer_apply/fl_splice,l_snap2shelf:products:shmessy1:pack:recolor-0f766e/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.15;x_0.42);to_(zoom_1.15;x_0.58)/c_scale,w_720,h_1280/e_fade:400/fl_layer_apply/l_snap2shelf:products:shmessy1:pack:story/c_scale,w_619,h_161/co_rgb:1c130c,e_colorize:100/r_22/o_72/fl_layer_apply,g_north,y_77/l_text:Noto%20Sans%20Devanagari@google_54_700:%E0%A4%A6%E0%A4%BF%E0%A4%B5%E0%A4%BE%E0%A4%B2%E0%A5%80%20%E0%A4%B8%E0%A5%87%E0%A4%B2,co_white/c_limit,w_569/fl_layer_apply,g_north,y_102/l_text:Noto%20Sans@google_30_600:Diwali%20Sale%20%C2%B7%2020%2525%20off,co_rgb:ffc56b/c_limit,w_569/fl_layer_apply,g_north,y_172/vc_h264,q_auto/snap2shelf/products/shmessy1/pack/story.mp4",
+        "xray": {
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.0);to_(zoom_1.15)/c_scale,w_720,h_1280/fl_splice,l_snap2shelf:products:shmessy1:pack:recolor-1f2937/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.2);to_(zoom_1.02)/c_scale,w_720,h_1280/e_fade:400/fl_layer_apply/fl_splice,l_snap2shelf:products:shmessy1:pack:recolor-0f766e/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.15;x_0.42);to_(zoom_1.15;x_0.58)/c_scale,w_720,h_1280/e_fade:400/fl_layer_apply/l_snap2shelf:products:shmessy1:pack:story/c_scale,w_619,h_161/co_rgb:1c130c,e_colorize:100/r_22/o_72/fl_layer_apply,g_north,y_77/l_text:Noto%20Sans%20Devanagari@google_54_700:%E0%A4%A6%E0%A4%BF%E0%A4%B5%E0%A4%BE%E0%A4%B2%E0%A5%80%20%E0%A4%B8%E0%A5%87%E0%A4%B2,co_white/c_limit,w_569/fl_layer_apply,g_north,y_102/l_text:Noto%20Sans@google_30_600:Diwali%20Sale%20%C2%B7%2020%2525%20off,co_rgb:ffc56b/c_limit,w_569/fl_layer_apply,g_north,y_172/vc_h264,q_auto/snap2shelf/products/shmessy1/pack/story.mp4",
+          "transformation": "c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.0);to_(zoom_1.15)/c_scale,w_720,h_1280/fl_splice,l_snap2shelf:products:shmessy1:pack:recolor-1f2937/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.2);to_(zoom_1.02)/c_scale,w_720,h_1280/e_fade:400/fl_layer_apply/fl_splice,l_snap2shelf:products:shmessy1:pack:recolor-0f766e/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.15;x_0.42);to_(zoom_1.15;x_0.58)/c_scale,w_720,h_1280/e_fade:400/fl_layer_apply/l_snap2shelf:products:shmessy1:pack:story/c_scale,w_619,h_161/co_rgb:1c130c,e_colorize:100/r_22/o_72/fl_layer_apply,g_north,y_77/l_text:Noto%20Sans%20Devanagari@google_54_700:%E0%A4%A6%E0%A4%BF%E0%A4%B5%E0%A4%BE%E0%A4%B2%E0%A5%80%20%E0%A4%B8%E0%A5%87%E0%A4%B2,co_white/c_limit,w_569/fl_layer_apply,g_north,y_102/l_text:Noto%20Sans@google_30_600:Diwali%20Sale%20%C2%B7%2020%2525%20off,co_rgb:ffc56b/c_limit,w_569/fl_layer_apply,g_north,y_172/vc_h264,q_auto",
+          "segments": [
+            {
+              "text": "c_fill,w_720,h_1280,g_center",
+              "kind": "crop",
+              "label": "First image filled to a 9:16 frame"
+            },
+            {
+              "text": "e_zoompan:du_3;fps_25;from_(zoom_1.0);to_(zoom_1.15)/c_scale,w_720,h_1280",
+              "kind": "video",
+              "label": "Clip 1: slow push in (3 s Ken Burns, turns the image into video)"
+            },
+            {
+              "text": "fl_splice,l_snap2shelf:products:shmessy1:pack:recolor-1f2937/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.2);to_(zoom_1.02)/c_scale,w_720,h_1280/e_fade:400/fl_layer_apply",
+              "kind": "video",
+              "label": "Clip 2: pull back, spliced onto the end, fading up over 0.4 s"
+            },
+            {
+              "text": "fl_splice,l_snap2shelf:products:shmessy1:pack:recolor-0f766e/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.15;x_0.42);to_(zoom_1.15;x_0.58)/c_scale,w_720,h_1280/e_fade:400/fl_layer_apply",
+              "kind": "video",
+              "label": "Clip 3: pan left to right, spliced onto the end, fading up over 0.4 s"
+            },
+            {
+              "text": "l_snap2shelf:products:shmessy1:pack:story/c_scale,w_619,h_161/co_rgb:1c130c,e_colorize:100/r_22/o_72/fl_layer_apply,g_north,y_77",
+              "kind": "effect",
+              "label": "Offer card held for the whole reel"
+            },
+            {
+              "text": "l_text:Noto%20Sans%20Devanagari@google_54_700:%E0%A4%A6%E0%A4%BF%E0%A4%B5%E0%A4%BE%E0%A4%B2%E0%A5%80%20%E0%A4%B8%E0%A5%87%E0%A4%B2,co_white/c_limit,w_569/fl_layer_apply,g_north,y_102",
+              "kind": "text",
+              "label": "Hindi offer line, persistent across clips"
+            },
+            {
+              "text": "l_text:Noto%20Sans@google_30_600:Diwali%20Sale%20%C2%B7%2020%2525%20off,co_rgb:ffc56b/c_limit,w_569/fl_layer_apply,g_north,y_172",
+              "kind": "text",
+              "label": "English offer line, persistent across clips"
+            },
+            {
+              "text": "vc_h264,q_auto",
+              "kind": "format",
+              "label": "H.264 MP4 that plays everywhere (WhatsApp, Instagram, browsers)"
+            },
+            {
+              "text": "snap2shelf/products/shmessy1/pack/story.mp4",
+              "kind": "asset",
+              "label": "First image; .mp4 turns the delivery into a video"
+            }
+          ]
+        },
+        "seconds": 9
+      },
+      "zipUrl": "https://api.cloudinary.com/v1_1/nyxyma1i/raw/download?timestamp=1790741485&public_id=snap2shelf%2Fproducts%2Fshmessy1%2Fchannel-pack.zip&type=upload&expires_at=1798517485&signature=cfe854f5e7fbfc754cfca23c7b35a38e0c47fcc7&api_key=491342377369562",
+      "cost": {
+        "generationCredits": 0,
+        "creditsSavedByReuse": 5,
+        "aiVisionTokens": 2692,
+        "transformationsEstimate": 348,
+        "bytesOriginal": 2249535,
+        "bytesDelivered": 41672,
+        "seconds": 82.3
+      },
+      "createdAt": "2026-09-30T04:11:32.796Z",
+      "timings": {
+        "upload": 35299,
+        "analyze": 5160,
+        "cutout": 5787,
+        "stage": 1999,
+        "qa": 16241,
+        "pack": 13255,
+        "zip": 4605,
+        "reel": 3577,
+        "toApprovedHero": 64486,
+        "total": 82346
+      },
+      "attempts": [
+        {
+          "scenePublicId": "snap2shelf/scenes/marble/final-ca4c3ac1",
+          "sceneTitle": "Marble studio",
+          "controls": {
+            "scale": 0.48,
+            "offsetX": 0,
+            "offsetY": 0,
+            "shadow": true,
+            "contact": true,
+            "reflection": "auto",
+            "harmonise": true
+          },
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/c_fill,w_1080,h_1350/l_snap2shelf:products:shmessy1:cutout/c_scale,w_174,h_649/co_rgb:262626,e_colorize:100/e_distort:390:138:564:138:174:0:0:0/c_crop,g_north_west,x_0,y_0,w_564,h_138/c_mpad,w_700,h_274,b_transparent/e_blur:584/e_gradient_fade:40,y_-0.7/o_45/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_385,y_945/l_snap2shelf:products:shmessy1:cutout/c_scale,w_174,h_649/a_vflip/e_gradient_fade:50,y_-0.75/c_mpad,w_198,h_673,b_transparent/e_blur:120/o_26/fl_layer_apply,fl_no_overflow,g_north_west,x_441,y_975/l_snap2shelf:products:shmessy1:cutout/c_crop,g_south,w_317,h_142/c_scale,w_184,h_57/co_rgb:262626,e_colorize:100/c_mpad,w_320,h_193,b_transparent/e_blur:400/o_30/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_380,y_904/l_snap2shelf:products:shmessy1:cutout/c_crop,g_south,w_317,h_142/c_scale,w_167,h_23/co_rgb:262626,e_colorize:100/c_mpad,w_259,h_115,b_transparent/e_blur:200/o_90/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_411,y_953/l_snap2shelf:products:shmessy1:cutout/c_scale,w_174,h_649/e_brightness:-3/fl_layer_apply,g_north_west,x_453,y_364/l_snap2shelf:products:shmessy1:cutout/c_scale,w_174,h_649/co_rgb:262626,e_colorize:100/e_gradient_fade:25,x_0.85/o_30/e_multiply,fl_layer_apply,g_north_west,x_453,y_364/f_auto,q_auto/snap2shelf/scenes/marble/final-ca4c3ac1",
+          "qa": {
+            "status": "rejected",
+            "matched": [
+              "product-visible",
+              "product-floating",
+              "compositing-artifact"
+            ],
+            "reasons": [
+              "The product looks like it is floating or pasted on. Try moving it down or turning on the contact shadow.",
+              "There is a visible editing artifact (for example a cut-off shadow box). Try turning the cast shadow off or moving the product."
+            ],
+            "checkedAt": "2026-09-30T05:10:00.000Z"
+          },
+          "tokens": 676,
+          "note": "first choice: AI suggested \"marble\" (#2), art-direction hint #1"
+        },
+        {
+          "scenePublicId": "snap2shelf/scenes/marble/final-ca4c3ac1",
+          "sceneTitle": "Marble studio",
+          "controls": {
+            "scale": 0.48,
+            "offsetX": 0,
+            "offsetY": 10,
+            "shadow": true,
+            "contact": false,
+            "reflection": "auto",
+            "harmonise": true
+          },
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/c_fill,w_1080,h_1350/l_snap2shelf:products:shmessy1:cutout/c_scale,w_174,h_649/co_rgb:262626,e_colorize:100/e_distort:390:138:564:138:174:0:0:0/c_crop,g_north_west,x_0,y_0,w_564,h_138/c_mpad,w_700,h_274,b_transparent/e_blur:584/e_gradient_fade:40,y_-0.7/o_45/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_385,y_955/l_snap2shelf:products:shmessy1:cutout/c_scale,w_174,h_649/a_vflip/e_gradient_fade:50,y_-0.75/c_mpad,w_198,h_673,b_transparent/e_blur:120/o_26/fl_layer_apply,fl_no_overflow,g_north_west,x_441,y_985/l_snap2shelf:products:shmessy1:cutout/c_scale,w_174,h_649/e_brightness:-3/fl_layer_apply,g_north_west,x_453,y_374/l_snap2shelf:products:shmessy1:cutout/c_scale,w_174,h_649/co_rgb:262626,e_colorize:100/e_gradient_fade:25,x_0.85/o_30/e_multiply,fl_layer_apply,g_north_west,x_453,y_374/f_auto,q_auto/snap2shelf/scenes/marble/final-ca4c3ac1",
+          "qa": {
+            "status": "rejected",
+            "matched": [
+              "product-visible",
+              "product-floating"
+            ],
+            "reasons": [
+              "The product looks like it is floating or pasted on. Try moving it down or turning on the contact shadow."
+            ],
+            "checkedAt": "2026-09-30T05:10:00.000Z"
+          },
+          "tokens": 675,
+          "note": "retry: contact shadow off (compositing-artifact); 10 px lower (product-floating)"
+        },
+        {
+          "scenePublicId": "snap2shelf/scenes/marble/final-ca4c3ac1",
+          "sceneTitle": "Marble studio",
+          "controls": {
+            "scale": 0.48,
+            "offsetX": 0,
+            "offsetY": 20,
+            "shadow": true,
+            "contact": true,
+            "reflection": "auto",
+            "harmonise": true
+          },
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/c_fill,w_1080,h_1350/l_snap2shelf:products:shmessy1:cutout/c_scale,w_174,h_649/co_rgb:262626,e_colorize:100/e_distort:390:138:564:138:174:0:0:0/c_crop,g_north_west,x_0,y_0,w_564,h_138/c_mpad,w_700,h_274,b_transparent/e_blur:584/e_gradient_fade:40,y_-0.7/o_45/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_385,y_965/l_snap2shelf:products:shmessy1:cutout/c_scale,w_174,h_649/a_vflip/e_gradient_fade:50,y_-0.75/c_mpad,w_198,h_673,b_transparent/e_blur:120/o_26/fl_layer_apply,fl_no_overflow,g_north_west,x_441,y_995/l_snap2shelf:products:shmessy1:cutout/c_crop,g_south,w_317,h_142/c_scale,w_184,h_57/co_rgb:262626,e_colorize:100/c_mpad,w_320,h_193,b_transparent/e_blur:400/o_30/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_380,y_924/l_snap2shelf:products:shmessy1:cutout/c_crop,g_south,w_317,h_142/c_scale,w_167,h_23/co_rgb:262626,e_colorize:100/c_mpad,w_259,h_115,b_transparent/e_blur:200/o_90/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_411,y_973/l_snap2shelf:products:shmessy1:cutout/c_scale,w_174,h_649/e_brightness:-3/fl_layer_apply,g_north_west,x_453,y_384/l_snap2shelf:products:shmessy1:cutout/c_scale,w_174,h_649/co_rgb:262626,e_colorize:100/e_gradient_fade:25,x_0.85/o_30/e_multiply,fl_layer_apply,g_north_west,x_453,y_384/f_auto,q_auto/snap2shelf/scenes/marble/final-ca4c3ac1",
+          "qa": {
+            "status": "approved",
+            "matched": [
+              "product-visible"
+            ],
+            "reasons": [],
+            "checkedAt": "2026-09-30T05:10:00.000Z"
+          },
+          "tokens": 676,
+          "note": "retry: contact shadow on, 10 px lower (product-floating)"
+        }
+      ],
+      "overrides": [],
+      "packFailed": []
+    },
+    {
+      "sku": "shbottle",
+      "title": "Steel water bottle",
+      "sample": true,
+      "photo": {
+        "kind": "decent",
+        "file": "06_steel_bottle.png"
+      },
+      "product": {
+        "sku": "shbottle",
+        "rawPublicId": "snap2shelf/products/shbottle/raw",
+        "rawWidth": 1122,
+        "rawHeight": 1402,
+        "rawBytes": 1783788,
+        "caption": "A stainless steel water bottle stands on a white countertop with a potted plant and a wooden block in the background.",
+        "focus": 0.39,
+        "understanding": {
+          "name": "Stainless steel water bottle",
+          "category": "drinkware",
+          "primary_color": "silver",
+          "material": "stainless steel",
+          "recolorable_part": "bottle body",
+          "placement": "standing",
+          "suggested_themes": [
+            "kitchen",
+            "marble",
+            "pastel"
+          ]
+        },
+        "cutout": {
+          "publicId": "snap2shelf/products/shbottle/cutout",
+          "width": 309,
+          "height": 1223,
+          "version": 1790740463
+        }
+      },
+      "mode": "exact",
+      "scene": {
+        "publicId": "snap2shelf/scenes/cafe/final-04757f01",
+        "theme": "cafe",
+        "view": "eye-level",
+        "title": "Outdoor café",
+        "prompt": "Photorealistic empty product-photography backdrop, professional commercial photo. Camera at eye level, about 15 degrees above the surface. A round white marble café table outdoors fills the lower 40% of the frame. The centre foreground of the surface is completely empty and clear for placing a product. In the background a leafy Indian street café with warm string lights at early evening, softly out of focus with shallow depth of field. Golden-hour light from the right. No products, no bottles, no packaging, no people, no hands, no text, no letters, no logos, no brand names.",
+        "modelId": "gpt-image-2.5-flare",
+        "credits": 4,
+        "dna": {
+          "anchor_x": 0.5,
+          "anchor_y": 0.78,
+          "surface_width": 0.95,
+          "light_azimuth": 90,
+          "light_elevation": 25,
+          "temperature": "warm",
+          "glossy": true,
+          "text_zone": "top_right"
+        }
+      },
+      "controls": {
+        "scale": 0.48,
+        "offsetX": 0,
+        "offsetY": 0,
+        "shadow": true,
+        "contact": true,
+        "reflection": "auto",
+        "harmonise": true
+      },
+      "hero": {
+        "id": "hero",
+        "format": "hero",
+        "label": "Hero 4:5",
+        "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/snap2shelf/products/shbottle/hero-cafe-04757f01-0c2c16ca",
+        "width": 1080,
+        "height": 1350,
+        "frame": "feed-post",
+        "alt": "Stainless steel water bottle, staged on the Outdoor café scene",
+        "xray": {
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/c_fill,w_1080,h_1350/l_snap2shelf:products:shbottle:cutout/c_scale,w_164,h_649/co_rgb:3a2414,e_colorize:100/e_distort:0:0:164:0:771:96:607:96/c_crop,g_north_west,x_0,y_0,w_771,h_96/c_mpad,w_951,h_276,b_transparent/e_blur:643/e_gradient_fade:40,y_0.7/o_45/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_-239,y_867/l_snap2shelf:products:shbottle:cutout/c_scale,w_164,h_649/a_vflip/e_gradient_fade:50,y_-0.75/c_mpad,w_188,h_673,b_transparent/e_blur:120/o_26/fl_layer_apply,fl_no_overflow,g_north_west,x_446,y_1016/l_snap2shelf:products:shbottle:cutout/c_crop,g_south,w_309,h_147/c_scale,w_174,h_54/co_rgb:3a2414,e_colorize:100/c_mpad,w_304,h_184,b_transparent/e_blur:400/o_30/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_388,y_949/l_snap2shelf:products:shbottle:cutout/c_crop,g_south,w_309,h_147/c_scale,w_157,h_22/co_rgb:3a2414,e_colorize:100/c_mpad,w_245,h_110,b_transparent/e_blur:200/o_90/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_418,y_995/l_snap2shelf:products:shbottle:cutout/c_scale,w_164,h_649/e_tint:19:ffa04a/e_brightness:-8/fl_layer_apply,g_north_west,x_458,y_404/l_snap2shelf:products:shbottle:cutout/c_scale,w_164,h_649/co_rgb:ffb45a,e_colorize:100/e_gradient_fade:30,x_0.9/o_24/e_screen,fl_layer_apply,g_north_west,x_458,y_404/l_snap2shelf:products:shbottle:cutout/c_scale,w_164,h_649/co_rgb:3a2414,e_colorize:100/e_gradient_fade:25,x_-0.85/o_30/e_multiply,fl_layer_apply,g_north_west,x_458,y_404/f_auto,q_auto/snap2shelf/scenes/cafe/final-04757f01",
+          "transformation": "c_fill,w_1080,h_1350/l_snap2shelf:products:shbottle:cutout/c_scale,w_164,h_649/co_rgb:3a2414,e_colorize:100/e_distort:0:0:164:0:771:96:607:96/c_crop,g_north_west,x_0,y_0,w_771,h_96/c_mpad,w_951,h_276,b_transparent/e_blur:643/e_gradient_fade:40,y_0.7/o_45/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_-239,y_867/l_snap2shelf:products:shbottle:cutout/c_scale,w_164,h_649/a_vflip/e_gradient_fade:50,y_-0.75/c_mpad,w_188,h_673,b_transparent/e_blur:120/o_26/fl_layer_apply,fl_no_overflow,g_north_west,x_446,y_1016/l_snap2shelf:products:shbottle:cutout/c_crop,g_south,w_309,h_147/c_scale,w_174,h_54/co_rgb:3a2414,e_colorize:100/c_mpad,w_304,h_184,b_transparent/e_blur:400/o_30/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_388,y_949/l_snap2shelf:products:shbottle:cutout/c_crop,g_south,w_309,h_147/c_scale,w_157,h_22/co_rgb:3a2414,e_colorize:100/c_mpad,w_245,h_110,b_transparent/e_blur:200/o_90/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_418,y_995/l_snap2shelf:products:shbottle:cutout/c_scale,w_164,h_649/e_tint:19:ffa04a/e_brightness:-8/fl_layer_apply,g_north_west,x_458,y_404/l_snap2shelf:products:shbottle:cutout/c_scale,w_164,h_649/co_rgb:ffb45a,e_colorize:100/e_gradient_fade:30,x_0.9/o_24/e_screen,fl_layer_apply,g_north_west,x_458,y_404/l_snap2shelf:products:shbottle:cutout/c_scale,w_164,h_649/co_rgb:3a2414,e_colorize:100/e_gradient_fade:25,x_-0.85/o_30/e_multiply,fl_layer_apply,g_north_west,x_458,y_404/f_auto,q_auto",
+          "segments": [
+            {
+              "text": "c_fill,w_1080,h_1350",
+              "kind": "crop",
+              "label": "Scene plate at the canonical 4:5 size"
+            },
+            {
+              "text": "l_snap2shelf:products:shbottle:cutout/c_scale,w_164,h_649/co_rgb:3a2414,e_colorize:100/e_distort:0:0:164:0:771:96:607:96/c_crop,g_north_west,x_0,y_0,w_771,h_96/c_mpad,w_951,h_276,b_transparent/e_blur:643/e_gradient_fade:40,y_0.7/o_45/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_-239,y_867",
+              "kind": "shadow",
+              "label": "Cast shadow: the product's silhouette projected onto the surface, away from the light (azimuth 90°, elevation 25°), softened and fading with distance"
+            },
+            {
+              "text": "l_snap2shelf:products:shbottle:cutout/c_scale,w_164,h_649/a_vflip/e_gradient_fade:50,y_-0.75/c_mpad,w_188,h_673,b_transparent/e_blur:120/o_26/fl_layer_apply,fl_no_overflow,g_north_west,x_446,y_1016",
+              "kind": "reflection",
+              "label": "Surface reflection: the cutout mirrored, blurred and faded under the product (glossy scenes only)"
+            },
+            {
+              "text": "l_snap2shelf:products:shbottle:cutout/c_crop,g_south,w_309,h_147/c_scale,w_174,h_54/co_rgb:3a2414,e_colorize:100/c_mpad,w_304,h_184,b_transparent/e_blur:400/o_30/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_388,y_949",
+              "kind": "shadow",
+              "label": "Ambient occlusion: a soft pool of shadow where the product meets the surface"
+            },
+            {
+              "text": "l_snap2shelf:products:shbottle:cutout/c_crop,g_south,w_309,h_147/c_scale,w_157,h_22/co_rgb:3a2414,e_colorize:100/c_mpad,w_245,h_110,b_transparent/e_blur:200/o_90/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_418,y_995",
+              "kind": "shadow",
+              "label": "Contact shadow: the product's own footprint, squashed, darkened and blurred so it sits on the surface"
+            },
+            {
+              "text": "l_snap2shelf:products:shbottle:cutout/c_scale,w_164,h_649/e_tint:19:ffa04a/e_brightness:-8/fl_layer_apply,g_north_west,x_458,y_404",
+              "kind": "layer",
+              "label": "Your real product, placed where Scene DNA says the surface is, with a subtle warm light-match"
+            },
+            {
+              "text": "l_snap2shelf:products:shbottle:cutout/c_scale,w_164,h_649/co_rgb:ffb45a,e_colorize:100/e_gradient_fade:30,x_0.9/o_24/e_screen,fl_layer_apply,g_north_west,x_458,y_404",
+              "kind": "effect",
+              "label": "Light-match: the scene's warm key light washes over the side of the product that faces it"
+            },
+            {
+              "text": "l_snap2shelf:products:shbottle:cutout/c_scale,w_164,h_649/co_rgb:3a2414,e_colorize:100/e_gradient_fade:25,x_-0.85/o_30/e_multiply,fl_layer_apply,g_north_west,x_458,y_404",
+              "kind": "effect",
+              "label": "Light-match: the side facing away from the scene's light falls off gently"
+            },
+            {
+              "text": "f_auto,q_auto",
+              "kind": "format",
+              "label": "Best format and quality for the viewer's browser"
+            },
+            {
+              "text": "snap2shelf/scenes/cafe/final-04757f01",
+              "kind": "asset",
+              "label": "Scene plate from the shared library"
+            }
+          ]
+        },
+        "publicId": "snap2shelf/products/shbottle/hero-cafe-04757f01-0c2c16ca",
+        "qa": {
+          "status": "approved",
+          "matched": [
+            "product-visible"
+          ],
+          "reasons": [],
+          "checkedAt": "2026-09-30T05:10:00.000Z"
+        }
+      },
+      "assets": [
+        {
+          "id": "feed",
+          "format": "feed",
+          "label": "Feed post 4:5",
+          "width": 1080,
+          "height": 1350,
+          "frame": "feed-post",
+          "alt": "Stainless steel water bottle on the Outdoor café scene, 4:5 feed post",
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/v1790741309/snap2shelf/products/shbottle/pack/feed",
+          "xray": {
+            "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/snap2shelf/products/shbottle/hero-cafe-04757f01-0c2c16ca",
+            "transformation": "f_auto,q_auto",
+            "segments": [
+              {
+                "text": "f_auto,q_auto",
+                "kind": "format",
+                "label": "Best format and quality for the viewer's browser"
+              },
+              {
+                "text": "snap2shelf/products/shbottle/hero-cafe-04757f01-0c2c16ca",
+                "kind": "asset",
+                "label": "Source asset"
+              }
+            ]
+          },
+          "publicId": "snap2shelf/products/shbottle/pack/feed"
+        },
+        {
+          "id": "marketplace",
+          "format": "marketplace",
+          "label": "Marketplace main 2000px",
+          "width": 2000,
+          "height": 2000,
+          "frame": "listing-card",
+          "alt": "Stainless steel water bottle on a pure white background, marketplace main image",
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/v1790741309/snap2shelf/products/shbottle/pack/marketplace",
+          "xray": {
+            "url": "https://res.cloudinary.com/nyxyma1i/image/upload/c_fit,w_1700,h_1700/c_mpad,w_2000,h_2000,b_white/f_jpg,q_auto:best/snap2shelf/products/shbottle/cutout",
+            "transformation": "c_fit,w_1700,h_1700/c_mpad,w_2000,h_2000,b_white/f_jpg,q_auto:best",
+            "segments": [
+              {
+                "text": "c_fit,w_1700,h_1700/c_mpad,w_2000,h_2000,b_white",
+                "kind": "crop",
+                "label": "Product fitted to 1700px (85% of the frame) on a pure white 2000×2000 canvas, as marketplaces require"
+              },
+              {
+                "text": "f_jpg,q_auto:best",
+                "kind": "format",
+                "label": "JPEG, best quality (transparency flattened onto white)"
+              },
+              {
+                "text": "snap2shelf/products/shbottle/cutout",
+                "kind": "asset",
+                "label": "Source asset"
+              }
+            ]
+          },
+          "publicId": "snap2shelf/products/shbottle/pack/marketplace"
+        },
+        {
+          "id": "story",
+          "format": "story",
+          "label": "Story 9:16",
+          "width": 1080,
+          "height": 1920,
+          "frame": "story",
+          "alt": "Stainless steel water bottle on the Outdoor café scene, scene extended to a 9:16 story",
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/v1790741313/snap2shelf/products/shbottle/pack/story",
+          "xray": {
+            "url": "https://res.cloudinary.com/nyxyma1i/image/upload/ar_9:16,b_gen_fill,c_pad,w_1080/f_auto,q_auto/snap2shelf/products/shbottle/hero-cafe-04757f01-0c2c16ca",
+            "transformation": "ar_9:16,b_gen_fill,c_pad,w_1080/f_auto,q_auto",
+            "segments": [
+              {
+                "text": "ar_9:16,b_gen_fill,c_pad,w_1080",
+                "kind": "gen-ai",
+                "label": "Generative fill extends the scene to 9:16 (no new generation)"
+              },
+              {
+                "text": "f_auto,q_auto",
+                "kind": "format",
+                "label": "Best format and quality for the viewer's browser"
+              },
+              {
+                "text": "snap2shelf/products/shbottle/hero-cafe-04757f01-0c2c16ca",
+                "kind": "asset",
+                "label": "Source asset"
+              }
+            ]
+          },
+          "publicId": "snap2shelf/products/shbottle/pack/story"
+        },
+        {
+          "id": "banner",
+          "format": "banner",
+          "label": "Web banner 16:9",
+          "width": 1920,
+          "height": 1080,
+          "frame": "web-banner",
+          "alt": "Stainless steel water bottle on the Outdoor café scene, scene extended to a 16:9 web banner",
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/v1790741313/snap2shelf/products/shbottle/pack/banner",
+          "xray": {
+            "url": "https://res.cloudinary.com/nyxyma1i/image/upload/ar_16:9,b_gen_fill,c_pad,w_1920/f_auto,q_auto/snap2shelf/products/shbottle/hero-cafe-04757f01-0c2c16ca",
+            "transformation": "ar_16:9,b_gen_fill,c_pad,w_1920/f_auto,q_auto",
+            "segments": [
+              {
+                "text": "ar_16:9,b_gen_fill,c_pad,w_1920",
+                "kind": "gen-ai",
+                "label": "Generative fill extends the scene to 16:9"
+              },
+              {
+                "text": "f_auto,q_auto",
+                "kind": "format",
+                "label": "Best format and quality for the viewer's browser"
+              },
+              {
+                "text": "snap2shelf/products/shbottle/hero-cafe-04757f01-0c2c16ca",
+                "kind": "asset",
+                "label": "Source asset"
+              }
+            ]
+          },
+          "publicId": "snap2shelf/products/shbottle/pack/banner"
+        },
+        {
+          "id": "whatsapp",
+          "format": "whatsapp",
+          "label": "WhatsApp catalog tile",
+          "width": 600,
+          "height": 600,
+          "frame": "catalog-tile",
+          "alt": "Stainless steel water bottle on the Outdoor café scene, square catalog tile",
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/v1790741307/snap2shelf/products/shbottle/pack/whatsapp",
+          "xray": {
+            "url": "https://res.cloudinary.com/nyxyma1i/image/upload/c_crop,g_north_west,x_53,y_267,w_974,h_974/c_scale,w_600,h_600/f_auto,q_auto:eco/snap2shelf/products/shbottle/hero-cafe-04757f01-0c2c16ca",
+            "transformation": "c_crop,g_north_west,x_53,y_267,w_974,h_974/c_scale,w_600,h_600/f_auto,q_auto:eco",
+            "segments": [
+              {
+                "text": "c_crop,g_north_west,x_53,y_267,w_974,h_974/c_scale,w_600,h_600",
+                "kind": "crop",
+                "label": "Square crop centred on the product, 600px"
+              },
+              {
+                "text": "f_auto,q_auto:eco",
+                "kind": "format",
+                "label": "Light enough for a catalog"
+              },
+              {
+                "text": "snap2shelf/products/shbottle/hero-cafe-04757f01-0c2c16ca",
+                "kind": "asset",
+                "label": "Source asset"
+              }
+            ]
+          },
+          "publicId": "snap2shelf/products/shbottle/pack/whatsapp"
+        },
+        {
+          "id": "recolor-0f766e",
+          "format": "recolor",
+          "label": "Teal variant",
+          "width": 1080,
+          "height": 1350,
+          "frame": "feed-post",
+          "alt": "Stainless steel water bottle in teal, on the Outdoor café scene",
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/v1790741311/snap2shelf/products/shbottle/pack/recolor-0f766e",
+          "xray": {
+            "url": "https://res.cloudinary.com/nyxyma1i/image/upload/e_gen_recolor:prompt_bottle%20body;to-color_0f766e/f_auto,q_auto/snap2shelf/products/shbottle/hero-cafe-04757f01-0c2c16ca",
+            "transformation": "e_gen_recolor:prompt_bottle%20body;to-color_0f766e/f_auto,q_auto",
+            "segments": [
+              {
+                "text": "e_gen_recolor:prompt_bottle%20body;to-color_0f766e",
+                "kind": "gen-ai",
+                "label": "Generative recolor of the bottle body only (shading kept)"
+              },
+              {
+                "text": "f_auto,q_auto",
+                "kind": "format",
+                "label": "Best format and quality for the viewer's browser"
+              },
+              {
+                "text": "snap2shelf/products/shbottle/hero-cafe-04757f01-0c2c16ca",
+                "kind": "asset",
+                "label": "Source asset"
+              }
+            ]
+          },
+          "publicId": "snap2shelf/products/shbottle/pack/recolor-0f766e"
+        },
+        {
+          "id": "recolor-b91c1c",
+          "format": "recolor",
+          "label": "Crimson variant",
+          "width": 1080,
+          "height": 1350,
+          "frame": "feed-post",
+          "alt": "Stainless steel water bottle in crimson, on the Outdoor café scene",
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/v1790741313/snap2shelf/products/shbottle/pack/recolor-b91c1c",
+          "xray": {
+            "url": "https://res.cloudinary.com/nyxyma1i/image/upload/e_gen_recolor:prompt_bottle%20body;to-color_b91c1c/f_auto,q_auto/snap2shelf/products/shbottle/hero-cafe-04757f01-0c2c16ca",
+            "transformation": "e_gen_recolor:prompt_bottle%20body;to-color_b91c1c/f_auto,q_auto",
+            "segments": [
+              {
+                "text": "e_gen_recolor:prompt_bottle%20body;to-color_b91c1c",
+                "kind": "gen-ai",
+                "label": "Generative recolor of the bottle body only (shading kept)"
+              },
+              {
+                "text": "f_auto,q_auto",
+                "kind": "format",
+                "label": "Best format and quality for the viewer's browser"
+              },
+              {
+                "text": "snap2shelf/products/shbottle/hero-cafe-04757f01-0c2c16ca",
+                "kind": "asset",
+                "label": "Source asset"
+              }
+            ]
+          },
+          "publicId": "snap2shelf/products/shbottle/pack/recolor-b91c1c"
+        },
+        {
+          "id": "offer",
+          "format": "offer",
+          "label": "Festive offer",
+          "width": 1080,
+          "height": 1350,
+          "frame": "feed-post",
+          "alt": "Stainless steel water bottle on the Outdoor café scene with the offer \"Diwali Sale · 20% off\" in Hindi and English",
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/v1790741309/snap2shelf/products/shbottle/pack/offer",
+          "xray": {
+            "url": "https://res.cloudinary.com/nyxyma1i/image/upload/l_snap2shelf:products:shbottle:hero-cafe-04757f01-0c2c16ca/c_scale,w_571,h_249/co_rgb:1c130c,e_colorize:100/r_28/o_72/fl_layer_apply,g_north_west,x_461,y_48/l_text:Noto%20Sans%20Devanagari@google_84_700:%E0%A4%A6%E0%A4%BF%E0%A4%B5%E0%A4%BE%E0%A4%B2%E0%A5%80%20%E0%A4%B8%E0%A5%87%E0%A4%B2,co_white/c_limit,w_499/fl_layer_apply,g_north_east,x_84,y_84/l_text:Noto%20Sans@google_44_600:Diwali%20Sale%20%C2%B7%2020%2525%20off,co_rgb:ffc56b/c_limit,w_499/fl_layer_apply,g_north_east,x_84,y_201/f_auto,q_auto/snap2shelf/products/shbottle/hero-cafe-04757f01-0c2c16ca",
+            "transformation": "l_snap2shelf:products:shbottle:hero-cafe-04757f01-0c2c16ca/c_scale,w_571,h_249/co_rgb:1c130c,e_colorize:100/r_28/o_72/fl_layer_apply,g_north_west,x_461,y_48/l_text:Noto%20Sans%20Devanagari@google_84_700:%E0%A4%A6%E0%A4%BF%E0%A4%B5%E0%A4%BE%E0%A4%B2%E0%A5%80%20%E0%A4%B8%E0%A5%87%E0%A4%B2,co_white/c_limit,w_499/fl_layer_apply,g_north_east,x_84,y_84/l_text:Noto%20Sans@google_44_600:Diwali%20Sale%20%C2%B7%2020%2525%20off,co_rgb:ffc56b/c_limit,w_499/fl_layer_apply,g_north_east,x_84,y_201/f_auto,q_auto",
+            "segments": [
+              {
+                "text": "l_snap2shelf:products:shbottle:hero-cafe-04757f01-0c2c16ca/c_scale,w_571,h_249/co_rgb:1c130c,e_colorize:100/r_28/o_72/fl_layer_apply,g_north_west,x_461,y_48",
+                "kind": "effect",
+                "label": "Offer card in the top band, placed from Scene DNA's text zone so it never covers the product"
+              },
+              {
+                "text": "l_text:Noto%20Sans%20Devanagari@google_84_700:%E0%A4%A6%E0%A4%BF%E0%A4%B5%E0%A4%BE%E0%A4%B2%E0%A5%80%20%E0%A4%B8%E0%A5%87%E0%A4%B2,co_white/c_limit,w_499/fl_layer_apply,g_north_east,x_84,y_84",
+                "kind": "text",
+                "label": "Hindi offer line (Google font, rendered by Cloudinary, conjuncts shaped correctly)"
+              },
+              {
+                "text": "l_text:Noto%20Sans@google_44_600:Diwali%20Sale%20%C2%B7%2020%2525%20off,co_rgb:ffc56b/c_limit,w_499/fl_layer_apply,g_north_east,x_84,y_201",
+                "kind": "text",
+                "label": "English offer line"
+              },
+              {
+                "text": "f_auto,q_auto",
+                "kind": "format",
+                "label": "Best format and quality for the viewer's browser"
+              },
+              {
+                "text": "snap2shelf/products/shbottle/hero-cafe-04757f01-0c2c16ca",
+                "kind": "asset",
+                "label": "Source asset"
+              }
+            ]
+          },
+          "publicId": "snap2shelf/products/shbottle/pack/offer"
+        }
+      ],
+      "reel": {
+        "url": "https://res.cloudinary.com/nyxyma1i/image/upload/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.0);to_(zoom_1.15)/c_scale,w_720,h_1280/fl_splice,l_snap2shelf:products:shbottle:pack:recolor-0f766e/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.2);to_(zoom_1.02)/c_scale,w_720,h_1280/e_fade:400/fl_layer_apply/fl_splice,l_snap2shelf:products:shbottle:pack:recolor-b91c1c/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.15;x_0.42);to_(zoom_1.15;x_0.58)/c_scale,w_720,h_1280/e_fade:400/fl_layer_apply/fl_splice,l_snap2shelf:products:shbottle:creative-nano-banana-2-edit-7/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.05;y_0.46);to_(zoom_1.2;y_0.54)/c_scale,w_720,h_1280/e_fade:400/fl_layer_apply/l_snap2shelf:products:shbottle:pack:story/c_scale,w_619,h_161/co_rgb:1c130c,e_colorize:100/r_22/o_72/fl_layer_apply,g_north,y_77/l_text:Noto%20Sans%20Devanagari@google_54_700:%E0%A4%A6%E0%A4%BF%E0%A4%B5%E0%A4%BE%E0%A4%B2%E0%A5%80%20%E0%A4%B8%E0%A5%87%E0%A4%B2,co_white/c_limit,w_569/fl_layer_apply,g_north,y_102/l_text:Noto%20Sans@google_30_600:Diwali%20Sale%20%C2%B7%2020%2525%20off,co_rgb:ffc56b/c_limit,w_569/fl_layer_apply,g_north,y_172/vc_h264,q_auto/snap2shelf/products/shbottle/pack/story.mp4",
+        "xray": {
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.0);to_(zoom_1.15)/c_scale,w_720,h_1280/fl_splice,l_snap2shelf:products:shbottle:pack:recolor-0f766e/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.2);to_(zoom_1.02)/c_scale,w_720,h_1280/e_fade:400/fl_layer_apply/fl_splice,l_snap2shelf:products:shbottle:pack:recolor-b91c1c/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.15;x_0.42);to_(zoom_1.15;x_0.58)/c_scale,w_720,h_1280/e_fade:400/fl_layer_apply/fl_splice,l_snap2shelf:products:shbottle:creative-nano-banana-2-edit-7/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.05;y_0.46);to_(zoom_1.2;y_0.54)/c_scale,w_720,h_1280/e_fade:400/fl_layer_apply/l_snap2shelf:products:shbottle:pack:story/c_scale,w_619,h_161/co_rgb:1c130c,e_colorize:100/r_22/o_72/fl_layer_apply,g_north,y_77/l_text:Noto%20Sans%20Devanagari@google_54_700:%E0%A4%A6%E0%A4%BF%E0%A4%B5%E0%A4%BE%E0%A4%B2%E0%A5%80%20%E0%A4%B8%E0%A5%87%E0%A4%B2,co_white/c_limit,w_569/fl_layer_apply,g_north,y_102/l_text:Noto%20Sans@google_30_600:Diwali%20Sale%20%C2%B7%2020%2525%20off,co_rgb:ffc56b/c_limit,w_569/fl_layer_apply,g_north,y_172/vc_h264,q_auto/snap2shelf/products/shbottle/pack/story.mp4",
+          "transformation": "c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.0);to_(zoom_1.15)/c_scale,w_720,h_1280/fl_splice,l_snap2shelf:products:shbottle:pack:recolor-0f766e/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.2);to_(zoom_1.02)/c_scale,w_720,h_1280/e_fade:400/fl_layer_apply/fl_splice,l_snap2shelf:products:shbottle:pack:recolor-b91c1c/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.15;x_0.42);to_(zoom_1.15;x_0.58)/c_scale,w_720,h_1280/e_fade:400/fl_layer_apply/fl_splice,l_snap2shelf:products:shbottle:creative-nano-banana-2-edit-7/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.05;y_0.46);to_(zoom_1.2;y_0.54)/c_scale,w_720,h_1280/e_fade:400/fl_layer_apply/l_snap2shelf:products:shbottle:pack:story/c_scale,w_619,h_161/co_rgb:1c130c,e_colorize:100/r_22/o_72/fl_layer_apply,g_north,y_77/l_text:Noto%20Sans%20Devanagari@google_54_700:%E0%A4%A6%E0%A4%BF%E0%A4%B5%E0%A4%BE%E0%A4%B2%E0%A5%80%20%E0%A4%B8%E0%A5%87%E0%A4%B2,co_white/c_limit,w_569/fl_layer_apply,g_north,y_102/l_text:Noto%20Sans@google_30_600:Diwali%20Sale%20%C2%B7%2020%2525%20off,co_rgb:ffc56b/c_limit,w_569/fl_layer_apply,g_north,y_172/vc_h264,q_auto",
+          "segments": [
+            {
+              "text": "c_fill,w_720,h_1280,g_center",
+              "kind": "crop",
+              "label": "First image filled to a 9:16 frame"
+            },
+            {
+              "text": "e_zoompan:du_3;fps_25;from_(zoom_1.0);to_(zoom_1.15)/c_scale,w_720,h_1280",
+              "kind": "video",
+              "label": "Clip 1: slow push in (3 s Ken Burns, turns the image into video)"
+            },
+            {
+              "text": "fl_splice,l_snap2shelf:products:shbottle:pack:recolor-0f766e/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.2);to_(zoom_1.02)/c_scale,w_720,h_1280/e_fade:400/fl_layer_apply",
+              "kind": "video",
+              "label": "Clip 2: pull back, spliced onto the end, fading up over 0.4 s"
+            },
+            {
+              "text": "fl_splice,l_snap2shelf:products:shbottle:pack:recolor-b91c1c/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.15;x_0.42);to_(zoom_1.15;x_0.58)/c_scale,w_720,h_1280/e_fade:400/fl_layer_apply",
+              "kind": "video",
+              "label": "Clip 3: pan left to right, spliced onto the end, fading up over 0.4 s"
+            },
+            {
+              "text": "fl_splice,l_snap2shelf:products:shbottle:creative-nano-banana-2-edit-7/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.05;y_0.46);to_(zoom_1.2;y_0.54)/c_scale,w_720,h_1280/e_fade:400/fl_layer_apply",
+              "kind": "video",
+              "label": "Clip 4: tilt down into the product, spliced onto the end, fading up over 0.4 s"
+            },
+            {
+              "text": "l_snap2shelf:products:shbottle:pack:story/c_scale,w_619,h_161/co_rgb:1c130c,e_colorize:100/r_22/o_72/fl_layer_apply,g_north,y_77",
+              "kind": "effect",
+              "label": "Offer card held for the whole reel"
+            },
+            {
+              "text": "l_text:Noto%20Sans%20Devanagari@google_54_700:%E0%A4%A6%E0%A4%BF%E0%A4%B5%E0%A4%BE%E0%A4%B2%E0%A5%80%20%E0%A4%B8%E0%A5%87%E0%A4%B2,co_white/c_limit,w_569/fl_layer_apply,g_north,y_102",
+              "kind": "text",
+              "label": "Hindi offer line, persistent across clips"
+            },
+            {
+              "text": "l_text:Noto%20Sans@google_30_600:Diwali%20Sale%20%C2%B7%2020%2525%20off,co_rgb:ffc56b/c_limit,w_569/fl_layer_apply,g_north,y_172",
+              "kind": "text",
+              "label": "English offer line, persistent across clips"
+            },
+            {
+              "text": "vc_h264,q_auto",
+              "kind": "format",
+              "label": "H.264 MP4 that plays everywhere (WhatsApp, Instagram, browsers)"
+            },
+            {
+              "text": "snap2shelf/products/shbottle/pack/story.mp4",
+              "kind": "asset",
+              "label": "First image; .mp4 turns the delivery into a video"
+            }
+          ]
+        },
+        "seconds": 12
+      },
+      "zipUrl": "https://api.cloudinary.com/v1_1/nyxyma1i/raw/download?timestamp=1790741499&public_id=snap2shelf%2Fproducts%2Fshbottle%2Fchannel-pack.zip&type=upload&expires_at=1798517499&signature=75ee977d9999cb5cfaa223f0f45f4cd3cf0eec5c&api_key=491342377369562",
+      "cost": {
+        "generationCredits": 0,
+        "creditsSavedByReuse": 4,
+        "aiVisionTokens": 1354,
+        "transformationsEstimate": 293,
+        "bytesOriginal": 1783788,
+        "bytesDelivered": 105598,
+        "seconds": 69.8
+      },
+      "createdAt": "2026-09-30T04:11:47.761Z",
+      "timings": {
+        "upload": 37345,
+        "analyze": 4283,
+        "cutout": 5591,
+        "stage": 2436,
+        "qa": 4375,
+        "pack": 11682,
+        "zip": 4095,
+        "reel": 4328,
+        "toApprovedHero": 54030,
+        "total": 69807
+      },
+      "attempts": [
+        {
+          "scenePublicId": "snap2shelf/scenes/cafe/final-04757f01",
+          "sceneTitle": "Outdoor café",
+          "controls": {
+            "scale": 0.48,
+            "offsetX": 0,
+            "offsetY": 0,
+            "shadow": true,
+            "contact": true,
+            "reflection": "auto",
+            "harmonise": true
+          },
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/c_fill,w_1080,h_1350/l_snap2shelf:products:shbottle:cutout/c_scale,w_164,h_649/co_rgb:3a2414,e_colorize:100/e_distort:0:0:164:0:771:96:607:96/c_crop,g_north_west,x_0,y_0,w_771,h_96/c_mpad,w_951,h_276,b_transparent/e_blur:643/e_gradient_fade:40,y_0.7/o_45/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_-239,y_867/l_snap2shelf:products:shbottle:cutout/c_scale,w_164,h_649/a_vflip/e_gradient_fade:50,y_-0.75/c_mpad,w_188,h_673,b_transparent/e_blur:120/o_26/fl_layer_apply,fl_no_overflow,g_north_west,x_446,y_1016/l_snap2shelf:products:shbottle:cutout/c_crop,g_south,w_309,h_147/c_scale,w_174,h_54/co_rgb:3a2414,e_colorize:100/c_mpad,w_304,h_184,b_transparent/e_blur:400/o_30/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_388,y_949/l_snap2shelf:products:shbottle:cutout/c_crop,g_south,w_309,h_147/c_scale,w_157,h_22/co_rgb:3a2414,e_colorize:100/c_mpad,w_245,h_110,b_transparent/e_blur:200/o_90/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_418,y_995/l_snap2shelf:products:shbottle:cutout/c_scale,w_164,h_649/e_tint:19:ffa04a/e_brightness:-8/fl_layer_apply,g_north_west,x_458,y_404/l_snap2shelf:products:shbottle:cutout/c_scale,w_164,h_649/co_rgb:ffb45a,e_colorize:100/e_gradient_fade:30,x_0.9/o_24/e_screen,fl_layer_apply,g_north_west,x_458,y_404/l_snap2shelf:products:shbottle:cutout/c_scale,w_164,h_649/co_rgb:3a2414,e_colorize:100/e_gradient_fade:25,x_-0.85/o_30/e_multiply,fl_layer_apply,g_north_west,x_458,y_404/f_auto,q_auto/snap2shelf/scenes/cafe/final-04757f01",
+          "qa": {
+            "status": "approved",
+            "matched": [
+              "product-visible"
+            ],
+            "reasons": [],
+            "checkedAt": "2026-09-30T05:10:00.000Z"
+          },
+          "tokens": 676,
+          "note": "first choice: art-direction hint #1"
+        }
+      ],
+      "overrides": [],
+      "packFailed": []
+    },
+    {
+      "sku": "shsneakr",
+      "title": "Everyday sneaker",
+      "sample": true,
+      "photo": {
+        "kind": "decent",
+        "file": "09_neutral_sneaker.png"
+      },
+      "product": {
+        "sku": "shsneakr",
+        "rawPublicId": "snap2shelf/products/shsneakr/raw",
+        "rawWidth": 1122,
+        "rawHeight": 1402,
+        "rawBytes": 1945200,
+        "caption": "A white and beige sneaker sits on a light-colored marble floor against a plain white wall.",
+        "focus": 0.77,
+        "understanding": {
+          "name": "Casual sneaker",
+          "category": "footwear",
+          "primary_color": "white",
+          "material": "fabric",
+          "recolorable_part": "upper panels",
+          "placement": "standing",
+          "suggested_themes": [
+            "marble",
+            "pastel",
+            "cafe"
+          ]
+        },
+        "cutout": {
+          "publicId": "snap2shelf/products/shsneakr/cutout",
+          "width": 976,
+          "height": 523,
+          "version": 1790740524
+        }
+      },
+      "mode": "exact",
+      "scene": {
+        "publicId": "snap2shelf/scenes/diwali/final-59f4388a",
+        "theme": "diwali",
+        "view": "eye-level",
+        "title": "Diwali glow",
+        "prompt": "Photorealistic empty product-photography backdrop, professional commercial photo. Camera at eye level, about 15 degrees above the surface. A warm teak wooden tabletop fills the lower 40% of the frame. The centre foreground of the surface is completely empty and clear for placing a product. In the background brass diyas with small flames, marigold garlands and warm fairy-light bokeh, softly out of focus with shallow depth of field. Soft warm light from the upper left. No products, no bottles, no packaging, no people, no hands, no text, no letters, no logos, no brand names.",
+        "modelId": "gpt-image-2.5-flare",
+        "credits": 4,
+        "dna": {
+          "anchor_x": 0.5,
+          "anchor_y": 0.65,
+          "surface_width": 1,
+          "light_azimuth": 270,
+          "light_elevation": 20,
+          "temperature": "warm",
+          "glossy": false,
+          "text_zone": "none"
+        }
+      },
+      "controls": {
+        "scale": 0.54,
+        "offsetX": 0,
+        "offsetY": 0,
+        "shadow": true,
+        "contact": true,
+        "reflection": "off",
+        "harmonise": true
+      },
+      "hero": {
+        "id": "hero",
+        "format": "hero",
+        "label": "Hero 4:5",
+        "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/snap2shelf/products/shsneakr/hero-diwali-59f4388a-3f1179a8",
+        "width": 1080,
+        "height": 1350,
+        "frame": "feed-post",
+        "alt": "Casual sneaker, staged on the Diwali glow scene",
+        "xray": {
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/c_fill,w_1080,h_1350/l_snap2shelf:products:shsneakr:cutout/c_scale,w_583,h_312/co_rgb:3a2414,e_colorize:100/e_distort:292:0:875:0:583:52:0:52/c_crop,g_north_west,x_0,y_0,w_875,h_52/c_mpad,w_1055,h_232,b_transparent/e_blur:309/e_gradient_fade:40,y_0.7/o_45/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_159,y_736/l_snap2shelf:products:shsneakr:cutout/c_crop,g_south,w_976,h_63/c_scale,w_618,h_58/co_rgb:3a2414,e_colorize:100/c_mpad,w_758,h_198,b_transparent/e_blur:400/o_50/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_162,y_766/l_snap2shelf:products:shsneakr:cutout/c_crop,g_south,w_976,h_63/c_scale,w_560,h_24/co_rgb:3a2414,e_colorize:100/c_mpad,w_656,h_120,b_transparent/e_blur:200/o_90/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_213,y_815/l_snap2shelf:products:shsneakr:cutout/c_scale,w_583,h_312/e_tint:20:ffa04a/e_brightness:-9/fl_layer_apply,g_north_west,x_249,y_566/l_snap2shelf:products:shsneakr:cutout/c_scale,w_583,h_312/co_rgb:ffb45a,e_colorize:100/e_gradient_fade:30,x_-0.9/o_26/e_screen,fl_layer_apply,g_north_west,x_249,y_566/l_snap2shelf:products:shsneakr:cutout/c_scale,w_583,h_312/co_rgb:3a2414,e_colorize:100/e_gradient_fade:25,x_0.85/o_30/e_multiply,fl_layer_apply,g_north_west,x_249,y_566/f_auto,q_auto/snap2shelf/scenes/diwali/final-59f4388a",
+          "transformation": "c_fill,w_1080,h_1350/l_snap2shelf:products:shsneakr:cutout/c_scale,w_583,h_312/co_rgb:3a2414,e_colorize:100/e_distort:292:0:875:0:583:52:0:52/c_crop,g_north_west,x_0,y_0,w_875,h_52/c_mpad,w_1055,h_232,b_transparent/e_blur:309/e_gradient_fade:40,y_0.7/o_45/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_159,y_736/l_snap2shelf:products:shsneakr:cutout/c_crop,g_south,w_976,h_63/c_scale,w_618,h_58/co_rgb:3a2414,e_colorize:100/c_mpad,w_758,h_198,b_transparent/e_blur:400/o_50/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_162,y_766/l_snap2shelf:products:shsneakr:cutout/c_crop,g_south,w_976,h_63/c_scale,w_560,h_24/co_rgb:3a2414,e_colorize:100/c_mpad,w_656,h_120,b_transparent/e_blur:200/o_90/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_213,y_815/l_snap2shelf:products:shsneakr:cutout/c_scale,w_583,h_312/e_tint:20:ffa04a/e_brightness:-9/fl_layer_apply,g_north_west,x_249,y_566/l_snap2shelf:products:shsneakr:cutout/c_scale,w_583,h_312/co_rgb:ffb45a,e_colorize:100/e_gradient_fade:30,x_-0.9/o_26/e_screen,fl_layer_apply,g_north_west,x_249,y_566/l_snap2shelf:products:shsneakr:cutout/c_scale,w_583,h_312/co_rgb:3a2414,e_colorize:100/e_gradient_fade:25,x_0.85/o_30/e_multiply,fl_layer_apply,g_north_west,x_249,y_566/f_auto,q_auto",
+          "segments": [
+            {
+              "text": "c_fill,w_1080,h_1350",
+              "kind": "crop",
+              "label": "Scene plate at the canonical 4:5 size"
+            },
+            {
+              "text": "l_snap2shelf:products:shsneakr:cutout/c_scale,w_583,h_312/co_rgb:3a2414,e_colorize:100/e_distort:292:0:875:0:583:52:0:52/c_crop,g_north_west,x_0,y_0,w_875,h_52/c_mpad,w_1055,h_232,b_transparent/e_blur:309/e_gradient_fade:40,y_0.7/o_45/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_159,y_736",
+              "kind": "shadow",
+              "label": "Cast shadow: the product's silhouette projected onto the surface, away from the light (azimuth 270°, elevation 20°), softened and fading with distance"
+            },
+            {
+              "text": "l_snap2shelf:products:shsneakr:cutout/c_crop,g_south,w_976,h_63/c_scale,w_618,h_58/co_rgb:3a2414,e_colorize:100/c_mpad,w_758,h_198,b_transparent/e_blur:400/o_50/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_162,y_766",
+              "kind": "shadow",
+              "label": "Ambient occlusion: a soft pool of shadow where the product meets the surface"
+            },
+            {
+              "text": "l_snap2shelf:products:shsneakr:cutout/c_crop,g_south,w_976,h_63/c_scale,w_560,h_24/co_rgb:3a2414,e_colorize:100/c_mpad,w_656,h_120,b_transparent/e_blur:200/o_90/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_213,y_815",
+              "kind": "shadow",
+              "label": "Contact shadow: the product's own footprint, squashed, darkened and blurred so it sits on the surface"
+            },
+            {
+              "text": "l_snap2shelf:products:shsneakr:cutout/c_scale,w_583,h_312/e_tint:20:ffa04a/e_brightness:-9/fl_layer_apply,g_north_west,x_249,y_566",
+              "kind": "layer",
+              "label": "Your real product, placed where Scene DNA says the surface is, with a subtle warm light-match"
+            },
+            {
+              "text": "l_snap2shelf:products:shsneakr:cutout/c_scale,w_583,h_312/co_rgb:ffb45a,e_colorize:100/e_gradient_fade:30,x_-0.9/o_26/e_screen,fl_layer_apply,g_north_west,x_249,y_566",
+              "kind": "effect",
+              "label": "Light-match: the scene's warm key light washes over the side of the product that faces it"
+            },
+            {
+              "text": "l_snap2shelf:products:shsneakr:cutout/c_scale,w_583,h_312/co_rgb:3a2414,e_colorize:100/e_gradient_fade:25,x_0.85/o_30/e_multiply,fl_layer_apply,g_north_west,x_249,y_566",
+              "kind": "effect",
+              "label": "Light-match: the side facing away from the scene's light falls off gently"
+            },
+            {
+              "text": "f_auto,q_auto",
+              "kind": "format",
+              "label": "Best format and quality for the viewer's browser"
+            },
+            {
+              "text": "snap2shelf/scenes/diwali/final-59f4388a",
+              "kind": "asset",
+              "label": "Scene plate from the shared library"
+            }
+          ]
+        },
+        "publicId": "snap2shelf/products/shsneakr/hero-diwali-59f4388a-3f1179a8",
+        "qa": {
+          "status": "approved",
+          "matched": [
+            "product-visible"
+          ],
+          "reasons": [],
+          "checkedAt": "2026-09-30T05:10:00.000Z"
+        }
+      },
+      "assets": [
+        {
+          "id": "feed",
+          "format": "feed",
+          "label": "Feed post 4:5",
+          "width": 1080,
+          "height": 1350,
+          "frame": "feed-post",
+          "alt": "Casual sneaker on the Diwali glow scene, 4:5 feed post",
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/v1790741516/snap2shelf/products/shsneakr/pack/feed",
+          "xray": {
+            "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/snap2shelf/products/shsneakr/hero-diwali-59f4388a-3f1179a8",
+            "transformation": "f_auto,q_auto",
+            "segments": [
+              {
+                "text": "f_auto,q_auto",
+                "kind": "format",
+                "label": "Best format and quality for the viewer's browser"
+              },
+              {
+                "text": "snap2shelf/products/shsneakr/hero-diwali-59f4388a-3f1179a8",
+                "kind": "asset",
+                "label": "Source asset"
+              }
+            ]
+          },
+          "publicId": "snap2shelf/products/shsneakr/pack/feed"
+        },
+        {
+          "id": "marketplace",
+          "format": "marketplace",
+          "label": "Marketplace main 2000px",
+          "width": 2000,
+          "height": 2000,
+          "frame": "listing-card",
+          "alt": "Casual sneaker on a pure white background, marketplace main image",
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/v1790741516/snap2shelf/products/shsneakr/pack/marketplace",
+          "xray": {
+            "url": "https://res.cloudinary.com/nyxyma1i/image/upload/c_fit,w_1700,h_1700/c_mpad,w_2000,h_2000,b_white/f_jpg,q_auto:best/snap2shelf/products/shsneakr/cutout",
+            "transformation": "c_fit,w_1700,h_1700/c_mpad,w_2000,h_2000,b_white/f_jpg,q_auto:best",
+            "segments": [
+              {
+                "text": "c_fit,w_1700,h_1700/c_mpad,w_2000,h_2000,b_white",
+                "kind": "crop",
+                "label": "Product fitted to 1700px (85% of the frame) on a pure white 2000×2000 canvas, as marketplaces require"
+              },
+              {
+                "text": "f_jpg,q_auto:best",
+                "kind": "format",
+                "label": "JPEG, best quality (transparency flattened onto white)"
+              },
+              {
+                "text": "snap2shelf/products/shsneakr/cutout",
+                "kind": "asset",
+                "label": "Source asset"
+              }
+            ]
+          },
+          "publicId": "snap2shelf/products/shsneakr/pack/marketplace"
+        },
+        {
+          "id": "story",
+          "format": "story",
+          "label": "Story 9:16",
+          "width": 1080,
+          "height": 1920,
+          "frame": "story",
+          "alt": "Casual sneaker on the Diwali glow scene, scene extended to a 9:16 story",
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/v1790741516/snap2shelf/products/shsneakr/pack/story",
+          "xray": {
+            "url": "https://res.cloudinary.com/nyxyma1i/image/upload/ar_9:16,b_gen_fill,c_pad,w_1080/f_auto,q_auto/snap2shelf/products/shsneakr/hero-diwali-59f4388a-3f1179a8",
+            "transformation": "ar_9:16,b_gen_fill,c_pad,w_1080/f_auto,q_auto",
+            "segments": [
+              {
+                "text": "ar_9:16,b_gen_fill,c_pad,w_1080",
+                "kind": "gen-ai",
+                "label": "Generative fill extends the scene to 9:16 (no new generation)"
+              },
+              {
+                "text": "f_auto,q_auto",
+                "kind": "format",
+                "label": "Best format and quality for the viewer's browser"
+              },
+              {
+                "text": "snap2shelf/products/shsneakr/hero-diwali-59f4388a-3f1179a8",
+                "kind": "asset",
+                "label": "Source asset"
+              }
+            ]
+          },
+          "publicId": "snap2shelf/products/shsneakr/pack/story"
+        },
+        {
+          "id": "banner",
+          "format": "banner",
+          "label": "Web banner 16:9",
+          "width": 1920,
+          "height": 1080,
+          "frame": "web-banner",
+          "alt": "Casual sneaker on the Diwali glow scene, scene extended to a 16:9 web banner",
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/v1790741516/snap2shelf/products/shsneakr/pack/banner",
+          "xray": {
+            "url": "https://res.cloudinary.com/nyxyma1i/image/upload/ar_16:9,b_gen_fill,c_pad,w_1920/f_auto,q_auto/snap2shelf/products/shsneakr/hero-diwali-59f4388a-3f1179a8",
+            "transformation": "ar_16:9,b_gen_fill,c_pad,w_1920/f_auto,q_auto",
+            "segments": [
+              {
+                "text": "ar_16:9,b_gen_fill,c_pad,w_1920",
+                "kind": "gen-ai",
+                "label": "Generative fill extends the scene to 16:9"
+              },
+              {
+                "text": "f_auto,q_auto",
+                "kind": "format",
+                "label": "Best format and quality for the viewer's browser"
+              },
+              {
+                "text": "snap2shelf/products/shsneakr/hero-diwali-59f4388a-3f1179a8",
+                "kind": "asset",
+                "label": "Source asset"
+              }
+            ]
+          },
+          "publicId": "snap2shelf/products/shsneakr/pack/banner"
+        },
+        {
+          "id": "whatsapp",
+          "format": "whatsapp",
+          "label": "WhatsApp catalog tile",
+          "width": 600,
+          "height": 600,
+          "frame": "catalog-tile",
+          "alt": "Casual sneaker on the Diwali glow scene, square catalog tile",
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/v1790741514/snap2shelf/products/shsneakr/pack/whatsapp",
+          "xray": {
+            "url": "https://res.cloudinary.com/nyxyma1i/image/upload/c_crop,g_north_west,x_103,y_297,w_875,h_875/c_scale,w_600,h_600/f_auto,q_auto:eco/snap2shelf/products/shsneakr/hero-diwali-59f4388a-3f1179a8",
+            "transformation": "c_crop,g_north_west,x_103,y_297,w_875,h_875/c_scale,w_600,h_600/f_auto,q_auto:eco",
+            "segments": [
+              {
+                "text": "c_crop,g_north_west,x_103,y_297,w_875,h_875/c_scale,w_600,h_600",
+                "kind": "crop",
+                "label": "Square crop centred on the product, 600px"
+              },
+              {
+                "text": "f_auto,q_auto:eco",
+                "kind": "format",
+                "label": "Light enough for a catalog"
+              },
+              {
+                "text": "snap2shelf/products/shsneakr/hero-diwali-59f4388a-3f1179a8",
+                "kind": "asset",
+                "label": "Source asset"
+              }
+            ]
+          },
+          "publicId": "snap2shelf/products/shsneakr/pack/whatsapp"
+        },
+        {
+          "id": "offer",
+          "format": "offer",
+          "label": "Festive offer",
+          "width": 1080,
+          "height": 1350,
+          "frame": "feed-post",
+          "alt": "Casual sneaker on the Diwali glow scene with the offer \"Diwali Sale · 20% off\" in Hindi and English",
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/v1790741516/snap2shelf/products/shsneakr/pack/offer",
+          "xray": {
+            "url": "https://res.cloudinary.com/nyxyma1i/image/upload/l_snap2shelf:products:shsneakr:hero-diwali-59f4388a-3f1179a8/c_scale,w_571,h_249/co_rgb:1c130c,e_colorize:100/r_28/o_72/fl_layer_apply,g_north_west,x_255,y_48/l_text:Noto%20Sans%20Devanagari@google_84_700:%E0%A4%A6%E0%A4%BF%E0%A4%B5%E0%A4%BE%E0%A4%B2%E0%A5%80%20%E0%A4%B8%E0%A5%87%E0%A4%B2,co_white/c_limit,w_499/fl_layer_apply,g_north,x_0,y_84/l_text:Noto%20Sans@google_44_600:Diwali%20Sale%20%C2%B7%2020%2525%20off,co_rgb:ffc56b/c_limit,w_499/fl_layer_apply,g_north,x_0,y_201/f_auto,q_auto/snap2shelf/products/shsneakr/hero-diwali-59f4388a-3f1179a8",
+            "transformation": "l_snap2shelf:products:shsneakr:hero-diwali-59f4388a-3f1179a8/c_scale,w_571,h_249/co_rgb:1c130c,e_colorize:100/r_28/o_72/fl_layer_apply,g_north_west,x_255,y_48/l_text:Noto%20Sans%20Devanagari@google_84_700:%E0%A4%A6%E0%A4%BF%E0%A4%B5%E0%A4%BE%E0%A4%B2%E0%A5%80%20%E0%A4%B8%E0%A5%87%E0%A4%B2,co_white/c_limit,w_499/fl_layer_apply,g_north,x_0,y_84/l_text:Noto%20Sans@google_44_600:Diwali%20Sale%20%C2%B7%2020%2525%20off,co_rgb:ffc56b/c_limit,w_499/fl_layer_apply,g_north,x_0,y_201/f_auto,q_auto",
+            "segments": [
+              {
+                "text": "l_snap2shelf:products:shsneakr:hero-diwali-59f4388a-3f1179a8/c_scale,w_571,h_249/co_rgb:1c130c,e_colorize:100/r_28/o_72/fl_layer_apply,g_north_west,x_255,y_48",
+                "kind": "effect",
+                "label": "Offer card in the top band, placed from Scene DNA's text zone so it never covers the product"
+              },
+              {
+                "text": "l_text:Noto%20Sans%20Devanagari@google_84_700:%E0%A4%A6%E0%A4%BF%E0%A4%B5%E0%A4%BE%E0%A4%B2%E0%A5%80%20%E0%A4%B8%E0%A5%87%E0%A4%B2,co_white/c_limit,w_499/fl_layer_apply,g_north,x_0,y_84",
+                "kind": "text",
+                "label": "Hindi offer line (Google font, rendered by Cloudinary, conjuncts shaped correctly)"
+              },
+              {
+                "text": "l_text:Noto%20Sans@google_44_600:Diwali%20Sale%20%C2%B7%2020%2525%20off,co_rgb:ffc56b/c_limit,w_499/fl_layer_apply,g_north,x_0,y_201",
+                "kind": "text",
+                "label": "English offer line"
+              },
+              {
+                "text": "f_auto,q_auto",
+                "kind": "format",
+                "label": "Best format and quality for the viewer's browser"
+              },
+              {
+                "text": "snap2shelf/products/shsneakr/hero-diwali-59f4388a-3f1179a8",
+                "kind": "asset",
+                "label": "Source asset"
+              }
+            ]
+          },
+          "publicId": "snap2shelf/products/shsneakr/pack/offer"
+        }
+      ],
+      "reel": {
+        "url": "https://res.cloudinary.com/nyxyma1i/image/upload/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.0);to_(zoom_1.15)/c_scale,w_720,h_1280/fl_splice,l_snap2shelf:products:shsneakr:creative-nano-banana-2-edit-7/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.2);to_(zoom_1.02)/c_scale,w_720,h_1280/e_fade:400/fl_layer_apply/fl_splice,l_snap2shelf:products:shsneakr:pack:banner/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.15;x_0.42);to_(zoom_1.15;x_0.58)/c_scale,w_720,h_1280/e_fade:400/fl_layer_apply/l_snap2shelf:products:shsneakr:pack:story/c_scale,w_619,h_161/co_rgb:1c130c,e_colorize:100/r_22/o_72/fl_layer_apply,g_north,y_77/l_text:Noto%20Sans%20Devanagari@google_54_700:%E0%A4%A6%E0%A4%BF%E0%A4%B5%E0%A4%BE%E0%A4%B2%E0%A5%80%20%E0%A4%B8%E0%A5%87%E0%A4%B2,co_white/c_limit,w_569/fl_layer_apply,g_north,y_102/l_text:Noto%20Sans@google_30_600:Diwali%20Sale%20%C2%B7%2020%2525%20off,co_rgb:ffc56b/c_limit,w_569/fl_layer_apply,g_north,y_172/vc_h264,q_auto/snap2shelf/products/shsneakr/pack/story.mp4",
+        "xray": {
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.0);to_(zoom_1.15)/c_scale,w_720,h_1280/fl_splice,l_snap2shelf:products:shsneakr:creative-nano-banana-2-edit-7/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.2);to_(zoom_1.02)/c_scale,w_720,h_1280/e_fade:400/fl_layer_apply/fl_splice,l_snap2shelf:products:shsneakr:pack:banner/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.15;x_0.42);to_(zoom_1.15;x_0.58)/c_scale,w_720,h_1280/e_fade:400/fl_layer_apply/l_snap2shelf:products:shsneakr:pack:story/c_scale,w_619,h_161/co_rgb:1c130c,e_colorize:100/r_22/o_72/fl_layer_apply,g_north,y_77/l_text:Noto%20Sans%20Devanagari@google_54_700:%E0%A4%A6%E0%A4%BF%E0%A4%B5%E0%A4%BE%E0%A4%B2%E0%A5%80%20%E0%A4%B8%E0%A5%87%E0%A4%B2,co_white/c_limit,w_569/fl_layer_apply,g_north,y_102/l_text:Noto%20Sans@google_30_600:Diwali%20Sale%20%C2%B7%2020%2525%20off,co_rgb:ffc56b/c_limit,w_569/fl_layer_apply,g_north,y_172/vc_h264,q_auto/snap2shelf/products/shsneakr/pack/story.mp4",
+          "transformation": "c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.0);to_(zoom_1.15)/c_scale,w_720,h_1280/fl_splice,l_snap2shelf:products:shsneakr:creative-nano-banana-2-edit-7/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.2);to_(zoom_1.02)/c_scale,w_720,h_1280/e_fade:400/fl_layer_apply/fl_splice,l_snap2shelf:products:shsneakr:pack:banner/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.15;x_0.42);to_(zoom_1.15;x_0.58)/c_scale,w_720,h_1280/e_fade:400/fl_layer_apply/l_snap2shelf:products:shsneakr:pack:story/c_scale,w_619,h_161/co_rgb:1c130c,e_colorize:100/r_22/o_72/fl_layer_apply,g_north,y_77/l_text:Noto%20Sans%20Devanagari@google_54_700:%E0%A4%A6%E0%A4%BF%E0%A4%B5%E0%A4%BE%E0%A4%B2%E0%A5%80%20%E0%A4%B8%E0%A5%87%E0%A4%B2,co_white/c_limit,w_569/fl_layer_apply,g_north,y_102/l_text:Noto%20Sans@google_30_600:Diwali%20Sale%20%C2%B7%2020%2525%20off,co_rgb:ffc56b/c_limit,w_569/fl_layer_apply,g_north,y_172/vc_h264,q_auto",
+          "segments": [
+            {
+              "text": "c_fill,w_720,h_1280,g_center",
+              "kind": "crop",
+              "label": "First image filled to a 9:16 frame"
+            },
+            {
+              "text": "e_zoompan:du_3;fps_25;from_(zoom_1.0);to_(zoom_1.15)/c_scale,w_720,h_1280",
+              "kind": "video",
+              "label": "Clip 1: slow push in (3 s Ken Burns, turns the image into video)"
+            },
+            {
+              "text": "fl_splice,l_snap2shelf:products:shsneakr:creative-nano-banana-2-edit-7/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.2);to_(zoom_1.02)/c_scale,w_720,h_1280/e_fade:400/fl_layer_apply",
+              "kind": "video",
+              "label": "Clip 2: pull back, spliced onto the end, fading up over 0.4 s"
+            },
+            {
+              "text": "fl_splice,l_snap2shelf:products:shsneakr:pack:banner/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.15;x_0.42);to_(zoom_1.15;x_0.58)/c_scale,w_720,h_1280/e_fade:400/fl_layer_apply",
+              "kind": "video",
+              "label": "Clip 3: pan left to right, spliced onto the end, fading up over 0.4 s"
+            },
+            {
+              "text": "l_snap2shelf:products:shsneakr:pack:story/c_scale,w_619,h_161/co_rgb:1c130c,e_colorize:100/r_22/o_72/fl_layer_apply,g_north,y_77",
+              "kind": "effect",
+              "label": "Offer card held for the whole reel"
+            },
+            {
+              "text": "l_text:Noto%20Sans%20Devanagari@google_54_700:%E0%A4%A6%E0%A4%BF%E0%A4%B5%E0%A4%BE%E0%A4%B2%E0%A5%80%20%E0%A4%B8%E0%A5%87%E0%A4%B2,co_white/c_limit,w_569/fl_layer_apply,g_north,y_102",
+              "kind": "text",
+              "label": "Hindi offer line, persistent across clips"
+            },
+            {
+              "text": "l_text:Noto%20Sans@google_30_600:Diwali%20Sale%20%C2%B7%2020%2525%20off,co_rgb:ffc56b/c_limit,w_569/fl_layer_apply,g_north,y_172",
+              "kind": "text",
+              "label": "English offer line, persistent across clips"
+            },
+            {
+              "text": "vc_h264,q_auto",
+              "kind": "format",
+              "label": "H.264 MP4 that plays everywhere (WhatsApp, Instagram, browsers)"
+            },
+            {
+              "text": "snap2shelf/products/shsneakr/pack/story.mp4",
+              "kind": "asset",
+              "label": "First image; .mp4 turns the delivery into a video"
+            }
+          ]
+        },
+        "seconds": 9
+      },
+      "zipUrl": "https://api.cloudinary.com/v1_1/nyxyma1i/raw/download?timestamp=1790742153&public_id=snap2shelf%2Fproducts%2Fshsneakr%2Fchannel-pack.zip&type=upload&expires_at=1798518153&signature=cc164d640df57c64ad95dc8524dec890c9d92d78&api_key=491342377369562",
+      "cost": {
+        "generationCredits": 0,
+        "creditsSavedByReuse": 4,
+        "aiVisionTokens": 1350,
+        "transformationsEstimate": 191,
+        "bytesOriginal": 1945200,
+        "bytesDelivered": 104308,
+        "seconds": 68.2
+      },
+      "createdAt": "2026-09-30T04:22:36.109Z",
+      "timings": {
+        "upload": 36248,
+        "analyze": 4734,
+        "cutout": 5292,
+        "stage": 2305,
+        "qa": 5062,
+        "pack": 11100,
+        "zip": 3461,
+        "reel": 4831,
+        "toApprovedHero": 53641,
+        "total": 68202
+      },
+      "attempts": [
+        {
+          "scenePublicId": "snap2shelf/scenes/diwali/final-59f4388a",
+          "sceneTitle": "Diwali glow",
+          "controls": {
+            "scale": 0.54,
+            "offsetX": 0,
+            "offsetY": 0,
+            "shadow": true,
+            "contact": true,
+            "reflection": "off",
+            "harmonise": true
+          },
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/c_fill,w_1080,h_1350/l_snap2shelf:products:shsneakr:cutout/c_scale,w_583,h_312/co_rgb:3a2414,e_colorize:100/e_distort:292:0:875:0:583:52:0:52/c_crop,g_north_west,x_0,y_0,w_875,h_52/c_mpad,w_1055,h_232,b_transparent/e_blur:309/e_gradient_fade:40,y_0.7/o_45/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_159,y_736/l_snap2shelf:products:shsneakr:cutout/c_crop,g_south,w_976,h_63/c_scale,w_618,h_58/co_rgb:3a2414,e_colorize:100/c_mpad,w_758,h_198,b_transparent/e_blur:400/o_50/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_162,y_766/l_snap2shelf:products:shsneakr:cutout/c_crop,g_south,w_976,h_63/c_scale,w_560,h_24/co_rgb:3a2414,e_colorize:100/c_mpad,w_656,h_120,b_transparent/e_blur:200/o_90/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_213,y_815/l_snap2shelf:products:shsneakr:cutout/c_scale,w_583,h_312/e_tint:20:ffa04a/e_brightness:-9/fl_layer_apply,g_north_west,x_249,y_566/l_snap2shelf:products:shsneakr:cutout/c_scale,w_583,h_312/co_rgb:ffb45a,e_colorize:100/e_gradient_fade:30,x_-0.9/o_26/e_screen,fl_layer_apply,g_north_west,x_249,y_566/l_snap2shelf:products:shsneakr:cutout/c_scale,w_583,h_312/co_rgb:3a2414,e_colorize:100/e_gradient_fade:25,x_0.85/o_30/e_multiply,fl_layer_apply,g_north_west,x_249,y_566/f_auto,q_auto/snap2shelf/scenes/diwali/final-59f4388a",
+          "qa": {
+            "status": "approved",
+            "matched": [
+              "product-visible"
+            ],
+            "reasons": [],
+            "checkedAt": "2026-09-30T05:10:00.000Z"
+          },
+          "tokens": 675,
+          "note": "first choice: art-direction hint #1"
+        }
+      ],
+      "overrides": [],
+      "packFailed": []
+    },
+    {
+      "sku": "shtrail1",
+      "title": "Trail mix pouch",
+      "sample": true,
+      "photo": {
+        "kind": "decent",
+        "file": "10_trail_mix_pouch.png"
+      },
+      "product": {
+        "sku": "shtrail1",
+        "rawPublicId": "snap2shelf/products/shtrail1/raw",
+        "rawWidth": 1122,
+        "rawHeight": 1402,
+        "rawBytes": 1814024,
+        "caption": "A white and brown bag of trail mix stands on a white countertop next to a green potted plant.",
+        "focus": 0.55,
+        "understanding": {
+          "name": "Trail mix pouch",
+          "category": "food",
+          "primary_color": "white",
+          "material": "plastic",
+          "recolorable_part": "bottom panel",
+          "placement": "standing",
+          "suggested_themes": [
+            "kitchen",
+            "marble",
+            "pastel"
+          ]
+        },
+        "cutout": {
+          "publicId": "snap2shelf/products/shtrail1/cutout",
+          "width": 709,
+          "height": 1015,
+          "version": 1790740587
+        }
+      },
+      "mode": "exact",
+      "scene": {
+        "publicId": "snap2shelf/scenes/jute/final-eb20e69e",
+        "theme": "jute",
+        "view": "eye-level",
+        "title": "Rustic jute",
+        "prompt": "Photorealistic empty product-photography backdrop, professional commercial photo. Camera at eye level, about 15 degrees above the surface. A woven jute mat on a weathered wooden table fills the lower 40% of the frame. The centre foreground of the surface is completely empty and clear for placing a product. In the background terracotta pots, dried palm leaves and a whitewashed wall, softly out of focus with shallow depth of field. Warm afternoon sunlight from the right. No products, no bottles, no packaging, no people, no hands, no text, no letters, no logos, no brand names.",
+        "modelId": "nano-banana-2",
+        "credits": 9,
+        "dna": {
+          "anchor_x": 0.5,
+          "anchor_y": 0.72,
+          "surface_width": 0.8,
+          "light_azimuth": 90,
+          "light_elevation": 30,
+          "temperature": "warm",
+          "glossy": false,
+          "text_zone": "top"
+        }
+      },
+      "controls": {
+        "scale": 0.4,
+        "offsetX": 0,
+        "offsetY": 0,
+        "shadow": true,
+        "contact": true,
+        "reflection": "off",
+        "harmonise": true
+      },
+      "hero": {
+        "id": "hero",
+        "format": "hero",
+        "label": "Hero 4:5",
+        "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/snap2shelf/products/shtrail1/hero-jute-eb20e69e-025e8bc0",
+        "width": 1080,
+        "height": 1350,
+        "frame": "feed-post",
+        "alt": "Trail mix pouch, staged on the Rustic jute scene",
+        "xray": {
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/c_fill,w_1080,h_1350/l_snap2shelf:products:shtrail1:cutout/c_scale,w_377,h_540/co_rgb:3a2414,e_colorize:100/e_distort:0:0:377:0:882:80:505:80/c_crop,g_north_west,x_0,y_0,w_882,h_80/c_mpad,w_1062,h_260,b_transparent/e_blur:535/e_gradient_fade:40,y_0.7/o_45/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_-243,y_802/l_snap2shelf:products:shtrail1:cutout/c_crop,g_south,w_709,h_122/c_scale,w_400,h_62/co_rgb:3a2414,e_colorize:100/c_mpad,w_548,h_210,b_transparent/e_blur:400/o_50/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_267,y_853/l_snap2shelf:products:shtrail1:cutout/c_crop,g_south,w_709,h_122/c_scale,w_362,h_26/co_rgb:3a2414,e_colorize:100/c_mpad,w_466,h_130,b_transparent/e_blur:200/o_90/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_308,y_904/l_snap2shelf:products:shtrail1:cutout/c_scale,w_377,h_540/e_tint:17:ffa04a/e_brightness:-8/fl_layer_apply,g_north_west,x_352,y_432/l_snap2shelf:products:shtrail1:cutout/c_scale,w_377,h_540/co_rgb:ffb45a,e_colorize:100/e_gradient_fade:30,x_0.9/o_23/e_screen,fl_layer_apply,g_north_west,x_352,y_432/l_snap2shelf:products:shtrail1:cutout/c_scale,w_377,h_540/co_rgb:3a2414,e_colorize:100/e_gradient_fade:25,x_-0.85/o_30/e_multiply,fl_layer_apply,g_north_west,x_352,y_432/f_auto,q_auto/snap2shelf/scenes/jute/final-eb20e69e",
+          "transformation": "c_fill,w_1080,h_1350/l_snap2shelf:products:shtrail1:cutout/c_scale,w_377,h_540/co_rgb:3a2414,e_colorize:100/e_distort:0:0:377:0:882:80:505:80/c_crop,g_north_west,x_0,y_0,w_882,h_80/c_mpad,w_1062,h_260,b_transparent/e_blur:535/e_gradient_fade:40,y_0.7/o_45/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_-243,y_802/l_snap2shelf:products:shtrail1:cutout/c_crop,g_south,w_709,h_122/c_scale,w_400,h_62/co_rgb:3a2414,e_colorize:100/c_mpad,w_548,h_210,b_transparent/e_blur:400/o_50/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_267,y_853/l_snap2shelf:products:shtrail1:cutout/c_crop,g_south,w_709,h_122/c_scale,w_362,h_26/co_rgb:3a2414,e_colorize:100/c_mpad,w_466,h_130,b_transparent/e_blur:200/o_90/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_308,y_904/l_snap2shelf:products:shtrail1:cutout/c_scale,w_377,h_540/e_tint:17:ffa04a/e_brightness:-8/fl_layer_apply,g_north_west,x_352,y_432/l_snap2shelf:products:shtrail1:cutout/c_scale,w_377,h_540/co_rgb:ffb45a,e_colorize:100/e_gradient_fade:30,x_0.9/o_23/e_screen,fl_layer_apply,g_north_west,x_352,y_432/l_snap2shelf:products:shtrail1:cutout/c_scale,w_377,h_540/co_rgb:3a2414,e_colorize:100/e_gradient_fade:25,x_-0.85/o_30/e_multiply,fl_layer_apply,g_north_west,x_352,y_432/f_auto,q_auto",
+          "segments": [
+            {
+              "text": "c_fill,w_1080,h_1350",
+              "kind": "crop",
+              "label": "Scene plate at the canonical 4:5 size"
+            },
+            {
+              "text": "l_snap2shelf:products:shtrail1:cutout/c_scale,w_377,h_540/co_rgb:3a2414,e_colorize:100/e_distort:0:0:377:0:882:80:505:80/c_crop,g_north_west,x_0,y_0,w_882,h_80/c_mpad,w_1062,h_260,b_transparent/e_blur:535/e_gradient_fade:40,y_0.7/o_45/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_-243,y_802",
+              "kind": "shadow",
+              "label": "Cast shadow: the product's silhouette projected onto the surface, away from the light (azimuth 90°, elevation 30°), softened and fading with distance"
+            },
+            {
+              "text": "l_snap2shelf:products:shtrail1:cutout/c_crop,g_south,w_709,h_122/c_scale,w_400,h_62/co_rgb:3a2414,e_colorize:100/c_mpad,w_548,h_210,b_transparent/e_blur:400/o_50/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_267,y_853",
+              "kind": "shadow",
+              "label": "Ambient occlusion: a soft pool of shadow where the product meets the surface"
+            },
+            {
+              "text": "l_snap2shelf:products:shtrail1:cutout/c_crop,g_south,w_709,h_122/c_scale,w_362,h_26/co_rgb:3a2414,e_colorize:100/c_mpad,w_466,h_130,b_transparent/e_blur:200/o_90/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_308,y_904",
+              "kind": "shadow",
+              "label": "Contact shadow: the product's own footprint, squashed, darkened and blurred so it sits on the surface"
+            },
+            {
+              "text": "l_snap2shelf:products:shtrail1:cutout/c_scale,w_377,h_540/e_tint:17:ffa04a/e_brightness:-8/fl_layer_apply,g_north_west,x_352,y_432",
+              "kind": "layer",
+              "label": "Your real product, placed where Scene DNA says the surface is, with a subtle warm light-match"
+            },
+            {
+              "text": "l_snap2shelf:products:shtrail1:cutout/c_scale,w_377,h_540/co_rgb:ffb45a,e_colorize:100/e_gradient_fade:30,x_0.9/o_23/e_screen,fl_layer_apply,g_north_west,x_352,y_432",
+              "kind": "effect",
+              "label": "Light-match: the scene's warm key light washes over the side of the product that faces it"
+            },
+            {
+              "text": "l_snap2shelf:products:shtrail1:cutout/c_scale,w_377,h_540/co_rgb:3a2414,e_colorize:100/e_gradient_fade:25,x_-0.85/o_30/e_multiply,fl_layer_apply,g_north_west,x_352,y_432",
+              "kind": "effect",
+              "label": "Light-match: the side facing away from the scene's light falls off gently"
+            },
+            {
+              "text": "f_auto,q_auto",
+              "kind": "format",
+              "label": "Best format and quality for the viewer's browser"
+            },
+            {
+              "text": "snap2shelf/scenes/jute/final-eb20e69e",
+              "kind": "asset",
+              "label": "Scene plate from the shared library"
+            }
+          ]
+        },
+        "publicId": "snap2shelf/products/shtrail1/hero-jute-eb20e69e-025e8bc0",
+        "qa": {
+          "status": "approved",
+          "matched": [
+            "product-visible"
+          ],
+          "reasons": [],
+          "checkedAt": "2026-09-30T04:12:21.698Z"
+        }
+      },
+      "assets": [
+        {
+          "id": "feed",
+          "format": "feed",
+          "label": "Feed post 4:5",
+          "width": 1080,
+          "height": 1350,
+          "frame": "feed-post",
+          "alt": "Trail mix pouch on the Rustic jute scene, 4:5 feed post",
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/v1790741547/snap2shelf/products/shtrail1/pack/feed",
+          "xray": {
+            "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/snap2shelf/products/shtrail1/hero-jute-eb20e69e-025e8bc0",
+            "transformation": "f_auto,q_auto",
+            "segments": [
+              {
+                "text": "f_auto,q_auto",
+                "kind": "format",
+                "label": "Best format and quality for the viewer's browser"
+              },
+              {
+                "text": "snap2shelf/products/shtrail1/hero-jute-eb20e69e-025e8bc0",
+                "kind": "asset",
+                "label": "Source asset"
+              }
+            ]
+          },
+          "publicId": "snap2shelf/products/shtrail1/pack/feed"
+        },
+        {
+          "id": "marketplace",
+          "format": "marketplace",
+          "label": "Marketplace main 2000px",
+          "width": 2000,
+          "height": 2000,
+          "frame": "listing-card",
+          "alt": "Trail mix pouch on a pure white background, marketplace main image",
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/v1790741549/snap2shelf/products/shtrail1/pack/marketplace",
+          "xray": {
+            "url": "https://res.cloudinary.com/nyxyma1i/image/upload/c_fit,w_1700,h_1700/c_mpad,w_2000,h_2000,b_white/f_jpg,q_auto:best/snap2shelf/products/shtrail1/cutout",
+            "transformation": "c_fit,w_1700,h_1700/c_mpad,w_2000,h_2000,b_white/f_jpg,q_auto:best",
+            "segments": [
+              {
+                "text": "c_fit,w_1700,h_1700/c_mpad,w_2000,h_2000,b_white",
+                "kind": "crop",
+                "label": "Product fitted to 1700px (85% of the frame) on a pure white 2000×2000 canvas, as marketplaces require"
+              },
+              {
+                "text": "f_jpg,q_auto:best",
+                "kind": "format",
+                "label": "JPEG, best quality (transparency flattened onto white)"
+              },
+              {
+                "text": "snap2shelf/products/shtrail1/cutout",
+                "kind": "asset",
+                "label": "Source asset"
+              }
+            ]
+          },
+          "publicId": "snap2shelf/products/shtrail1/pack/marketplace"
+        },
+        {
+          "id": "story",
+          "format": "story",
+          "label": "Story 9:16",
+          "width": 1080,
+          "height": 1920,
+          "frame": "story",
+          "alt": "Trail mix pouch on the Rustic jute scene, scene extended to a 9:16 story",
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/v1790741553/snap2shelf/products/shtrail1/pack/story",
+          "xray": {
+            "url": "https://res.cloudinary.com/nyxyma1i/image/upload/ar_9:16,b_gen_fill,c_pad,w_1080/f_auto,q_auto/snap2shelf/products/shtrail1/hero-jute-eb20e69e-025e8bc0",
+            "transformation": "ar_9:16,b_gen_fill,c_pad,w_1080/f_auto,q_auto",
+            "segments": [
+              {
+                "text": "ar_9:16,b_gen_fill,c_pad,w_1080",
+                "kind": "gen-ai",
+                "label": "Generative fill extends the scene to 9:16 (no new generation)"
+              },
+              {
+                "text": "f_auto,q_auto",
+                "kind": "format",
+                "label": "Best format and quality for the viewer's browser"
+              },
+              {
+                "text": "snap2shelf/products/shtrail1/hero-jute-eb20e69e-025e8bc0",
+                "kind": "asset",
+                "label": "Source asset"
+              }
+            ]
+          },
+          "publicId": "snap2shelf/products/shtrail1/pack/story"
+        },
+        {
+          "id": "banner",
+          "format": "banner",
+          "label": "Web banner 16:9",
+          "width": 1920,
+          "height": 1080,
+          "frame": "web-banner",
+          "alt": "Trail mix pouch on the Rustic jute scene, scene extended to a 16:9 web banner",
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/v1790741553/snap2shelf/products/shtrail1/pack/banner",
+          "xray": {
+            "url": "https://res.cloudinary.com/nyxyma1i/image/upload/ar_16:9,b_gen_fill,c_pad,w_1920/f_auto,q_auto/snap2shelf/products/shtrail1/hero-jute-eb20e69e-025e8bc0",
+            "transformation": "ar_16:9,b_gen_fill,c_pad,w_1920/f_auto,q_auto",
+            "segments": [
+              {
+                "text": "ar_16:9,b_gen_fill,c_pad,w_1920",
+                "kind": "gen-ai",
+                "label": "Generative fill extends the scene to 16:9"
+              },
+              {
+                "text": "f_auto,q_auto",
+                "kind": "format",
+                "label": "Best format and quality for the viewer's browser"
+              },
+              {
+                "text": "snap2shelf/products/shtrail1/hero-jute-eb20e69e-025e8bc0",
+                "kind": "asset",
+                "label": "Source asset"
+              }
+            ]
+          },
+          "publicId": "snap2shelf/products/shtrail1/pack/banner"
+        },
+        {
+          "id": "whatsapp",
+          "format": "whatsapp",
+          "label": "WhatsApp catalog tile",
+          "width": 600,
+          "height": 600,
+          "frame": "catalog-tile",
+          "alt": "Trail mix pouch on the Rustic jute scene, square catalog tile",
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/v1790741547/snap2shelf/products/shtrail1/pack/whatsapp",
+          "xray": {
+            "url": "https://res.cloudinary.com/nyxyma1i/image/upload/c_crop,g_north_west,x_136,y_319,w_810,h_810/c_scale,w_600,h_600/f_auto,q_auto:eco/snap2shelf/products/shtrail1/hero-jute-eb20e69e-025e8bc0",
+            "transformation": "c_crop,g_north_west,x_136,y_319,w_810,h_810/c_scale,w_600,h_600/f_auto,q_auto:eco",
+            "segments": [
+              {
+                "text": "c_crop,g_north_west,x_136,y_319,w_810,h_810/c_scale,w_600,h_600",
+                "kind": "crop",
+                "label": "Square crop centred on the product, 600px"
+              },
+              {
+                "text": "f_auto,q_auto:eco",
+                "kind": "format",
+                "label": "Light enough for a catalog"
+              },
+              {
+                "text": "snap2shelf/products/shtrail1/hero-jute-eb20e69e-025e8bc0",
+                "kind": "asset",
+                "label": "Source asset"
+              }
+            ]
+          },
+          "publicId": "snap2shelf/products/shtrail1/pack/whatsapp"
+        },
+        {
+          "id": "offer",
+          "format": "offer",
+          "label": "Festive offer",
+          "width": 1080,
+          "height": 1350,
+          "frame": "feed-post",
+          "alt": "Trail mix pouch on the Rustic jute scene with the offer \"Diwali Sale · 20% off\" in Hindi and English",
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/v1790741548/snap2shelf/products/shtrail1/pack/offer",
+          "xray": {
+            "url": "https://res.cloudinary.com/nyxyma1i/image/upload/l_snap2shelf:products:shtrail1:hero-jute-eb20e69e-025e8bc0/c_scale,w_571,h_249/co_rgb:1c130c,e_colorize:100/r_28/o_72/fl_layer_apply,g_north_west,x_255,y_48/l_text:Noto%20Sans%20Devanagari@google_84_700:%E0%A4%A6%E0%A4%BF%E0%A4%B5%E0%A4%BE%E0%A4%B2%E0%A5%80%20%E0%A4%B8%E0%A5%87%E0%A4%B2,co_white/c_limit,w_499/fl_layer_apply,g_north,x_0,y_84/l_text:Noto%20Sans@google_44_600:Diwali%20Sale%20%C2%B7%2020%2525%20off,co_rgb:ffc56b/c_limit,w_499/fl_layer_apply,g_north,x_0,y_201/f_auto,q_auto/snap2shelf/products/shtrail1/hero-jute-eb20e69e-025e8bc0",
+            "transformation": "l_snap2shelf:products:shtrail1:hero-jute-eb20e69e-025e8bc0/c_scale,w_571,h_249/co_rgb:1c130c,e_colorize:100/r_28/o_72/fl_layer_apply,g_north_west,x_255,y_48/l_text:Noto%20Sans%20Devanagari@google_84_700:%E0%A4%A6%E0%A4%BF%E0%A4%B5%E0%A4%BE%E0%A4%B2%E0%A5%80%20%E0%A4%B8%E0%A5%87%E0%A4%B2,co_white/c_limit,w_499/fl_layer_apply,g_north,x_0,y_84/l_text:Noto%20Sans@google_44_600:Diwali%20Sale%20%C2%B7%2020%2525%20off,co_rgb:ffc56b/c_limit,w_499/fl_layer_apply,g_north,x_0,y_201/f_auto,q_auto",
+            "segments": [
+              {
+                "text": "l_snap2shelf:products:shtrail1:hero-jute-eb20e69e-025e8bc0/c_scale,w_571,h_249/co_rgb:1c130c,e_colorize:100/r_28/o_72/fl_layer_apply,g_north_west,x_255,y_48",
+                "kind": "effect",
+                "label": "Offer card in the top band, placed from Scene DNA's text zone so it never covers the product"
+              },
+              {
+                "text": "l_text:Noto%20Sans%20Devanagari@google_84_700:%E0%A4%A6%E0%A4%BF%E0%A4%B5%E0%A4%BE%E0%A4%B2%E0%A5%80%20%E0%A4%B8%E0%A5%87%E0%A4%B2,co_white/c_limit,w_499/fl_layer_apply,g_north,x_0,y_84",
+                "kind": "text",
+                "label": "Hindi offer line (Google font, rendered by Cloudinary, conjuncts shaped correctly)"
+              },
+              {
+                "text": "l_text:Noto%20Sans@google_44_600:Diwali%20Sale%20%C2%B7%2020%2525%20off,co_rgb:ffc56b/c_limit,w_499/fl_layer_apply,g_north,x_0,y_201",
+                "kind": "text",
+                "label": "English offer line"
+              },
+              {
+                "text": "f_auto,q_auto",
+                "kind": "format",
+                "label": "Best format and quality for the viewer's browser"
+              },
+              {
+                "text": "snap2shelf/products/shtrail1/hero-jute-eb20e69e-025e8bc0",
+                "kind": "asset",
+                "label": "Source asset"
+              }
+            ]
+          },
+          "publicId": "snap2shelf/products/shtrail1/pack/offer"
+        }
+      ],
+      "reel": {
+        "url": "https://res.cloudinary.com/nyxyma1i/image/upload/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.0);to_(zoom_1.15)/c_scale,w_720,h_1280/fl_splice,l_snap2shelf:products:shtrail1:pack:banner/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.2);to_(zoom_1.02)/c_scale,w_720,h_1280/e_fade:400/fl_layer_apply/fl_splice,l_snap2shelf:products:shtrail1:pack:feed/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.15;x_0.42);to_(zoom_1.15;x_0.58)/c_scale,w_720,h_1280/e_fade:400/fl_layer_apply/l_snap2shelf:products:shtrail1:pack:story/c_scale,w_619,h_161/co_rgb:1c130c,e_colorize:100/r_22/o_72/fl_layer_apply,g_north,y_77/l_text:Noto%20Sans%20Devanagari@google_54_700:%E0%A4%A6%E0%A4%BF%E0%A4%B5%E0%A4%BE%E0%A4%B2%E0%A5%80%20%E0%A4%B8%E0%A5%87%E0%A4%B2,co_white/c_limit,w_569/fl_layer_apply,g_north,y_102/l_text:Noto%20Sans@google_30_600:Diwali%20Sale%20%C2%B7%2020%2525%20off,co_rgb:ffc56b/c_limit,w_569/fl_layer_apply,g_north,y_172/vc_h264,q_auto/snap2shelf/products/shtrail1/pack/story.mp4",
+        "xray": {
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.0);to_(zoom_1.15)/c_scale,w_720,h_1280/fl_splice,l_snap2shelf:products:shtrail1:pack:banner/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.2);to_(zoom_1.02)/c_scale,w_720,h_1280/e_fade:400/fl_layer_apply/fl_splice,l_snap2shelf:products:shtrail1:pack:feed/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.15;x_0.42);to_(zoom_1.15;x_0.58)/c_scale,w_720,h_1280/e_fade:400/fl_layer_apply/l_snap2shelf:products:shtrail1:pack:story/c_scale,w_619,h_161/co_rgb:1c130c,e_colorize:100/r_22/o_72/fl_layer_apply,g_north,y_77/l_text:Noto%20Sans%20Devanagari@google_54_700:%E0%A4%A6%E0%A4%BF%E0%A4%B5%E0%A4%BE%E0%A4%B2%E0%A5%80%20%E0%A4%B8%E0%A5%87%E0%A4%B2,co_white/c_limit,w_569/fl_layer_apply,g_north,y_102/l_text:Noto%20Sans@google_30_600:Diwali%20Sale%20%C2%B7%2020%2525%20off,co_rgb:ffc56b/c_limit,w_569/fl_layer_apply,g_north,y_172/vc_h264,q_auto/snap2shelf/products/shtrail1/pack/story.mp4",
+          "transformation": "c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.0);to_(zoom_1.15)/c_scale,w_720,h_1280/fl_splice,l_snap2shelf:products:shtrail1:pack:banner/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.2);to_(zoom_1.02)/c_scale,w_720,h_1280/e_fade:400/fl_layer_apply/fl_splice,l_snap2shelf:products:shtrail1:pack:feed/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.15;x_0.42);to_(zoom_1.15;x_0.58)/c_scale,w_720,h_1280/e_fade:400/fl_layer_apply/l_snap2shelf:products:shtrail1:pack:story/c_scale,w_619,h_161/co_rgb:1c130c,e_colorize:100/r_22/o_72/fl_layer_apply,g_north,y_77/l_text:Noto%20Sans%20Devanagari@google_54_700:%E0%A4%A6%E0%A4%BF%E0%A4%B5%E0%A4%BE%E0%A4%B2%E0%A5%80%20%E0%A4%B8%E0%A5%87%E0%A4%B2,co_white/c_limit,w_569/fl_layer_apply,g_north,y_102/l_text:Noto%20Sans@google_30_600:Diwali%20Sale%20%C2%B7%2020%2525%20off,co_rgb:ffc56b/c_limit,w_569/fl_layer_apply,g_north,y_172/vc_h264,q_auto",
+          "segments": [
+            {
+              "text": "c_fill,w_720,h_1280,g_center",
+              "kind": "crop",
+              "label": "First image filled to a 9:16 frame"
+            },
+            {
+              "text": "e_zoompan:du_3;fps_25;from_(zoom_1.0);to_(zoom_1.15)/c_scale,w_720,h_1280",
+              "kind": "video",
+              "label": "Clip 1: slow push in (3 s Ken Burns, turns the image into video)"
+            },
+            {
+              "text": "fl_splice,l_snap2shelf:products:shtrail1:pack:banner/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.2);to_(zoom_1.02)/c_scale,w_720,h_1280/e_fade:400/fl_layer_apply",
+              "kind": "video",
+              "label": "Clip 2: pull back, spliced onto the end, fading up over 0.4 s"
+            },
+            {
+              "text": "fl_splice,l_snap2shelf:products:shtrail1:pack:feed/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.15;x_0.42);to_(zoom_1.15;x_0.58)/c_scale,w_720,h_1280/e_fade:400/fl_layer_apply",
+              "kind": "video",
+              "label": "Clip 3: pan left to right, spliced onto the end, fading up over 0.4 s"
+            },
+            {
+              "text": "l_snap2shelf:products:shtrail1:pack:story/c_scale,w_619,h_161/co_rgb:1c130c,e_colorize:100/r_22/o_72/fl_layer_apply,g_north,y_77",
+              "kind": "effect",
+              "label": "Offer card held for the whole reel"
+            },
+            {
+              "text": "l_text:Noto%20Sans%20Devanagari@google_54_700:%E0%A4%A6%E0%A4%BF%E0%A4%B5%E0%A4%BE%E0%A4%B2%E0%A5%80%20%E0%A4%B8%E0%A5%87%E0%A4%B2,co_white/c_limit,w_569/fl_layer_apply,g_north,y_102",
+              "kind": "text",
+              "label": "Hindi offer line, persistent across clips"
+            },
+            {
+              "text": "l_text:Noto%20Sans@google_30_600:Diwali%20Sale%20%C2%B7%2020%2525%20off,co_rgb:ffc56b/c_limit,w_569/fl_layer_apply,g_north,y_172",
+              "kind": "text",
+              "label": "English offer line, persistent across clips"
+            },
+            {
+              "text": "vc_h264,q_auto",
+              "kind": "format",
+              "label": "H.264 MP4 that plays everywhere (WhatsApp, Instagram, browsers)"
+            },
+            {
+              "text": "snap2shelf/products/shtrail1/pack/story.mp4",
+              "kind": "asset",
+              "label": "First image; .mp4 turns the delivery into a video"
+            }
+          ]
+        },
+        "seconds": 9
+      },
+      "zipUrl": "https://api.cloudinary.com/v1_1/nyxyma1i/raw/download?timestamp=1790741892&public_id=snap2shelf%2Fproducts%2Fshtrail1%2Fchannel-pack.zip&type=upload&expires_at=1798517892&signature=2025fc49b892ce5a132c32e6b4a0143230d1e0a8&api_key=491342377369562",
+      "cost": {
+        "generationCredits": 0,
+        "creditsSavedByReuse": 9,
+        "aiVisionTokens": 1310,
+        "transformationsEstimate": 191,
+        "bytesOriginal": 1814024,
+        "bytesDelivered": 117238,
+        "seconds": 71.1
+      },
+      "createdAt": "2026-09-30T04:18:18.515Z",
+      "timings": {
+        "upload": 34363,
+        "analyze": 4328,
+        "cutout": 10020,
+        "stage": 2051,
+        "qa": 4626,
+        "pack": 11810,
+        "zip": 3895,
+        "reel": 3383,
+        "toApprovedHero": 55388,
+        "total": 71093
+      },
+      "attempts": [
+        {
+          "scenePublicId": "snap2shelf/scenes/jute/final-eb20e69e",
+          "sceneTitle": "Rustic jute",
+          "controls": {
+            "scale": 0.4,
+            "offsetX": 0,
+            "offsetY": 0,
+            "shadow": true,
+            "contact": true,
+            "reflection": "off",
+            "harmonise": true
+          },
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/c_fill,w_1080,h_1350/l_snap2shelf:products:shtrail1:cutout/c_scale,w_377,h_540/co_rgb:3a2414,e_colorize:100/e_distort:0:0:377:0:882:80:505:80/c_crop,g_north_west,x_0,y_0,w_882,h_80/c_mpad,w_1062,h_260,b_transparent/e_blur:535/e_gradient_fade:40,y_0.7/o_45/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_-243,y_802/l_snap2shelf:products:shtrail1:cutout/c_crop,g_south,w_709,h_122/c_scale,w_400,h_62/co_rgb:3a2414,e_colorize:100/c_mpad,w_548,h_210,b_transparent/e_blur:400/o_50/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_267,y_853/l_snap2shelf:products:shtrail1:cutout/c_crop,g_south,w_709,h_122/c_scale,w_362,h_26/co_rgb:3a2414,e_colorize:100/c_mpad,w_466,h_130,b_transparent/e_blur:200/o_90/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_308,y_904/l_snap2shelf:products:shtrail1:cutout/c_scale,w_377,h_540/e_tint:17:ffa04a/e_brightness:-8/fl_layer_apply,g_north_west,x_352,y_432/l_snap2shelf:products:shtrail1:cutout/c_scale,w_377,h_540/co_rgb:ffb45a,e_colorize:100/e_gradient_fade:30,x_0.9/o_23/e_screen,fl_layer_apply,g_north_west,x_352,y_432/l_snap2shelf:products:shtrail1:cutout/c_scale,w_377,h_540/co_rgb:3a2414,e_colorize:100/e_gradient_fade:25,x_-0.85/o_30/e_multiply,fl_layer_apply,g_north_west,x_352,y_432/f_auto,q_auto/snap2shelf/scenes/jute/final-eb20e69e",
+          "qa": {
+            "status": "approved",
+            "matched": [
+              "product-visible"
+            ],
+            "reasons": [],
+            "checkedAt": "2026-09-30T04:12:21.698Z"
+          },
+          "tokens": 667,
+          "note": "first choice: art-direction hint #1"
+        }
+      ],
+      "overrides": [],
+      "packFailed": []
+    },
+    {
+      "sku": "shkurta1",
+      "title": "Olive chikankari kurta",
+      "sample": true,
+      "photo": {
+        "kind": "decent",
+        "file": "07_olive_kurta.png"
+      },
+      "product": {
+        "sku": "shkurta1",
+        "rawPublicId": "snap2shelf/products/shkurta1/raw",
+        "rawWidth": 1122,
+        "rawHeight": 1402,
+        "rawBytes": 2906917,
+        "caption": "An olive green embroidered shirt with white floral patterns and buttons lies flat on a white patterned fabric background.",
+        "focus": 1,
+        "understanding": {
+          "name": "Embroidered linen tunic",
+          "category": "clothing",
+          "primary_color": "green",
+          "material": "linen",
+          "recolorable_part": "tunic fabric",
+          "placement": "flatlay",
+          "suggested_themes": [
+            "flatlay-linen"
+          ]
+        },
+        "cutout": {
+          "publicId": "snap2shelf/products/shkurta1/cutout",
+          "width": 822,
+          "height": 1085,
+          "version": 1790740655
+        }
+      },
+      "mode": "exact",
+      "scene": {
+        "publicId": "snap2shelf/scenes/flatlay-festive/final-ed645adc",
+        "theme": "flatlay-festive",
+        "view": "top-down",
+        "title": "Festive flat-lay",
+        "prompt": "Photorealistic top-down flat-lay product-photography background, camera directly overhead looking straight down. A deep maroon raw-silk cloth covers the whole frame. Marigold petals, one small brass diya and a few grains of rangoli colour only along the outer edges; the central 60% of the frame is completely empty for laying a folded garment. Soft even light with a gentle shadow toward the lower right. No products, no bottles, no packaging, no people, no hands, no text, no letters, no logos, no brand names.",
+        "modelId": "gpt-image-2.5-flare",
+        "credits": 4,
+        "dna": {
+          "anchor_x": 0.5,
+          "anchor_y": 0.45,
+          "surface_width": 0.7,
+          "light_azimuth": 0,
+          "light_elevation": 60,
+          "temperature": "warm",
+          "glossy": false,
+          "text_zone": "none"
+        }
+      },
+      "controls": {
+        "scale": 0.62,
+        "offsetX": 0,
+        "offsetY": 0,
+        "shadow": true,
+        "contact": false,
+        "reflection": "off",
+        "harmonise": true
+      },
+      "hero": {
+        "id": "hero",
+        "format": "hero",
+        "label": "Hero 4:5",
+        "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/snap2shelf/products/shkurta1/hero-flatlay-festive-ed645adc-abb2c938",
+        "width": 1080,
+        "height": 1350,
+        "frame": "feed-post",
+        "alt": "Embroidered linen tunic, staged on the Festive flat-lay scene",
+        "xray": {
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/c_fill,w_1080,h_1350/l_snap2shelf:products:shkurta1:cutout/c_scale,w_634,h_837/co_rgb:3a2414,e_colorize:100/c_mpad,w_754,h_957,b_transparent/e_blur:700/o_45/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_163,y_148/l_snap2shelf:products:shkurta1:cutout/c_scale,w_634,h_837/co_rgb:3a2414,e_colorize:100/c_mpad,w_682,h_885,b_transparent/e_blur:150/o_40/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_199,y_170/l_snap2shelf:products:shkurta1:cutout/c_scale,w_634,h_837/e_tint:12:ffa04a/e_brightness:-5/fl_layer_apply,g_north_west,x_223,y_189/l_snap2shelf:products:shkurta1:cutout/c_scale,w_634,h_837/co_rgb:ffb45a,e_colorize:100/e_gradient_fade:30,y_-0.9/o_16/e_screen,fl_layer_apply,g_north_west,x_223,y_189/f_auto,q_auto/snap2shelf/scenes/flatlay-festive/final-ed645adc",
+          "transformation": "c_fill,w_1080,h_1350/l_snap2shelf:products:shkurta1:cutout/c_scale,w_634,h_837/co_rgb:3a2414,e_colorize:100/c_mpad,w_754,h_957,b_transparent/e_blur:700/o_45/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_163,y_148/l_snap2shelf:products:shkurta1:cutout/c_scale,w_634,h_837/co_rgb:3a2414,e_colorize:100/c_mpad,w_682,h_885,b_transparent/e_blur:150/o_40/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_199,y_170/l_snap2shelf:products:shkurta1:cutout/c_scale,w_634,h_837/e_tint:12:ffa04a/e_brightness:-5/fl_layer_apply,g_north_west,x_223,y_189/l_snap2shelf:products:shkurta1:cutout/c_scale,w_634,h_837/co_rgb:ffb45a,e_colorize:100/e_gradient_fade:30,y_-0.9/o_16/e_screen,fl_layer_apply,g_north_west,x_223,y_189/f_auto,q_auto",
+          "segments": [
+            {
+              "text": "c_fill,w_1080,h_1350",
+              "kind": "crop",
+              "label": "Scene plate at the canonical 4:5 size"
+            },
+            {
+              "text": "l_snap2shelf:products:shkurta1:cutout/c_scale,w_634,h_837/co_rgb:3a2414,e_colorize:100/c_mpad,w_754,h_957,b_transparent/e_blur:700/o_45/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_163,y_148",
+              "kind": "shadow",
+              "label": "Soft lift shadow: the garment floats a few millimetres off the surface, light from above"
+            },
+            {
+              "text": "l_snap2shelf:products:shkurta1:cutout/c_scale,w_634,h_837/co_rgb:3a2414,e_colorize:100/c_mpad,w_682,h_885,b_transparent/e_blur:150/o_40/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_199,y_170",
+              "kind": "shadow",
+              "label": "Tight lift shadow along the edges, so the product rests on the surface"
+            },
+            {
+              "text": "l_snap2shelf:products:shkurta1:cutout/c_scale,w_634,h_837/e_tint:12:ffa04a/e_brightness:-5/fl_layer_apply,g_north_west,x_223,y_189",
+              "kind": "layer",
+              "label": "Your real product, placed where Scene DNA says the surface is, with a subtle warm light-match"
+            },
+            {
+              "text": "l_snap2shelf:products:shkurta1:cutout/c_scale,w_634,h_837/co_rgb:ffb45a,e_colorize:100/e_gradient_fade:30,y_-0.9/o_16/e_screen,fl_layer_apply,g_north_west,x_223,y_189",
+              "kind": "effect",
+              "label": "Light-match: the scene's warm key light washes over the side of the product that faces it"
+            },
+            {
+              "text": "f_auto,q_auto",
+              "kind": "format",
+              "label": "Best format and quality for the viewer's browser"
+            },
+            {
+              "text": "snap2shelf/scenes/flatlay-festive/final-ed645adc",
+              "kind": "asset",
+              "label": "Scene plate from the shared library"
+            }
+          ]
+        },
+        "publicId": "snap2shelf/products/shkurta1/hero-flatlay-festive-ed645adc-abb2c938",
+        "qa": {
+          "status": "approved",
+          "matched": [
+            "product-visible"
+          ],
+          "reasons": [],
+          "checkedAt": "2026-09-30T04:12:50.895Z"
+        }
+      },
+      "assets": [
+        {
+          "id": "feed",
+          "format": "feed",
+          "label": "Feed post 4:5",
+          "width": 1080,
+          "height": 1350,
+          "frame": "feed-post",
+          "alt": "Embroidered linen tunic on the Festive flat-lay scene, 4:5 feed post",
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/v1790741576/snap2shelf/products/shkurta1/pack/feed",
+          "xray": {
+            "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/snap2shelf/products/shkurta1/hero-flatlay-festive-ed645adc-abb2c938",
+            "transformation": "f_auto,q_auto",
+            "segments": [
+              {
+                "text": "f_auto,q_auto",
+                "kind": "format",
+                "label": "Best format and quality for the viewer's browser"
+              },
+              {
+                "text": "snap2shelf/products/shkurta1/hero-flatlay-festive-ed645adc-abb2c938",
+                "kind": "asset",
+                "label": "Source asset"
+              }
+            ]
+          },
+          "publicId": "snap2shelf/products/shkurta1/pack/feed"
+        },
+        {
+          "id": "marketplace",
+          "format": "marketplace",
+          "label": "Marketplace main 2000px",
+          "width": 2000,
+          "height": 2000,
+          "frame": "listing-card",
+          "alt": "Embroidered linen tunic on a pure white background, marketplace main image",
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/v1790741578/snap2shelf/products/shkurta1/pack/marketplace",
+          "xray": {
+            "url": "https://res.cloudinary.com/nyxyma1i/image/upload/c_fit,w_1700,h_1700/c_mpad,w_2000,h_2000,b_white/f_jpg,q_auto:best/snap2shelf/products/shkurta1/cutout",
+            "transformation": "c_fit,w_1700,h_1700/c_mpad,w_2000,h_2000,b_white/f_jpg,q_auto:best",
+            "segments": [
+              {
+                "text": "c_fit,w_1700,h_1700/c_mpad,w_2000,h_2000,b_white",
+                "kind": "crop",
+                "label": "Product fitted to 1700px (85% of the frame) on a pure white 2000×2000 canvas, as marketplaces require"
+              },
+              {
+                "text": "f_jpg,q_auto:best",
+                "kind": "format",
+                "label": "JPEG, best quality (transparency flattened onto white)"
+              },
+              {
+                "text": "snap2shelf/products/shkurta1/cutout",
+                "kind": "asset",
+                "label": "Source asset"
+              }
+            ]
+          },
+          "publicId": "snap2shelf/products/shkurta1/pack/marketplace"
+        },
+        {
+          "id": "story",
+          "format": "story",
+          "label": "Story 9:16",
+          "width": 1080,
+          "height": 1920,
+          "frame": "story",
+          "alt": "Embroidered linen tunic on the Festive flat-lay scene, scene extended to a 9:16 story",
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/v1790741583/snap2shelf/products/shkurta1/pack/story",
+          "xray": {
+            "url": "https://res.cloudinary.com/nyxyma1i/image/upload/ar_9:16,b_gen_fill,c_pad,w_1080/f_auto,q_auto/snap2shelf/products/shkurta1/hero-flatlay-festive-ed645adc-abb2c938",
+            "transformation": "ar_9:16,b_gen_fill,c_pad,w_1080/f_auto,q_auto",
+            "segments": [
+              {
+                "text": "ar_9:16,b_gen_fill,c_pad,w_1080",
+                "kind": "gen-ai",
+                "label": "Generative fill extends the scene to 9:16 (no new generation)"
+              },
+              {
+                "text": "f_auto,q_auto",
+                "kind": "format",
+                "label": "Best format and quality for the viewer's browser"
+              },
+              {
+                "text": "snap2shelf/products/shkurta1/hero-flatlay-festive-ed645adc-abb2c938",
+                "kind": "asset",
+                "label": "Source asset"
+              }
+            ]
+          },
+          "publicId": "snap2shelf/products/shkurta1/pack/story"
+        },
+        {
+          "id": "banner",
+          "format": "banner",
+          "label": "Web banner 16:9",
+          "width": 1920,
+          "height": 1080,
+          "frame": "web-banner",
+          "alt": "Embroidered linen tunic on the Festive flat-lay scene, scene extended to a 16:9 web banner",
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/v1790741582/snap2shelf/products/shkurta1/pack/banner",
+          "xray": {
+            "url": "https://res.cloudinary.com/nyxyma1i/image/upload/ar_16:9,b_gen_fill,c_pad,w_1920/f_auto,q_auto/snap2shelf/products/shkurta1/hero-flatlay-festive-ed645adc-abb2c938",
+            "transformation": "ar_16:9,b_gen_fill,c_pad,w_1920/f_auto,q_auto",
+            "segments": [
+              {
+                "text": "ar_16:9,b_gen_fill,c_pad,w_1920",
+                "kind": "gen-ai",
+                "label": "Generative fill extends the scene to 16:9"
+              },
+              {
+                "text": "f_auto,q_auto",
+                "kind": "format",
+                "label": "Best format and quality for the viewer's browser"
+              },
+              {
+                "text": "snap2shelf/products/shkurta1/hero-flatlay-festive-ed645adc-abb2c938",
+                "kind": "asset",
+                "label": "Source asset"
+              }
+            ]
+          },
+          "publicId": "snap2shelf/products/shkurta1/pack/banner"
+        },
+        {
+          "id": "whatsapp",
+          "format": "whatsapp",
+          "label": "WhatsApp catalog tile",
+          "width": 600,
+          "height": 600,
+          "frame": "catalog-tile",
+          "alt": "Embroidered linen tunic on the Festive flat-lay scene, square catalog tile",
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/v1790741576/snap2shelf/products/shkurta1/pack/whatsapp",
+          "xray": {
+            "url": "https://res.cloudinary.com/nyxyma1i/image/upload/c_crop,g_north_west,x_0,y_101,w_1080,h_1080/c_scale,w_600,h_600/f_auto,q_auto:eco/snap2shelf/products/shkurta1/hero-flatlay-festive-ed645adc-abb2c938",
+            "transformation": "c_crop,g_north_west,x_0,y_101,w_1080,h_1080/c_scale,w_600,h_600/f_auto,q_auto:eco",
+            "segments": [
+              {
+                "text": "c_crop,g_north_west,x_0,y_101,w_1080,h_1080/c_scale,w_600,h_600",
+                "kind": "crop",
+                "label": "Square crop centred on the product, 600px"
+              },
+              {
+                "text": "f_auto,q_auto:eco",
+                "kind": "format",
+                "label": "Light enough for a catalog"
+              },
+              {
+                "text": "snap2shelf/products/shkurta1/hero-flatlay-festive-ed645adc-abb2c938",
+                "kind": "asset",
+                "label": "Source asset"
+              }
+            ]
+          },
+          "publicId": "snap2shelf/products/shkurta1/pack/whatsapp"
+        },
+        {
+          "id": "recolor-b91c1c",
+          "format": "recolor",
+          "label": "Crimson variant",
+          "width": 1080,
+          "height": 1350,
+          "frame": "feed-post",
+          "alt": "Embroidered linen tunic in crimson, on the Festive flat-lay scene",
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/v1790741582/snap2shelf/products/shkurta1/pack/recolor-b91c1c",
+          "xray": {
+            "url": "https://res.cloudinary.com/nyxyma1i/image/upload/e_gen_recolor:prompt_tunic%20fabric;to-color_b91c1c/f_auto,q_auto/snap2shelf/products/shkurta1/hero-flatlay-festive-ed645adc-abb2c938",
+            "transformation": "e_gen_recolor:prompt_tunic%20fabric;to-color_b91c1c/f_auto,q_auto",
+            "segments": [
+              {
+                "text": "e_gen_recolor:prompt_tunic%20fabric;to-color_b91c1c",
+                "kind": "gen-ai",
+                "label": "Generative recolor of the tunic fabric only (shading kept)"
+              },
+              {
+                "text": "f_auto,q_auto",
+                "kind": "format",
+                "label": "Best format and quality for the viewer's browser"
+              },
+              {
+                "text": "snap2shelf/products/shkurta1/hero-flatlay-festive-ed645adc-abb2c938",
+                "kind": "asset",
+                "label": "Source asset"
+              }
+            ]
+          },
+          "publicId": "snap2shelf/products/shkurta1/pack/recolor-b91c1c"
+        },
+        {
+          "id": "recolor-2563eb",
+          "format": "recolor",
+          "label": "Royal blue variant",
+          "width": 1080,
+          "height": 1350,
+          "frame": "feed-post",
+          "alt": "Embroidered linen tunic in royal blue, on the Festive flat-lay scene",
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/v1790741580/snap2shelf/products/shkurta1/pack/recolor-2563eb",
+          "xray": {
+            "url": "https://res.cloudinary.com/nyxyma1i/image/upload/e_gen_recolor:prompt_tunic%20fabric;to-color_2563eb/f_auto,q_auto/snap2shelf/products/shkurta1/hero-flatlay-festive-ed645adc-abb2c938",
+            "transformation": "e_gen_recolor:prompt_tunic%20fabric;to-color_2563eb/f_auto,q_auto",
+            "segments": [
+              {
+                "text": "e_gen_recolor:prompt_tunic%20fabric;to-color_2563eb",
+                "kind": "gen-ai",
+                "label": "Generative recolor of the tunic fabric only (shading kept)"
+              },
+              {
+                "text": "f_auto,q_auto",
+                "kind": "format",
+                "label": "Best format and quality for the viewer's browser"
+              },
+              {
+                "text": "snap2shelf/products/shkurta1/hero-flatlay-festive-ed645adc-abb2c938",
+                "kind": "asset",
+                "label": "Source asset"
+              }
+            ]
+          },
+          "publicId": "snap2shelf/products/shkurta1/pack/recolor-2563eb"
+        },
+        {
+          "id": "offer",
+          "format": "offer",
+          "label": "Festive offer",
+          "width": 1080,
+          "height": 1350,
+          "frame": "feed-post",
+          "alt": "Embroidered linen tunic on the Festive flat-lay scene with the offer \"Diwali Sale · 20% off\" in Hindi and English",
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/v1790741578/snap2shelf/products/shkurta1/pack/offer",
+          "xray": {
+            "url": "https://res.cloudinary.com/nyxyma1i/image/upload/l_snap2shelf:products:shkurta1:hero-flatlay-festive-ed645adc-abb2c938/c_scale,w_455,h_198/co_rgb:1c130c,e_colorize:100/r_22/o_72/fl_layer_apply,g_north_west,x_313,y_1104/l_text:Noto%20Sans%20Devanagari@google_67_700:%E0%A4%A6%E0%A4%BF%E0%A4%B5%E0%A4%BE%E0%A4%B2%E0%A5%80%20%E0%A4%B8%E0%A5%87%E0%A4%B2,co_white/c_limit,w_397/fl_layer_apply,g_north,x_0,y_1133/l_text:Noto%20Sans@google_35_600:Diwali%20Sale%20%C2%B7%2020%2525%20off,co_rgb:ffc56b/c_limit,w_397/fl_layer_apply,g_north,x_0,y_1226/f_auto,q_auto/snap2shelf/products/shkurta1/hero-flatlay-festive-ed645adc-abb2c938",
+            "transformation": "l_snap2shelf:products:shkurta1:hero-flatlay-festive-ed645adc-abb2c938/c_scale,w_455,h_198/co_rgb:1c130c,e_colorize:100/r_22/o_72/fl_layer_apply,g_north_west,x_313,y_1104/l_text:Noto%20Sans%20Devanagari@google_67_700:%E0%A4%A6%E0%A4%BF%E0%A4%B5%E0%A4%BE%E0%A4%B2%E0%A5%80%20%E0%A4%B8%E0%A5%87%E0%A4%B2,co_white/c_limit,w_397/fl_layer_apply,g_north,x_0,y_1133/l_text:Noto%20Sans@google_35_600:Diwali%20Sale%20%C2%B7%2020%2525%20off,co_rgb:ffc56b/c_limit,w_397/fl_layer_apply,g_north,x_0,y_1226/f_auto,q_auto",
+            "segments": [
+              {
+                "text": "l_snap2shelf:products:shkurta1:hero-flatlay-festive-ed645adc-abb2c938/c_scale,w_455,h_198/co_rgb:1c130c,e_colorize:100/r_22/o_72/fl_layer_apply,g_north_west,x_313,y_1104",
+                "kind": "effect",
+                "label": "Offer card in the bottom band, placed from Scene DNA's text zone so it never covers the product"
+              },
+              {
+                "text": "l_text:Noto%20Sans%20Devanagari@google_67_700:%E0%A4%A6%E0%A4%BF%E0%A4%B5%E0%A4%BE%E0%A4%B2%E0%A5%80%20%E0%A4%B8%E0%A5%87%E0%A4%B2,co_white/c_limit,w_397/fl_layer_apply,g_north,x_0,y_1133",
+                "kind": "text",
+                "label": "Hindi offer line (Google font, rendered by Cloudinary, conjuncts shaped correctly)"
+              },
+              {
+                "text": "l_text:Noto%20Sans@google_35_600:Diwali%20Sale%20%C2%B7%2020%2525%20off,co_rgb:ffc56b/c_limit,w_397/fl_layer_apply,g_north,x_0,y_1226",
+                "kind": "text",
+                "label": "English offer line"
+              },
+              {
+                "text": "f_auto,q_auto",
+                "kind": "format",
+                "label": "Best format and quality for the viewer's browser"
+              },
+              {
+                "text": "snap2shelf/products/shkurta1/hero-flatlay-festive-ed645adc-abb2c938",
+                "kind": "asset",
+                "label": "Source asset"
+              }
+            ]
+          },
+          "publicId": "snap2shelf/products/shkurta1/pack/offer"
+        }
+      ],
+      "reel": {
+        "url": "https://res.cloudinary.com/nyxyma1i/image/upload/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.0);to_(zoom_1.15)/c_scale,w_720,h_1280/fl_splice,l_snap2shelf:products:shkurta1:pack:recolor-b91c1c/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.2);to_(zoom_1.02)/c_scale,w_720,h_1280/e_fade:400/fl_layer_apply/fl_splice,l_snap2shelf:products:shkurta1:pack:recolor-2563eb/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.15;x_0.42);to_(zoom_1.15;x_0.58)/c_scale,w_720,h_1280/e_fade:400/fl_layer_apply/l_snap2shelf:products:shkurta1:pack:story/c_scale,w_619,h_161/co_rgb:1c130c,e_colorize:100/r_22/o_72/fl_layer_apply,g_north,y_77/l_text:Noto%20Sans%20Devanagari@google_54_700:%E0%A4%A6%E0%A4%BF%E0%A4%B5%E0%A4%BE%E0%A4%B2%E0%A5%80%20%E0%A4%B8%E0%A5%87%E0%A4%B2,co_white/c_limit,w_569/fl_layer_apply,g_north,y_102/l_text:Noto%20Sans@google_30_600:Diwali%20Sale%20%C2%B7%2020%2525%20off,co_rgb:ffc56b/c_limit,w_569/fl_layer_apply,g_north,y_172/vc_h264,q_auto/snap2shelf/products/shkurta1/pack/story.mp4",
+        "xray": {
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.0);to_(zoom_1.15)/c_scale,w_720,h_1280/fl_splice,l_snap2shelf:products:shkurta1:pack:recolor-b91c1c/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.2);to_(zoom_1.02)/c_scale,w_720,h_1280/e_fade:400/fl_layer_apply/fl_splice,l_snap2shelf:products:shkurta1:pack:recolor-2563eb/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.15;x_0.42);to_(zoom_1.15;x_0.58)/c_scale,w_720,h_1280/e_fade:400/fl_layer_apply/l_snap2shelf:products:shkurta1:pack:story/c_scale,w_619,h_161/co_rgb:1c130c,e_colorize:100/r_22/o_72/fl_layer_apply,g_north,y_77/l_text:Noto%20Sans%20Devanagari@google_54_700:%E0%A4%A6%E0%A4%BF%E0%A4%B5%E0%A4%BE%E0%A4%B2%E0%A5%80%20%E0%A4%B8%E0%A5%87%E0%A4%B2,co_white/c_limit,w_569/fl_layer_apply,g_north,y_102/l_text:Noto%20Sans@google_30_600:Diwali%20Sale%20%C2%B7%2020%2525%20off,co_rgb:ffc56b/c_limit,w_569/fl_layer_apply,g_north,y_172/vc_h264,q_auto/snap2shelf/products/shkurta1/pack/story.mp4",
+          "transformation": "c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.0);to_(zoom_1.15)/c_scale,w_720,h_1280/fl_splice,l_snap2shelf:products:shkurta1:pack:recolor-b91c1c/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.2);to_(zoom_1.02)/c_scale,w_720,h_1280/e_fade:400/fl_layer_apply/fl_splice,l_snap2shelf:products:shkurta1:pack:recolor-2563eb/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.15;x_0.42);to_(zoom_1.15;x_0.58)/c_scale,w_720,h_1280/e_fade:400/fl_layer_apply/l_snap2shelf:products:shkurta1:pack:story/c_scale,w_619,h_161/co_rgb:1c130c,e_colorize:100/r_22/o_72/fl_layer_apply,g_north,y_77/l_text:Noto%20Sans%20Devanagari@google_54_700:%E0%A4%A6%E0%A4%BF%E0%A4%B5%E0%A4%BE%E0%A4%B2%E0%A5%80%20%E0%A4%B8%E0%A5%87%E0%A4%B2,co_white/c_limit,w_569/fl_layer_apply,g_north,y_102/l_text:Noto%20Sans@google_30_600:Diwali%20Sale%20%C2%B7%2020%2525%20off,co_rgb:ffc56b/c_limit,w_569/fl_layer_apply,g_north,y_172/vc_h264,q_auto",
+          "segments": [
+            {
+              "text": "c_fill,w_720,h_1280,g_center",
+              "kind": "crop",
+              "label": "First image filled to a 9:16 frame"
+            },
+            {
+              "text": "e_zoompan:du_3;fps_25;from_(zoom_1.0);to_(zoom_1.15)/c_scale,w_720,h_1280",
+              "kind": "video",
+              "label": "Clip 1: slow push in (3 s Ken Burns, turns the image into video)"
+            },
+            {
+              "text": "fl_splice,l_snap2shelf:products:shkurta1:pack:recolor-b91c1c/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.2);to_(zoom_1.02)/c_scale,w_720,h_1280/e_fade:400/fl_layer_apply",
+              "kind": "video",
+              "label": "Clip 2: pull back, spliced onto the end, fading up over 0.4 s"
+            },
+            {
+              "text": "fl_splice,l_snap2shelf:products:shkurta1:pack:recolor-2563eb/c_fill,w_720,h_1280,g_center/e_zoompan:du_3;fps_25;from_(zoom_1.15;x_0.42);to_(zoom_1.15;x_0.58)/c_scale,w_720,h_1280/e_fade:400/fl_layer_apply",
+              "kind": "video",
+              "label": "Clip 3: pan left to right, spliced onto the end, fading up over 0.4 s"
+            },
+            {
+              "text": "l_snap2shelf:products:shkurta1:pack:story/c_scale,w_619,h_161/co_rgb:1c130c,e_colorize:100/r_22/o_72/fl_layer_apply,g_north,y_77",
+              "kind": "effect",
+              "label": "Offer card held for the whole reel"
+            },
+            {
+              "text": "l_text:Noto%20Sans%20Devanagari@google_54_700:%E0%A4%A6%E0%A4%BF%E0%A4%B5%E0%A4%BE%E0%A4%B2%E0%A5%80%20%E0%A4%B8%E0%A5%87%E0%A4%B2,co_white/c_limit,w_569/fl_layer_apply,g_north,y_102",
+              "kind": "text",
+              "label": "Hindi offer line, persistent across clips"
+            },
+            {
+              "text": "l_text:Noto%20Sans@google_30_600:Diwali%20Sale%20%C2%B7%2020%2525%20off,co_rgb:ffc56b/c_limit,w_569/fl_layer_apply,g_north,y_172",
+              "kind": "text",
+              "label": "English offer line, persistent across clips"
+            },
+            {
+              "text": "vc_h264,q_auto",
+              "kind": "format",
+              "label": "H.264 MP4 that plays everywhere (WhatsApp, Instagram, browsers)"
+            },
+            {
+              "text": "snap2shelf/products/shkurta1/pack/story.mp4",
+              "kind": "asset",
+              "label": "First image; .mp4 turns the delivery into a video"
+            }
+          ]
+        },
+        "seconds": 9
+      },
+      "zipUrl": "https://api.cloudinary.com/v1_1/nyxyma1i/raw/download?timestamp=1790741585&public_id=snap2shelf%2Fproducts%2Fshkurta1%2Fchannel-pack.zip&type=upload&expires_at=1798517585&signature=ea87840b5372e69085d75aa4cfc8dca471472929&api_key=491342377369562",
+      "cost": {
+        "generationCredits": 0,
+        "creditsSavedByReuse": 4,
+        "aiVisionTokens": 1369,
+        "transformationsEstimate": 293,
+        "bytesOriginal": 2906917,
+        "bytesDelivered": 218479,
+        "seconds": 76.4
+      },
+      "createdAt": "2026-09-30T04:13:17.420Z",
+      "timings": {
+        "upload": 46042,
+        "analyze": 4589,
+        "cutout": 3088,
+        "stage": 1792,
+        "qa": 3834,
+        "pack": 12148,
+        "zip": 4916,
+        "reel": 6464,
+        "toApprovedHero": 59345,
+        "total": 76409
+      },
+      "attempts": [
+        {
+          "scenePublicId": "snap2shelf/scenes/flatlay-festive/final-ed645adc",
+          "sceneTitle": "Festive flat-lay",
+          "controls": {
+            "scale": 0.62,
+            "offsetX": 0,
+            "offsetY": 0,
+            "shadow": true,
+            "contact": false,
+            "reflection": "off",
+            "harmonise": true
+          },
+          "url": "https://res.cloudinary.com/nyxyma1i/image/upload/c_fill,w_1080,h_1350/l_snap2shelf:products:shkurta1:cutout/c_scale,w_634,h_837/co_rgb:3a2414,e_colorize:100/c_mpad,w_754,h_957,b_transparent/e_blur:700/o_45/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_163,y_148/l_snap2shelf:products:shkurta1:cutout/c_scale,w_634,h_837/co_rgb:3a2414,e_colorize:100/c_mpad,w_682,h_885,b_transparent/e_blur:150/o_40/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_199,y_170/l_snap2shelf:products:shkurta1:cutout/c_scale,w_634,h_837/e_tint:12:ffa04a/e_brightness:-5/fl_layer_apply,g_north_west,x_223,y_189/l_snap2shelf:products:shkurta1:cutout/c_scale,w_634,h_837/co_rgb:ffb45a,e_colorize:100/e_gradient_fade:30,y_-0.9/o_16/e_screen,fl_layer_apply,g_north_west,x_223,y_189/f_auto,q_auto/snap2shelf/scenes/flatlay-festive/final-ed645adc",
+          "qa": {
+            "status": "approved",
+            "matched": [
+              "product-visible"
+            ],
+            "reasons": [],
+            "checkedAt": "2026-09-30T04:12:50.895Z"
+          },
+          "tokens": 722,
+          "note": "first choice: art-direction hint #1"
+        }
+      ],
+      "overrides": [],
+      "packFailed": []
+    }
+  ],
+  "creative": [
+    {
+      "sku": "shbottle",
+      "model": "nano-banana-2-edit",
+      "seed": 7,
+      "prompt": "on a sunlit wooden kitchen windowsill beside a small potted basil plant and a folded linen towel, soft morning light, shallow depth of field",
+      "publicId": "snap2shelf/products/shbottle/creative-nano-banana-2-edit-7",
+      "url": "https://res.cloudinary.com/nyxyma1i/image/upload/c_fill,w_1080,h_1350,g_auto/f_auto,q_auto/snap2shelf/products/shbottle/creative-nano-banana-2-edit-7",
+      "qa": {
+        "status": "approved",
+        "matched": [
+          "same-product"
+        ],
+        "reasons": [],
+        "fidelity": 98,
+        "checkedAt": "2026-09-30T03:59:46.189Z"
+      },
+      "sheetUrl": "https://res.cloudinary.com/nyxyma1i/image/upload/c_fill,w_512,h_683,g_auto/c_pad,w_1024,h_683,g_east,b_white/l_snap2shelf:products:shbottle:cutout/c_fit,w_480,h_640/fl_layer_apply,g_west,x_16/f_jpg,q_85/snap2shelf/products/shbottle/creative-nano-banana-2-edit-7",
+      "credits": 8,
+      "latencyMs": 29580,
+      "qaTokens": 985,
+      "request": {
+        "endpoint": "POST /v2/generate/{cloud}/image_to_image",
+        "body": {
+          "prompt": "Professional e-commerce lifestyle photograph of the EXACT product shown in reference image [1]. Scene: on a sunlit wooden kitchen windowsill beside a small potted basil plant and a folded linen towel, soft morning light, shallow depth of field. The product must stay IDENTICAL to [1]: same shape, proportions, colours, materials, finish, logos, text and every detail. Do not redesign, restyle, recolour, add or remove any part of the product, and show exactly one product, whole and in focus. Place it naturally on a surface with realistic contact shadow and lighting that matches the scene. Photorealistic, no added text, no watermark, no people.",
+          "model": {
+            "id": "nano-banana-2-edit"
+          },
+          "image_size": {
+            "aspect_ratio": "3:4",
+            "resolution": "1K"
+          },
+          "seed": 7,
+          "async": true,
+          "reference_images": [
+            {
+              "source_type": "url",
+              "url": "https://res.cloudinary.com/nyxyma1i/image/upload/v1790740463/snap2shelf/products/shbottle/cutout"
+            }
+          ],
+          "target": {
+            "target_type": "managed_asset",
+            "public_id": "snap2shelf/products/shbottle/creative-nano-banana-2-edit-7"
+          }
+        }
+      }
+    },
+    {
+      "sku": "shsneakr",
+      "model": "nano-banana-2-edit",
+      "seed": 7,
+      "prompt": "on a weathered sandstone step in a sunlit Rajasthani courtyard, warm late-afternoon light, soft natural shadows",
+      "publicId": "snap2shelf/products/shsneakr/creative-nano-banana-2-edit-7",
+      "url": "https://res.cloudinary.com/nyxyma1i/image/upload/c_fill,w_1080,h_1350,g_auto/f_auto,q_auto/snap2shelf/products/shsneakr/creative-nano-banana-2-edit-7",
+      "qa": {
+        "status": "approved",
+        "matched": [
+          "same-product"
+        ],
+        "reasons": [],
+        "fidelity": 95,
+        "checkedAt": "2026-09-30T04:00:12.616Z"
+      },
+      "sheetUrl": "https://res.cloudinary.com/nyxyma1i/image/upload/c_fill,w_512,h_683,g_auto/c_pad,w_1024,h_683,g_east,b_white/l_snap2shelf:products:shsneakr:cutout/c_fit,w_480,h_640/fl_layer_apply,g_west,x_16/f_jpg,q_85/snap2shelf/products/shsneakr/creative-nano-banana-2-edit-7",
+      "credits": 9,
+      "latencyMs": 16851,
+      "qaTokens": 986,
+      "request": {
+        "endpoint": "POST /v2/generate/{cloud}/image_to_image",
+        "body": {
+          "prompt": "Professional e-commerce lifestyle photograph of the EXACT product shown in reference image [1]. Scene: on a weathered sandstone step in a sunlit Rajasthani courtyard, warm late-afternoon light, soft natural shadows. The product must stay IDENTICAL to [1]: same shape, proportions, colours, materials, finish, logos, text and every detail. Do not redesign, restyle, recolour, add or remove any part of the product, and show exactly one product, whole and in focus. Place it naturally on a surface with realistic contact shadow and lighting that matches the scene. Photorealistic, no added text, no watermark, no people.",
+          "model": {
+            "id": "nano-banana-2-edit"
+          },
+          "image_size": {
+            "aspect_ratio": "3:4",
+            "resolution": "1K"
+          },
+          "seed": 7,
+          "async": true,
+          "reference_images": [
+            {
+              "source_type": "url",
+              "url": "https://res.cloudinary.com/nyxyma1i/image/upload/v1790740524/snap2shelf/products/shsneakr/cutout"
+            }
+          ],
+          "target": {
+            "target_type": "managed_asset",
+            "public_id": "snap2shelf/products/shsneakr/creative-nano-banana-2-edit-7"
+          }
+        }
+      }
+    },
+    {
+      "sku": "shsneakr",
+      "model": "flux-2-flash-edit",
+      "seed": 7,
+      "prompt": "on a weathered sandstone step in a sunlit Rajasthani courtyard, warm late-afternoon light, soft natural shadows",
+      "publicId": "snap2shelf/products/shsneakr/creative-flux-2-flash-edit-7",
+      "url": "https://res.cloudinary.com/nyxyma1i/image/upload/c_fill,w_1080,h_1350,g_auto/f_auto,q_auto/snap2shelf/products/shsneakr/creative-flux-2-flash-edit-7",
+      "qa": {
+        "status": "rejected",
+        "matched": [
+          "product-redesigned"
+        ],
+        "reasons": [
+          "The AI changed the product's design.",
+          "added logo on side panel",
+          "different side panel stitching",
+          "tongue design and label differences"
+        ],
+        "fidelity": 85,
+        "checkedAt": "2026-09-30T04:00:29.525Z"
+      },
+      "sheetUrl": "https://res.cloudinary.com/nyxyma1i/image/upload/c_fill,w_512,h_683,g_auto/c_pad,w_1024,h_683,g_east,b_white/l_snap2shelf:products:shsneakr:cutout/c_fit,w_480,h_640/fl_layer_apply,g_west,x_16/f_jpg,q_85/snap2shelf/products/shsneakr/creative-flux-2-flash-edit-7",
+      "credits": 1,
+      "latencyMs": 8846,
+      "qaTokens": 1010,
+      "request": {
+        "endpoint": "POST /v2/generate/{cloud}/image_to_image",
+        "body": {
+          "prompt": "Professional e-commerce lifestyle photograph of the EXACT product shown in reference image [1]. Scene: on a weathered sandstone step in a sunlit Rajasthani courtyard, warm late-afternoon light, soft natural shadows. The product must stay IDENTICAL to [1]: same shape, proportions, colours, materials, finish, logos, text and every detail. Do not redesign, restyle, recolour, add or remove any part of the product, and show exactly one product, whole and in focus. Place it naturally on a surface with realistic contact shadow and lighting that matches the scene. Photorealistic, no added text, no watermark, no people.",
+          "model": {
+            "id": "flux-2-flash-edit"
+          },
+          "image_size": {
+            "aspect_ratio": "3:4",
+            "resolution": "1K"
+          },
+          "seed": 7,
+          "async": true,
+          "reference_images": [
+            {
+              "source_type": "url",
+              "url": "https://res.cloudinary.com/nyxyma1i/image/upload/v1790740524/snap2shelf/products/shsneakr/cutout"
+            }
+          ],
+          "target": {
+            "target_type": "managed_asset",
+            "public_id": "snap2shelf/products/shsneakr/creative-flux-2-flash-edit-7"
+          }
+        }
+      }
+    }
+  ],
+  "beforeAfter": [
+    {
+      "sku": "shmessy1",
+      "rawUrl": "https://res.cloudinary.com/nyxyma1i/image/upload/c_fill,w_1080,h_1350,g_auto/f_auto,q_auto/snap2shelf/products/shmessy1/raw",
+      "heroUrl": "https://res.cloudinary.com/nyxyma1i/image/upload/f_auto,q_auto/snap2shelf/products/shmessy1/hero-marble-ca4c3ac1-a020d3e2",
+      "alt": "Before: the original phone photo (A stainless steel water bottle stands on a granite countertop with a mug, paper towels, a potted plant, and a fruit bowl in the background). After: the same stainless steel water bottle, staged on the Marble studio scene."
+    }
+  ],
+  "totals": {
+    "generationCredits": 18,
+    "aiVisionTokens": 11056,
+    "transformationsEstimate": 1316,
+    "creditsSavedByReuse": 26
+  }
+}
