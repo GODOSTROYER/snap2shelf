@@ -1,8 +1,10 @@
 "use client";
 
+// clsx rather than util's cn: nothing here conflicts, and tailwind-merge would ride into the landing's JS
+import { clsx as cn } from "clsx";
 import { Pause, Play } from "lucide-react";
 import * as React from "react";
-import { cn, sleep } from "@/lib/client/util";
+import { sleep } from "@/lib/client/sleep";
 
 type Phase = "idle" | "rendering" | "ready" | "failed";
 
