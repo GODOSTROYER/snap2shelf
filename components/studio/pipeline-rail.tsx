@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, Frame, PackageCheck, Pause, Scissors, ShieldCheck, SunMedium, WandSparkles, Wrench, X } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import * as React from "react";
 import { cn } from "@/lib/client/util";
 import { PIPELINE_STEPS, type PipelineStepId } from "@/lib/types";
@@ -31,6 +31,7 @@ export const PipelineRail = React.memo(function PipelineRail({
   notes: Partial<Record<PipelineStepId, string>>;
   fixed?: boolean;
 }) {
+  const reduce = useReducedMotion();
   const doneCount = PIPELINE_STEPS.filter((s) => status[s.id] === "done").length;
   const active = PIPELINE_STEPS.find((s) => status[s.id] === "active" || status[s.id] === "failed" || status[s.id] === "paused");
   const progress = Math.min(1, (doneCount + (active && status[active.id] === "active" ? 0.5 : 0)) / (PIPELINE_STEPS.length - 1));
@@ -39,6 +40,8 @@ export const PipelineRail = React.memo(function PipelineRail({
   const lastDone = [...PIPELINE_STEPS].reverse().find((s) => status[s.id] === "done");
   const note = active ? notes[active.id] : allDone ? (notes.pack ?? "Kit ready") : lastDone ? notes[lastDone.id] : "Waiting for a photo";
   const stepKey = active ? active.id : allDone ? "done" : (lastDone?.id ?? "idle");
+  // the note the page was served with paints as it is (no entrance on the first paint)
+  const [bootKey] = React.useState(stepKey);
   const noteTone = active && status[active.id] === "failed" ? "text-sindoor" : active && status[active.id] === "paused" ? "text-marigold" : allDone ? "text-paper" : "text-dim";
 
   return (
@@ -89,7 +92,8 @@ export const PipelineRail = React.memo(function PipelineRail({
                     <Icon className="size-[18px]" aria-hidden />
                   </motion.span>
                 </AnimatePresence>
-                {st === "done" ? (
+                {/* the finish flash is a growing ring: with reduced motion it would just jump to its full size, so it is left out */}
+                {st === "done" && !reduce ? (
                   <motion.span
                     aria-hidden
                     className="absolute inset-0 rounded-full ring-2 ring-marigold"
@@ -111,20 +115,19 @@ export const PipelineRail = React.memo(function PipelineRail({
         {note}
       </p>
       <p aria-hidden className="relative mt-3 grid min-h-10 place-items-center text-center text-sm sm:mt-2 sm:min-h-5">
-        {/* keyed on the step, not the text: a note that changes every few hundred ms (the pack
-            counter) must never restart the entrance, or it never gets out of its blur */}
-        <AnimatePresence mode="popLayout" initial={false}>
-          <motion.span
-            key={stepKey}
-            initial={{ opacity: 0, y: 8, filter: "blur(4px)" }}
-            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-            className={cn("[grid-area:1/1] text-balance", noteTone)}
-          >
-            <NoteText note={note} />
-          </motion.span>
-        </AnimatePresence>
+        {/* One note at a time: a new step's note replaces the last one in the same frame and brightens
+            in (opacity and a 4 px rise, never a blur), so no two notes ever overlap and none lingers.
+            Keyed on the step, not the text: the pack counter changes every few hundred ms and must
+            not restart the entrance. */}
+        <motion.span
+          key={stepKey}
+          initial={stepKey === bootKey ? false : { opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+          className={cn("[grid-area:1/1] text-balance", noteTone)}
+        >
+          <NoteText note={note} />
+        </motion.span>
       </p>
     </div>
   );

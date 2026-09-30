@@ -53,6 +53,7 @@ const StageView = React.forwardRef<
     scanning?: string | null; // label while a step works on the photo
     qa?: QaResult | null;
     onBusy?: (busy: boolean) => void;
+    onLoading?: (loading: boolean) => void;
     busyLabel?: string | null;
     xray?: KitAsset | null; // what the X-ray button explains
     enter?: Enter; // how the next image arrives
@@ -62,7 +63,7 @@ const StageView = React.forwardRef<
     dna?: { dna: SceneDNA; key: string; shadow?: boolean; product?: PlateBox | null } | null;
   }
 >(function Stage(
-  { src, alt, placeholder, srcSet, sizes, priority, originalSrc, originalLabel = "Hold to see your photo", qaStory, scanning, qa, onBusy, busyLabel, xray, enter, settle, light, dna },
+  { src, alt, placeholder, srcSet, sizes, priority, originalSrc, originalLabel = "Hold to see your photo", qaStory, scanning, qa, onBusy, onLoading, busyLabel, xray, enter, settle, light, dna },
   ref,
 ) {
   const [showOriginal, setShowOriginal] = React.useState(false);
@@ -94,6 +95,7 @@ const StageView = React.forwardRef<
           sizes={sizes}
           priority={priority}
           onBusy={onBusy}
+          onLoading={onLoading}
           onError={() => setFailed(src)}
           className="absolute inset-0"
           imgClassName="object-cover"
@@ -158,9 +160,10 @@ const StageView = React.forwardRef<
               transition={{ type: "spring", stiffness: 420, damping: 18 }}
               className="inline-flex items-center gap-1.5"
             >
-              <QaBadge qa={qa} className="bg-studio/85 backdrop-blur-sm" />
+              {/* solid chips, no backdrop blur: a blurred backdrop under a scaling, fading chip washes the plate out */}
+              <QaBadge qa={qa} className="bg-studio/92" />
               {typeof qa.fidelity === "number" ? (
-                <span className="tabular rounded-full bg-studio/85 px-2.5 py-1 text-[0.75rem] leading-none font-semibold text-paper backdrop-blur-sm">fidelity {qa.fidelity}</span>
+                <span className="tabular rounded-full bg-studio/92 px-2.5 py-1 text-[0.75rem] leading-none font-semibold text-paper">fidelity {qa.fidelity}</span>
               ) : null}
             </motion.span>
           ) : null}
@@ -187,7 +190,8 @@ const StageView = React.forwardRef<
             setXrayOpen(true);
           }}
           className={cn(
-            "absolute top-3 right-3 inline-flex h-9 items-center gap-2 rounded-full bg-studio/85 px-3.5 text-[0.8rem] font-semibold text-paper backdrop-blur-sm transition-colors hover:bg-studio hover:text-marigold",
+            // the pill stays 36 px; its tap area is 44 px (after:)
+            "absolute top-3 right-3 inline-flex h-9 items-center gap-2 rounded-full bg-studio/85 px-3.5 text-[0.8rem] font-semibold text-paper backdrop-blur-sm transition-colors after:absolute after:-inset-1 hover:bg-studio hover:text-marigold",
             qaStory && "max-sm:invisible",
           )}
         >
@@ -207,7 +211,7 @@ const StageView = React.forwardRef<
           onPointerLeave={() => setShowOriginal(false)}
           onKeyDown={(e) => (e.key === " " || e.key === "Enter") && setShowOriginal(true)}
           onKeyUp={() => setShowOriginal(false)}
-          className="absolute right-3 bottom-3 inline-flex h-9 items-center gap-2 rounded-full bg-studio/85 px-3.5 text-[0.8rem] font-semibold text-paper backdrop-blur-sm transition-colors select-none hover:bg-studio"
+          className="absolute right-3 bottom-3 inline-flex h-9 items-center gap-2 rounded-full bg-studio/85 px-3.5 text-[0.8rem] font-semibold text-paper backdrop-blur-sm transition-colors select-none after:absolute after:-inset-1 hover:bg-studio"
         >
           <Eye className="size-4" aria-hidden />
           {originalLabel}
@@ -222,11 +226,13 @@ const StageView = React.forwardRef<
           <motion.div
             key="qa-story"
             role="status"
-            initial={{ opacity: 0, y: -12 }}
+            // opacity and a short slide only, on a near-solid card: no backdrop blur, which washes the
+            // plate and the words out white while the card fades in
+            initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8, transition: { duration: 0.25 } }}
-            transition={{ type: "spring", stiffness: 260, damping: 24 }}
-            className="absolute inset-x-2.5 top-2.5 rounded-xl bg-studio/90 px-3 py-2.5 text-[14px] leading-[1.35] text-paper shadow-[0_20px_40px_-16px_rgb(0_0_0/0.9)] ring-1 ring-line-strong backdrop-blur-md sm:inset-x-4 sm:top-15 sm:rounded-2xl sm:px-3.5 sm:py-3"
+            exit={{ opacity: 0, y: -6, transition: { duration: 0.2 } }}
+            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            className="absolute inset-x-2.5 top-2.5 rounded-xl bg-studio/95 px-3 py-2.5 text-[14px] leading-[1.35] text-paper shadow-[0_20px_40px_-16px_rgb(0_0_0/0.9)] ring-1 ring-line-strong sm:inset-x-4 sm:top-15 sm:rounded-2xl sm:px-3.5 sm:py-3"
           >
             <StoryText story={qaStory} />
           </motion.div>
