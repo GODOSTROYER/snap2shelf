@@ -96,7 +96,8 @@ export function reelUrl(i: ReelInput): ReelUrl {
     const pad = Math.round(W * 0.035);
     const cardH = pad * 2 + (i.offer.hindi ? Math.round(hs * 1.3) : 0) + (i.offer.english ? Math.round(es * 1.35) : 0);
     const cardW = Math.round(W * 0.86);
-    const top = Math.round(H * 0.06);
+    // clear of the top ~12% that Stories/Reels players cover with their own UI
+    const top = Math.round(H * 0.14);
     push(
       `l_${layerId(imgs[0])}/c_scale,w_${cardW},h_${cardH}/co_rgb:1c130c,e_colorize:100/r_${Math.round(W * 0.03)}/o_72/fl_layer_apply,g_north,y_${top}`,
       "effect",

@@ -203,7 +203,7 @@ function contactShadows(push: Push, L: string, g: Geometry, cutout: Pick<CutoutR
     const x = g.px + r((g.pw - w) / 2) - m;
     const y = g.baseY - r(h * 0.72) - m; // mostly hidden under the product, ~30% peeks out in front
     push(
-      `${foot}/c_scale,w_${w},h_${h}/co_rgb:${col},e_colorize:100/c_mpad,w_${w + 2 * m},h_${h + 2 * m},b_transparent/e_blur:400/o_${glossy ? 30 : 50}/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_${x},y_${y}`,
+      `${foot}/c_scale,w_${w},h_${h}/co_rgb:${col},e_colorize:100/c_mpad,w_${w + 2 * m},h_${h + 2 * m},b_transparent/e_blur:400/o_${glossy ? 28 : 42}/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_${x},y_${y}`,
       "shadow",
       "Ambient occlusion: a soft pool of shadow where the product meets the surface",
     );
@@ -214,9 +214,11 @@ function contactShadows(push: Push, L: string, g: Geometry, cutout: Pick<CutoutR
     const h = Math.max(5, r(fd * 0.45));
     const m = Math.max(16, h * 2);
     const x = g.px + r((g.pw - w) / 2) - m;
-    const y = g.baseY - r(h * 0.62) - m;
+    // tucked up under the base so only the blur's soft edge shows in front (a line centred on the
+    // base read as the product "parked on a dark disc" and QA flagged it as a compositing artifact)
+    const y = g.baseY - r(h * 0.95) - m;
     push(
-      `${foot}/c_scale,w_${w},h_${h}/co_rgb:${col},e_colorize:100/c_mpad,w_${w + 2 * m},h_${h + 2 * m},b_transparent/e_blur:200/o_90/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_${x},y_${y}`,
+      `${foot}/c_scale,w_${w},h_${h}/co_rgb:${col},e_colorize:100/c_mpad,w_${w + 2 * m},h_${h + 2 * m},b_transparent/e_blur:200/o_60/e_multiply,fl_layer_apply,fl_no_overflow,g_north_west,x_${x},y_${y}`,
       "shadow",
       "Contact shadow: the product's own footprint, squashed, darkened and blurred so it sits on the surface",
     );
