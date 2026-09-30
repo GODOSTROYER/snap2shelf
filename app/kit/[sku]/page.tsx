@@ -72,73 +72,78 @@ export default async function KitPage({ params }: Props) {
 
   return (
     <>
-      <SiteHeader current="kit" />
+      <Suspense>
+        <SiteHeader current="kit" />
+      </Suspense>
       <main id="main">
-        {/* hero → what to do with it → every format → how it measures → what it cost, on every width */}
-        <section className="mx-auto grid max-w-[90rem] items-start gap-8 px-4 pt-4 pb-14 sm:px-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1fr)] lg:gap-16 lg:pt-8 lg:pb-16">
-          <div className="mx-auto w-full max-w-[34rem] lg:sticky lg:top-6 lg:mx-0 lg:max-w-[min(100%,calc((100dvh-8rem)*0.8))]">
-            <CloudImg
-              priority
-              src={heroSrc(720)}
-              srcSet={srcSet(heroSrc)}
-              sizes="(min-width: 1440px) 39rem, (min-width: 1024px) 43vw, (min-width: 640px) 34rem, calc(100vw - 2rem)"
-              alt={kit.hero.alt}
-              width={1080}
-              height={1350}
-              placeholder={heroLqip(kit)}
-              className="aspect-[4/5] w-full rounded-[22px] object-cover shadow-[0_50px_90px_-40px_rgb(0_0_0/0.95)] ring-1 ring-line"
-            />
-          </div>
-          <div className="max-w-[36rem] lg:pt-4">
-            {kit.hero.qa ? <QaBadge qa={kit.hero.qa} /> : null}
-            <h1 className="mt-4 text-[clamp(2.4rem,6vw,4.25rem)] leading-[0.95] font-extrabold tracking-[-0.035em] [font-variation-settings:'wdth'_86,'opsz'_96]">
-              {name}
-            </h1>
-            <p className="mt-4 text-lg text-dim">
-              {kitContents(kit)}, ready to post, from one {sample ? `sample photo (${sample.blurb.toLowerCase()})` : "photo"}
-              {staged}. {FIDELITY_CLAIM}
-            </p>
-            {sample ? (
-              <p className="mt-4 flex gap-2.5 rounded-xl bg-stage-2 px-3.5 py-2.5 text-[0.85rem] leading-snug text-dim ring-1 ring-line ring-inset">
-                <span aria-hidden className="mt-[0.45em] size-1.5 shrink-0 rounded-full bg-marigold" />
-                {SAMPLE_PHOTO_DISCLOSURE}
-              </p>
-            ) : null}
-            <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-              {zip ? (
-                <a href={zip} className={buttonVariants({ size: "lg" })}>
-                  <Download />
-                  {zipLabel(kit)}
-                </a>
-              ) : sample ? (
-                <Link href={`/studio?sample=${kit.sku}`} className={buttonVariants({ size: "lg" })}>
-                  Watch it being made
-                </Link>
-              ) : null}
-              <Link href="/studio" className={buttonVariants({ size: "lg", variant: zip || sample ? "secondary" : undefined })}>
-                Make a kit for your product
-              </Link>
+        {/* hero → what to do with it → every format → how it measures → what it cost, on every width.
+            Each part is its own Suspense boundary, so React hydrates them in separate, short tasks. */}
+        <Suspense>
+          <section className="mx-auto grid max-w-[90rem] items-start gap-8 px-4 pt-4 pb-14 sm:px-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1fr)] lg:gap-16 lg:pt-8 lg:pb-16">
+            <div className="mx-auto w-full max-w-[34rem] lg:sticky lg:top-6 lg:mx-0 lg:max-w-[min(100%,calc((100dvh-8rem)*0.8))]">
+              <CloudImg
+                priority
+                src={heroSrc(720)}
+                srcSet={srcSet(heroSrc)}
+                sizes="(min-width: 1440px) 39rem, (min-width: 1024px) 43vw, (min-width: 640px) 34rem, calc(100vw - 2rem)"
+                alt={kit.hero.alt}
+                width={1080}
+                height={1350}
+                placeholder={heroLqip(kit)}
+                className="aspect-[4/5] w-full rounded-[22px] object-cover shadow-[0_50px_90px_-40px_rgb(0_0_0/0.95)] ring-1 ring-line"
+              />
             </div>
-            <ul className="mt-4 grid gap-1 text-sm text-dim">
-              {zip && kit.reel ? <li>The zip holds every image; the reel plays from its Cloudinary URL.</li> : null}
-              {zip && sample ? (
-                <li>
-                  <Link href={`/studio?sample=${kit.sku}`} className={textLink}>
-                    Watch this kit being made
-                  </Link>{" "}
-                  in the studio, step by step.
-                </li>
+            <div className="max-w-[36rem] lg:pt-4">
+              {kit.hero.qa ? <QaBadge qa={kit.hero.qa} /> : null}
+              <h1 className="mt-4 text-[clamp(2.4rem,6vw,4.25rem)] leading-[0.95] font-extrabold tracking-[-0.035em] [font-variation-settings:'wdth'_86,'opsz'_96]">
+                {name}
+              </h1>
+              <p className="mt-4 text-lg text-dim">
+                {kitContents(kit)}, ready to post, from one {sample ? `sample photo (${sample.blurb.toLowerCase()})` : "photo"}
+                {staged}. {FIDELITY_CLAIM}
+              </p>
+              {sample ? (
+                <p className="mt-4 flex gap-2.5 rounded-xl bg-stage-2 px-3.5 py-2.5 text-[0.85rem] leading-snug text-dim ring-1 ring-line ring-inset">
+                  <span aria-hidden className="mt-[0.45em] size-1.5 shrink-0 rounded-full bg-marigold" />
+                  {SAMPLE_PHOTO_DISCLOSURE}
+                </p>
               ) : null}
-              <li>
-                <Link href={DEMO_SHELF.path} prefetch={false} className={`${textLink} inline-flex items-center gap-1.5`}>
-                  <Store aria-hidden className="size-4 text-marigold" />
-                  See a shop built from the sample products
-                  <ArrowUpRight aria-hidden className="size-4" />
+              <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                {zip ? (
+                  <a href={zip} className={buttonVariants({ size: "lg" })}>
+                    <Download />
+                    {zipLabel(kit)}
+                  </a>
+                ) : sample ? (
+                  <Link href={`/studio?sample=${kit.sku}`} className={buttonVariants({ size: "lg" })}>
+                    Watch it being made
+                  </Link>
+                ) : null}
+                <Link href="/studio" className={buttonVariants({ size: "lg", variant: zip || sample ? "secondary" : undefined })}>
+                  Make a kit for your product
                 </Link>
-              </li>
-            </ul>
-          </div>
-        </section>
+              </div>
+              <ul className="mt-4 grid gap-1 text-sm text-dim">
+                {zip && kit.reel ? <li>The zip holds every image; the reel plays from its Cloudinary URL.</li> : null}
+                {zip && sample ? (
+                  <li>
+                    <Link href={`/studio?sample=${kit.sku}`} className={textLink}>
+                      Watch this kit being made
+                    </Link>{" "}
+                    in the studio, step by step.
+                  </li>
+                ) : null}
+                <li>
+                  <Link href={DEMO_SHELF.path} prefetch={false} className={`${textLink} inline-flex items-center gap-1.5`}>
+                    <Store aria-hidden className="size-4 text-marigold" />
+                    See a shop built from the sample products
+                    <ArrowUpRight aria-hidden className="size-4" />
+                  </Link>
+                </li>
+              </ul>
+            </div>
+          </section>
+        </Suspense>
 
         <section aria-labelledby="shelf-title" className="mx-auto max-w-[90rem] pb-16">
           <div className="px-4 sm:px-8">
@@ -159,7 +164,9 @@ export default async function KitPage({ params }: Props) {
           <LazyReceipt sku={kit.sku} scene={kit.scene?.publicId} initial={sampleLedger} replay={timeNote} className="lg:col-start-2 lg:row-start-1 lg:mx-0" />
         </section>
       </main>
-      <SiteFooter />
+      <Suspense>
+        <SiteFooter />
+      </Suspense>
     </>
   );
 }

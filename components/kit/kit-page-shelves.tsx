@@ -1,4 +1,4 @@
-import { TooltipProvider } from "@/components/ui/controls";
+import { Suspense } from "react";
 import { frameProduct, shelvesFor } from "@/lib/client/kit-view";
 import type { Kit } from "@/lib/types";
 import { KitCard } from "./kit-card";
@@ -12,18 +12,20 @@ import { XrayHost } from "./xray-button";
 export function KitPageShelves({ kit }: { kit: Kit }) {
   const product = frameProduct(kit);
   return (
-    <TooltipProvider>
-      <XrayHost>
-        <div className="grid gap-4">
-          {shelvesFor(kit).map((g) => (
-            <Shelf key={g.id} title={g.title}>
+    <XrayHost>
+      <div className="grid gap-4">
+        {shelvesFor(kit).map((g) => (
+          // each shelf is its own hydration unit (React hydrates Suspense boundaries in
+          // separate, interruptible tasks) and skips layout while it is off screen
+          <Suspense key={g.id}>
+            <Shelf title={g.title} className="[contain-intrinsic-size:auto_430px] [content-visibility:auto]">
               {g.items.map((item) => (
                 <KitCard key={item.key} item={item} product={product} />
               ))}
             </Shelf>
-          ))}
-        </div>
-      </XrayHost>
-    </TooltipProvider>
+          </Suspense>
+        ))}
+      </div>
+    </XrayHost>
   );
 }

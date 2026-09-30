@@ -3,7 +3,6 @@
 import { CodeXml } from "lucide-react";
 import dynamic from "next/dynamic";
 import * as React from "react";
-import { Tip } from "@/components/ui/controls";
 import type { KitAsset } from "@/lib/types";
 
 // The sheet (dialog, URL anatomy, copy button) loads the first time someone opens an X-ray.
@@ -30,23 +29,39 @@ export function XrayHost({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** The code button under a card: opens that asset's X-ray. */
+const TIP = "See the Cloudinary URL behind this";
+
+/**
+ * The code button under a card: opens that asset's X-ray. Its hint is a CSS
+ * tooltip (hover or keyboard focus, after the same short delay as the site's
+ * other tooltips), so a shelf of cards needs no tooltip library.
+ */
 export function XrayButton({ asset }: { asset: KitAsset }) {
   const open = React.useContext(XrayContext);
+  const tipId = React.useId();
   // warm the sheet's chunk on intent, so the first open doesn't wait on the network
   const warm = () => void import("./xray-sheet");
   return (
-    <Tip label="See the Cloudinary URL behind this">
+    <span className="relative inline-flex">
       <button
         type="button"
         onClick={() => open?.(asset)}
         onPointerEnter={warm}
         onFocus={warm}
         aria-label={`X-ray: how ${asset.label} is made`}
-        className="grid size-7 place-items-center rounded-md bg-stage-2 text-dim ring-1 ring-line-strong transition-colors ring-inset hover:bg-stage-3 hover:text-marigold"
+        aria-describedby={tipId}
+        className="peer grid size-7 place-items-center rounded-md bg-stage-2 text-dim ring-1 ring-line-strong transition-colors ring-inset hover:bg-stage-3 hover:text-marigold"
       >
         <CodeXml className="size-4" />
       </button>
-    </Tip>
+      <span
+        id={tipId}
+        role="tooltip"
+        className="pointer-events-none invisible absolute bottom-[calc(100%+8px)] left-1/2 z-[60] w-max max-w-64 -translate-x-1/2 rounded-lg bg-paper px-3 py-2 text-[0.8rem] leading-snug font-medium text-studio opacity-0 shadow-[0_12px_30px_-8px_rgb(0_0_0/0.6)] transition-[opacity,visibility] duration-150 peer-hover:visible peer-hover:opacity-100 peer-hover:delay-250 peer-focus-visible:visible peer-focus-visible:opacity-100"
+      >
+        {TIP}
+        <span aria-hidden className="absolute top-full left-1/2 -translate-x-1/2 border-x-[6px] border-t-[6px] border-x-transparent border-t-paper" />
+      </span>
+    </span>
   );
 }

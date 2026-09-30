@@ -98,8 +98,12 @@ export const DEMO_SHELF = { slug: "demo-studio", path: "/shelf/demo-studio", tit
 
 /** The sample every "Try a sample" entry point opens: it has a ZIP and shows the QA gate catching and fixing a bad placement. */
 export const PRIMARY_SAMPLE_SKU = "shmessy1";
-/** Best-looking finished kit for "See a finished kit" links. */
-export const SHOWCASE_KIT_SKU = "shbottle";
+/**
+ * The finished kit every "See a finished kit" / "Sample kit" link opens: the same
+ * cluttered-kitchen steel bottle the landing features end to end, whose receipt
+ * tells the QA-rejected-twice story. shbottle stays reachable at /kit/shbottle.
+ */
+export const SHOWCASE_KIT_SKU = "shmessy1";
 
 /**
  * Kit links that permanently point at another kit. sneaker1 is the landing's
