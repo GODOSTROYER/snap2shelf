@@ -13,7 +13,8 @@ import { TooltipProvider } from "@/components/ui/controls";
 import { srcSet } from "@/lib/client/img";
 import { countAssets } from "@/lib/client/kit-view";
 import { loadKit } from "@/lib/client/kit-loader";
-import { heroAt, heroLqip, getSample } from "@/lib/showcase";
+import { getSample, heroAt, heroLqip } from "@/lib/showcase";
+import { ogImageUrl } from "@/lib/transform/og";
 
 type Props = { params: Promise<{ sku: string }> };
 
@@ -22,10 +23,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const kit = await loadKit(sku);
   if (!kit) return { title: "Kit not found" };
   const name = kit.product.understanding?.name ?? "Product";
+  const description = `${countAssets(kit)} ready-to-post assets made from one phone photo with Snap2Shelf.`;
+  const og = kit.hero.publicId ? ogImageUrl({ heroes: [kit.hero.publicId], shopName: name, tagline: `${countAssets(kit)} assets from one photo` }).url : undefined;
   return {
     title: `${name} kit`,
-    description: `${countAssets(kit)} ready-to-post assets made from one photo with Snap2Shelf.`,
-    openGraph: { images: [{ url: kit.hero.url, alt: kit.hero.alt }] },
+    description,
+    openGraph: { title: `${name}: a whole shelf from one photo`, description, images: og ? [{ url: og, width: 1200, height: 630, alt: kit.hero.alt }] : undefined },
+    twitter: { card: "summary_large_image", title: `${name} kit`, description, images: og ? [og] : undefined },
   };
 }
 
@@ -35,7 +39,7 @@ export default async function KitPage({ params }: Props) {
   if (!kit) notFound();
   const name = kit.product.understanding?.name ?? "Your product";
   const isSample = !!getSample(sku);
-  const heroSrc = (w: number) => (isSample ? heroAt(kit, w) : kit.hero.url);
+  const heroSrc = (w: number) => heroAt(kit, w);
 
   return (
     <>
@@ -46,12 +50,12 @@ export default async function KitPage({ params }: Props) {
             <CloudImg
               priority
               src={heroSrc(720)}
-              srcSet={isSample ? srcSet(heroSrc, [480, 720, 1080]) : undefined}
-              sizes="(min-width: 1024px) 40vw, 92vw"
+              srcSet={srcSet(heroSrc, [480, 720, 1080])}
+              sizes="(min-width: 1024px) 40vw, calc(100vw - 2rem)"
               alt={kit.hero.alt}
               width={1080}
               height={1350}
-              placeholder={isSample ? heroLqip(kit) : undefined}
+              placeholder={heroLqip(kit)}
               className="aspect-[4/5] w-full rounded-[22px] object-cover shadow-[0_50px_90px_-40px_rgb(0_0_0/0.95)] ring-1 ring-line"
             />
           </div>

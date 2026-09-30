@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FEATURED } from "@/lib/showcase";
 import { Wordmark } from "./site-header";
 
 export function SiteFooter() {
@@ -13,7 +14,7 @@ export function SiteFooter() {
           <Link href="/studio" className="hover:text-paper">
             Studio
           </Link>
-          <Link href="/kit/sneaker1" className="hover:text-paper">
+          <Link href={`/kit/${FEATURED.sku}`} className="hover:text-paper">
             Sample kit
           </Link>
           <Link href="/#how" className="hover:text-paper">

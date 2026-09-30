@@ -36,18 +36,6 @@
   --color-frame-dark: #0f0d0b;
   --color-frame-bubble: #221d18;
 
-  /* X-ray segment kinds */
-  --color-x-crop: #86bdff;
-  --color-x-layer: #f5a524;
-  --color-x-placement: #c9b0ff;
-  --color-x-shadow: #b7bfcb;
-  --color-x-reflection: #82ded2;
-  --color-x-effect: #f59bc2;
-  --color-x-gen: #ff8a6b;
-  --color-x-text: #ffd875;
-  --color-x-format: #97d48d;
-  --color-x-asset: #eadfce;
-  --color-x-video: #c1e86a;
 
   --font-display: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
   --font-sans: var(--font-hanken), ui-sans-serif, system-ui, sans-serif;
@@ -72,6 +60,21 @@
     from { transform: translateY(-100%); }
     to { transform: translateY(100%); }
   }
+}
+
+/* X-ray segment colours, under the names lib/transform/xray.ts XRAY_KINDS expects */
+:root {
+  --xray-crop: #86bdff;
+  --xray-layer: #f5a524;
+  --xray-placement: #c9b0ff;
+  --xray-shadow: #b7bfcb;
+  --xray-reflection: #82ded2;
+  --xray-effect: #f59bc2;
+  --xray-gen-ai: #ff8a6b;
+  --xray-text: #ffd875;
+  --xray-format: #97d48d;
+  --xray-asset: #eadfce;
+  --xray-video: #c1e86a;
 }
 
 @layer base {
@@ -185,6 +188,33 @@
 }
 
 .rise { animation: rise 900ms var(--ease-out-expo) both; }
+
+/*
+ * Before/after intro: the phone photo slides over, then the stage sweeps in
+ * behind the product and the handle settles in the middle. --pos is registered
+ * so it can animate; the slider's handle and clip both follow it.
+ */
+@property --pos {
+  syntax: "<percentage>";
+  inherits: true;
+  initial-value: 50%;
+}
+.ba { --pos: 50%; }
+.ba[data-intro="play"] { animation: ba-intro 3800ms linear both; }
+@keyframes ba-intro {
+  0% { --pos: 50%; animation-timing-function: cubic-bezier(0.5, 0, 0.2, 1); }
+  15% { --pos: 100%; }
+  26% { --pos: 100%; animation-timing-function: cubic-bezier(0.65, 0, 0.3, 1); }
+  64% { --pos: 0%; }
+  74% { --pos: 0%; animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1); }
+  100% { --pos: 50%; }
+}
+
+/* The kit fans out from behind the landing hero, once. */
+@keyframes fan-out {
+  from { translate: 60% 0; rotate: 0deg; scale: 0.9; opacity: 0; }
+}
+.fan-card { animation: fan-out 1100ms var(--ease-out-expo) both; animation-delay: calc(400ms + var(--i, 0) * 110ms); }
 .focus-in { animation: focus-in 1400ms var(--ease-out-expo) both; }
 
 /* Shelves deal in once they scroll into view (only when JS armed them, so no-JS keeps them visible). */
@@ -215,6 +245,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   [data-deal] [data-card] { opacity: 1 !important; animation: none !important; }
+  .ba[data-intro="play"], .fan-card { animation: none !important; }
   .lift:hover { translate: none; rotate: none; }
   *, ::before, ::after {
     animation-duration: 0.01ms !important;
