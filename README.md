@@ -222,7 +222,7 @@ Lessons we paid for:
 
 ### Architecture
 
-**Where things live.** Every asset sits in one Cloudinary product environment, under predictable public IDs. Facts live in tags, context and one small JSON file per product, so the client-side list JSON and delivery URLs are most of the "API". Every asset also carries the tag `s2s`.
+**Where things live.** Every asset sits in one Cloudinary product environment, under predictable public IDs. Facts live in tags, context and one small JSON file per product, so the client-side list JSON and delivery URLs are most of the "API". Every image asset also carries the tag `s2s`; the raw JSON state files (facts, usage, locks) don't.
 
 ```text
 snap2shelf/products/<sku>/raw                  original upload          s2s-raw, s2s-sku-<sku>
@@ -234,6 +234,7 @@ snap2shelf/products/<sku>/creative-<m>-<seed>  Creative take            s2s-crea
 snap2shelf/products/<sku>/pack/<format>        channel asset            s2s-pack, s2s-pack-<sku>
 snap2shelf/scenes/<theme>/<tier>-<hash>        1080×1350 scene plate    s2s-scene, s2s-theme-<theme>
 snap2shelf/state/usage-main.json               shared usage reading     one per deployment
+snap2shelf/locks/<shelf|capture>-<id>.json     first-writer-wins lock   s2s-lock, never overwritten
 ```
 
 **A request's life, for one product:**
@@ -269,6 +270,8 @@ Every step reads and writes the product's `facts.json` through the Upload API an
 | `POST /api/collection` | stage 2–6 products on one scene with the same light and visual weight | session cap |
 | `POST /api/shelf` · `GET /api/shelf/:shop` | publish up to 12 heroes as a storefront; read it back | session cap / no |
 | `POST /api/access` · `GET /api/usage` | unlock live generation; pool totals, this session's allowance and the credit floor | no |
+
+On top of the gates above, every route that writes to a product or spends AI on it needs proof that this browser created that product; the samples and showcase kits need the access code instead, and without either a route answers from stored results only ([Security](#security)).
 
 </details>
 
@@ -583,7 +586,7 @@ In your Cloudinary security settings, make sure **Resource list** is not a restr
 |---|---|
 | `npm run dev` / `build` / `start` | Next.js |
 | `npm run lint`, `npm run typecheck` | ESLint, `tsc --noEmit` |
-| `npm test` | 137 unit tests (Node's test runner): key pool, session and signing, sample and showcase write protection, SSRF guard, QA rules, URL builders, retouch plans, briefs, cost ledger, facts, the Admin API circuit breaker and the credit floor against a fake Cloudinary, SDK error scrubbing, shelf slugs, OG URLs, BMP decoding, readiness scoring, showcase data |
+| `npm test` | over 130 unit tests (Node's test runner): key pool, session and signing, sample and showcase write protection, ownership proofs, SSRF guard, QA rules, URL builders, retouch plans, briefs, cost ledger, facts, the Admin API circuit breaker and the credit floor against a fake Cloudinary, SDK error scrubbing, shelf slugs, OG URLs, BMP decoding, readiness scoring, showcase data |
 | `npm run secret-scan` | fails if any private value from `.env.local` appears in a tracked file, the staged diff or git history; prints variable **names** only |
 | `npm run setup:cloudinary` | idempotent: upload preset `s2s_ingest`, named transformations from `lib/transform/named.ts` |
 | `npm run seed:scenes` | the scene library (idempotent: prompt-hash ids are never regenerated) |
@@ -624,7 +627,8 @@ In your Cloudinary security settings, make sure **Resource list** is not a restr
 - **Server-only secrets, sanitised errors.** Credentials are read only in `server-only` modules and passed per call; no SDK is configured globally in the app. Every Cloudinary SDK rejection is rebuilt from a scrubbed message and the HTTP code, so the API secret can't reach a log, and error responses never include upstream details. ([`lib/cloudinary/safe.ts`](lib/cloudinary/safe.ts))
 - **SSRF and cost-abuse guard.** Any image URL a client sends (QA, pack) must be an `https://res.cloudinary.com/<our cloud>/image/upload/…` URL for one of our own public ID prefixes, with no query, no userinfo and no `..`, and it may not contain remote-fetch layers (`l_fetch:`), generative effects (`e_gen_*`, `b_gen_fill`), background removal or `fl_attachment`. ([`lib/server/guard.ts`](lib/server/guard.ts))
 - **Sealed, session-bound job tokens.** Creative and scene job handles are AES-256-GCM encrypted and authenticated with separate derived keys, expire after 2 hours, and only work for the session that started them (anyone else gets the same 404 as an unknown token). ([`lib/server/job-token.ts`](lib/server/job-token.ts), [`lib/server/scene-job-token.ts`](lib/server/scene-job-token.ts))
-- **Access code, caps and floors.** Live generation needs the access code (constant-time comparison, with a delay on wrong guesses), an HMAC-signed httpOnly session cookie counts generations and open operations, and the pool floor and the transformation-credit floor switch the app to the samples before quota runs out. ([`lib/server/session.ts`](lib/server/session.ts), [`app/api/access/route.ts`](app/api/access/route.ts), [`lib/server/budget.ts`](lib/server/budget.ts))
+- **Ownership and write locks, still without a database.** Ownership, the demo unlock and each generation are separate HMAC-signed httpOnly cookies, so concurrent requests can't overwrite each other. Only the browser that uploaded a photo can change its kit: the access code unlocks the samples and live generation, not other visitors' products. Shelf names and phone-capture claims are first-writer-wins locks stored in Cloudinary (an Upload API upload with `overwrite: false`), and capture tickets are single-use and expire after 10 minutes. ([`lib/server/proofs.ts`](lib/server/proofs.ts), [`lib/server/protect.ts`](lib/server/protect.ts), [`lib/server/locks.ts`](lib/server/locks.ts))
+- **Access code, caps and floors.** Live generation needs the access code (constant-time comparison, with a delay on wrong guesses); the per-session caps count generations and open operations; and the pool floor and the transformation-credit floor switch the app to the samples before quota runs out. ([`lib/server/session.ts`](lib/server/session.ts), [`app/api/access/route.ts`](app/api/access/route.ts), [`lib/server/budget.ts`](lib/server/budget.ts))
 - **Secret scan before every commit.** [`scripts/secret-scan.mjs`](scripts/secret-scan.mjs) checks every private value from `.env.local` against tracked files, the staged diff and the full git history, plus generic credential patterns.
 
 ---

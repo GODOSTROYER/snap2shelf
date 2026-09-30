@@ -47,7 +47,7 @@ Work top to bottom. Nothing in this file is secret, and nothing secret may be ad
 ### Code and repo
 - [ ] Feature freeze respected: only fixes after Fri 2 Oct 20:00.
 - [ ] `npm run lint`, `npm run typecheck` and `npm run build` pass.
-- [ ] `npm test` passes (137 tests on 30 Sep; update the count in `README.md` "Scripts" if tests were added).
+- [ ] `npm test` passes with 0 failures. The README's "Scripts" table says "over 130 unit tests" so it doesn't go stale as tests land; only change it if that stops being true.
 - [ ] `npm run secret-scan` prints **clean** (it checks tracked files, the staged diff and the whole git history).
 - [ ] `grep -rn "TODO" README.md` shows only the video slot (`TODO(video)`), and `grep -rn "TODO(final)" docs/` only the owner slots in section 3 (all are HTML comments, invisible on github.com). Fill the README video slot before submitting.
 - [ ] README renders on github.com in **both** light and dark themes: every image loads, every table renders.
