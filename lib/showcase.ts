@@ -1,96 +1,238 @@
 /**
- * Showcase data: finished kits built from REAL assets already on the demo cloud.
- * The landing page, /kit/<sku>, the sample flow in /studio and the API mock all
- * read from here, so replacing the showcase is a one-file change.
+ * Showcase: the sample products and their finished kits, built from REAL
+ * assets already stored on the demo cloud (synthetic test photos, never a
+ * seller's). The landing page, /kit/<sku> and the sample run in /studio all
+ * read from here. A sample run in the studio is a zero-quota REPLAY of these
+ * results: no analyze, QA or pack call is made, and every image it shows is a
+ * stored asset or an already-rendered transformation.
  *
- * Numbers marked "measured" come from SPIKES.md / live requests; "estimate"
- * values are illustrative until seeded kits replace this file.
+ * Provenance of every number:
+ *  - product reading (caption, focus, understanding): measured by the live
+ *    analyze route on these exact photos (30 Sep, e2e runs);
+ *  - cut-outs, heroes, story/banner/recolor: rendered live once, then stored;
+ *  - QA verdicts: the live exact-QA route on the stored hero recipes (30 Sep);
+ *  - "before" photos: the raw photo, cropped so the product sits exactly where
+ *    the hero places it, the extra margin filled by b_gen_fill (stored once).
+ *
+ * Seeded kits (scripts/seed-showcase.mts → data/showcase.json) replace the
+ * hand-assembled samples below with one change: set SEEDED to that data.
  */
 import { channelAssets } from "./transform/channels";
-import { compositeUrl, defaultControls, deliveryBase, lqip } from "./transform/composite";
-import { reelUrl } from "./client/reel";
-import { recolorLabel, swatchName } from "./client/swatches";
-import type { CompositeControls, Kit, KitAsset, ProductRecord, Scene, SceneDNA, Sku } from "./types";
+import { compositeUrl, defaultControls, deliveryBase, geometry, quantise } from "./transform/composite";
+import { ogImageUrl as ogUrl } from "./transform/og";
+import { reelUrl } from "./transform/reel";
+import { recolorExplain, recolorLabel, swatchName } from "./client/swatches";
+import type { CompositeControls, Kit, KitAsset, ProductRecord, QaResult, Scene, SceneDNA, Sku } from "./types";
 
 export const SHOWCASE_CLOUD = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "nyxyma1i";
+
+const stored = (publicId: string, w?: number) => `${deliveryBase(SHOWCASE_CLOUD)}/${w ? `c_limit,w_${w}/` : ""}f_auto,q_auto/${publicId}`;
 
 export interface SampleProduct {
   sku: Sku;
   title: string; // shown on the sample picker
+  blurb: string; // what the photo is, in a few words
   product: ProductRecord;
   scene: Scene;
   controls: CompositeControls;
-  heroPublicId: string; // the composite, saved once as its own asset
+  heroPublicId: string; // the approved composite, saved once as its own asset
+  /** The phone photo cropped (and extended) so its product sits exactly where the hero places it, 1080×1350. */
+  beforePublicId?: string;
   offer: { hindi: string; english: string };
   swatches: string[];
-  /** Crop that puts the raw photo's product exactly where the hero places it (for the before/after slider). */
-  alignRaw?: string;
+  qa: QaResult; // the verdict the replay shows (measured)
+  qaTokens: number;
+  /** Replay pacing, ms per step (the live run's order of magnitude, compressed). */
+  pace: { analyze: number; cutout: number; qa: number; pack: number };
+  kit: Kit; // what the replay deals onto the shelves
 }
 
-// ─── Sample 1: the sneaker ────────────────────────────────────────────────────
+// ─── Scenes (from the shared library, tag s2s-scene) ─────────────────────────
 
-const teakDna: SceneDNA = {
+const diwaliDna: SceneDNA = {
   anchor_x: 0.5,
   anchor_y: 0.65,
-  surface_width: 0.9,
-  light_azimuth: 315,
-  light_elevation: 45,
+  surface_width: 1,
+  light_azimuth: 270,
+  light_elevation: 20,
   temperature: "warm",
-  glossy: false, // matte teak
-  text_zone: "top",
+  glossy: false,
+  text_zone: "none",
 };
 
-const teakScene: Scene = {
-  publicId: "snap2shelf/spikes/scenes/diwali_teak_42",
+const diwali: Scene = {
+  publicId: "snap2shelf/scenes/diwali/final-59f4388a",
   theme: "diwali",
   view: "eye-level",
-  title: "Diwali teak table",
+  title: "Diwali glow",
   prompt:
-    "Photorealistic product-photography background: an empty polished teak table in the foreground, brass diyas and marigold garlands softly out of focus behind, warm festive light. No products, no people, no text.",
+    "Photorealistic empty product-photography backdrop, professional commercial photo. Camera at eye level, about 15 degrees above the surface. A warm teak wooden tabletop fills the lower 40% of the frame. The centre foreground of the surface is completely empty and clear for placing a product. In the background brass diyas with small flames, marigold garlands and warm fairy-light bokeh, softly out of focus with shallow depth of field. Soft warm light from the upper left. No products, no bottles, no packaging, no people, no hands, no text, no letters, no logos, no brand names.",
   modelId: "gpt-image-2.5-flare",
-  credits: 5, // quality tier, SPIKES.md §1
-  dna: teakDna,
+  credits: 4,
+  dna: diwaliDna,
 };
 
-const sneaker: ProductRecord = {
-  sku: "sneaker1",
-  rawPublicId: "samples/shoe",
-  rawWidth: 1000, // measured (fl_getinfo)
-  rawHeight: 1140,
-  rawBytes: 72888,
-  caption: "A white and tan sneaker with pink accents floats in the foreground against a solid pink background.", // measured, SPIKES.md §9
-  focus: 0.64,
-  understanding: {
-    name: "White and tan running sneaker",
-    category: "footwear",
-    primary_color: "white",
-    material: "mesh and suede",
-    recolorable_part: "laces",
-    placement: "standing",
-    suggested_themes: ["diwali", "marble", "cafe"],
-  },
-  cutout: { publicId: "snap2shelf/spikes/cutouts/samples_shoe_trim", width: 645, height: 477 },
+const kitchenDna: SceneDNA = {
+  anchor_x: 0.5,
+  anchor_y: 0.75,
+  surface_width: 1,
+  light_azimuth: 270,
+  light_elevation: 45,
+  temperature: "warm",
+  glossy: false,
+  text_zone: "none",
 };
 
-export const SAMPLES: SampleProduct[] = [
+const kitchen: Scene = {
+  publicId: "snap2shelf/scenes/kitchen/final-bd611466",
+  theme: "kitchen",
+  view: "eye-level",
+  title: "Kitchen counter",
+  prompt:
+    "Photorealistic empty product-photography backdrop, professional commercial photo. Camera at eye level, about 15 degrees above the surface. A light oak kitchen countertop fills the lower 40% of the frame. The centre foreground of the surface is completely empty and clear for placing a product. In the background a bright modern kitchen with white tiles and fresh green herbs, softly out of focus with shallow depth of field. Morning daylight from a window on the left. No products, no bottles, no packaging, no people, no hands, no text, no letters, no logos, no brand names.",
+  modelId: "gpt-image-2.5-flare",
+  credits: 4,
+  dna: kitchenDna,
+};
+
+/**
+ * Snapshot of the scene library's final plates (tag s2s-scene, 30 Sep), so a
+ * sample replay needs no request at all. Live runs read the library via /api/scenes.
+ */
+const plate = (id: string, theme: string, title: string, view: Scene["view"], credits: number, modelId: string, d: [number, number, number, number, number, SceneDNA["temperature"], boolean, SceneDNA["text_zone"]]): Scene => ({
+  publicId: `snap2shelf/scenes/${theme}/${id}`,
+  theme,
+  view,
+  title,
+  prompt: "",
+  modelId,
+  credits,
+  dna: { anchor_x: d[0], anchor_y: d[1], surface_width: d[2], light_azimuth: d[3], light_elevation: d[4], temperature: d[5], glossy: d[6], text_zone: d[7] },
+});
+
+export const SCENE_LIBRARY: Scene[] = [
+  diwali,
+  kitchen,
+  plate("final-04757f01", "cafe", "Outdoor café", "eye-level", 4, "gpt-image-2.5-flare", [0.5, 0.78, 0.95, 90, 25, "warm", true, "top_right"]),
+  plate("final-f5fa67e9", "pastel", "Pastel minimal", "eye-level", 4, "gpt-image-2.5-flare", [0.5, 0.74, 1, 270, 45, "cool", false, "top"]),
+  plate("final-eb20e69e", "jute", "Rustic jute", "eye-level", 9, "nano-banana-2", [0.5, 0.72, 0.8, 90, 30, "warm", false, "top"]),
+  plate("final-ca4c3ac1", "marble", "Marble studio", "eye-level", 5, "gpt-image-2.5-flare", [0.5, 0.75, 1, 315, 45, "neutral", true, "none"]),
+  plate("final-ed645adc", "flatlay-festive", "Festive flat-lay", "top-down", 4, "gpt-image-2.5-flare", [0.5, 0.45, 0.7, 0, 60, "warm", false, "none"]),
+  plate("final-c9e88705", "flatlay-linen", "Linen flat-lay", "top-down", 4, "gpt-image-2.5-flare", [0.5, 0.5, 0.7, 0, 60, "warm", false, "none"]),
+];
+
+// ─── Sample definitions ──────────────────────────────────────────────────────
+
+interface SampleSpec {
+  sku: Sku;
+  title: string;
+  blurb: string;
+  product: ProductRecord;
+  scene: Scene;
+  heroPublicId: string;
+  beforePublicId: string;
+  /** Pack formats that were rendered once and stored (AI formats): format id → public id. */
+  storedFormats: Record<string, string>;
+  recolorPart: string; // the part prompt the stored recolor was made with
+  offer: { hindi: string; english: string };
+  swatches: string[];
+  qa: QaResult;
+  qaTokens: number;
+  analyzeTokens: number; // estimate: SPIKES.md §3 (≈690 per product reading)
+  seconds: number; // measured: photo → finished kit on a live run of this photo
+  pace: SampleProduct["pace"];
+}
+
+const QA_OK = (checkedAt: string): QaResult => ({ status: "approved", matched: ["product-visible"], reasons: [], checkedAt });
+
+const SPECS: SampleSpec[] = [
   {
     sku: "sneaker1",
-    title: "Running sneaker",
-    product: sneaker,
-    scene: teakScene,
-    controls: defaultControls("standing", teakDna),
-    heroPublicId: "snap2shelf/spikes/heroes/shoe_diwali",
-    offer: { hindi: "दिवाली धमाका", english: "Flat 30% off till Sunday" },
-    swatches: ["0f766e", "2563eb"],
-    // measured: product box in the raw is ≈ (167, 293) 645×477; hero puts it at (292, 510) 497 wide
-    alignRaw: "c_mpad,w_1500,h_2000,b_auto:border/c_crop,x_38,y_61,w_1402,h_1752",
+    title: "Casual sneaker",
+    blurb: "Phone photo on a tiled floor",
+    product: {
+      sku: "sneaker1",
+      rawPublicId: "snap2shelf/dev/sneaker_decent/raw",
+      rawWidth: 1122,
+      rawHeight: 1402,
+      rawBytes: 2028411,
+      caption: "A white and beige sneaker sits on a light-colored tiled floor against a plain white wall.",
+      focus: 0.77,
+      understanding: {
+        name: "Casual sneaker",
+        category: "footwear",
+        primary_color: "white",
+        material: "mesh",
+        recolorable_part: "upper panel",
+        placement: "standing",
+        suggested_themes: ["pastel", "marble"],
+      },
+      cutout: { publicId: "snap2shelf/dev/sneaker_decent/cutout", width: 976, height: 523 },
+    },
+    scene: diwali,
+    heroPublicId: "snap2shelf/dev/heroes/sneaker-diwali",
+    beforePublicId: "snap2shelf/dev/before/sneaker-diwali",
+    storedFormats: {
+      story: "snap2shelf/dev/kit/sneaker-diwali/story",
+      banner: "snap2shelf/dev/kit/sneaker-diwali/banner",
+      "recolor-1e3a8a": "snap2shelf/dev/kit/sneaker-diwali/recolor-1e3a8a",
+    },
+    recolorPart: "suede panels",
+    offer: { hindi: "दिवाली सेल · 20% छूट", english: "Diwali sale, 20% off / this week only" },
+    swatches: ["1e3a8a"],
+    qa: QA_OK("2026-09-30T04:08:34.844Z"),
+    qaTokens: 675,
+    analyzeTokens: 690,
+    seconds: 44,
+    pace: { analyze: 1400, cutout: 1500, qa: 1300, pack: 2200 },
+  },
+  {
+    sku: "bottle01",
+    title: "Steel water bottle",
+    blurb: "Phone photo on a kitchen counter",
+    product: {
+      sku: "bottle01",
+      rawPublicId: "snap2shelf/dev/bottle_decent/raw",
+      rawWidth: 1122,
+      rawHeight: 1402,
+      rawBytes: 1838375,
+      caption: "A stainless steel water bottle stands on a white countertop with a potted plant and a wooden block in the background.",
+      focus: 0.39,
+      understanding: {
+        name: "Stainless steel water bottle",
+        category: "drinkware",
+        primary_color: "silver",
+        material: "stainless steel",
+        recolorable_part: "bottle body",
+        placement: "standing",
+        suggested_themes: ["kitchen", "cafe", "marble"],
+      },
+      cutout: { publicId: "snap2shelf/dev/bottle_decent/cutout", width: 309, height: 1223 },
+    },
+    scene: kitchen,
+    heroPublicId: "snap2shelf/dev/heroes/bottle-kitchen",
+    beforePublicId: "snap2shelf/dev/before/bottle-kitchen",
+    storedFormats: {
+      story: "snap2shelf/dev/kit/bottle-kitchen/story",
+      banner: "snap2shelf/dev/kit/bottle-kitchen/banner",
+      "recolor-0f766e": "snap2shelf/dev/kit/bottle-kitchen/recolor-0f766e",
+    },
+    recolorPart: "bottle body",
+    offer: { hindi: "त्योहार ऑफ़र", english: "Festive offer: free engraving" },
+    swatches: ["0f766e"],
+    qa: QA_OK("2026-09-30T04:08:39.051Z"),
+    qaTokens: 676,
+    analyzeTokens: 690,
+    seconds: 20,
+    pace: { analyze: 1300, cutout: 1400, qa: 1200, pack: 2000 },
   },
 ];
 
-export const getSample = (sku: string | null | undefined) => SAMPLES.find((s) => s.sku === sku);
-export const isSampleSku = (sku: string | null | undefined) => !!getSample(sku);
-
 // ─── Creative takes (image_to_image, SPIKES.md §2 + §3b) ─────────────────────
+// Real takes from the Day-0 spike, of a different test sneaker (Cloudinary's
+// samples/shoe). Shown as examples of what Creative mode and its QA do.
+
+const SPIKE_CUTOUT = "snap2shelf/spikes/cutouts/samples_shoe_trim";
 
 const creativeRequest = (model: string, seed: number) => ({
   prompt:
@@ -98,10 +240,10 @@ const creativeRequest = (model: string, seed: number) => ({
   model,
   seed,
   aspect_ratio: "3:4",
-  reference_images: [{ source_type: "url", url: `${deliveryBase(SHOWCASE_CLOUD)}/${sneaker.cutout!.publicId}` }],
+  reference_images: [{ source_type: "url", url: `${deliveryBase(SHOWCASE_CLOUD)}/${SPIKE_CUTOUT}` }],
 });
 
-function creativeAsset(id: string, publicId: string, label: string, model: string, seed: number, qa: KitAsset["qa"]): KitAsset {
+function creativeAsset(id: string, publicId: string, label: string, alt: string, model: string, seed: number, qa: KitAsset["qa"]): KitAsset {
   return {
     id,
     format: "hero",
@@ -110,7 +252,7 @@ function creativeAsset(id: string, publicId: string, label: string, model: strin
     width: 1080,
     height: 1350,
     frame: "feed-post",
-    alt: "The same white and tan sneaker on a sandstone ledge in a sunlit courtyard",
+    alt,
     publicId,
     xray: { json: { endpoint: "POST /v2/generate/image_to_image", request: creativeRequest(model, seed) } },
     qa,
@@ -121,12 +263,13 @@ export const CREATIVE_APPROVED = creativeAsset(
   "creative-faithful",
   "snap2shelf/spikes/i2i_main/nano-banana-2-edit",
   "Creative take",
+  "A generated take of a white, tan and pink test sneaker on a sandstone ledge in a sunlit courtyard",
   "nano-banana-2-edit",
   7,
   {
     status: "approved",
     matched: ["same-product"],
-    reasons: ["Same colours, panels, tongue and proportions as your photo"],
+    reasons: ["Same colours, panels, tongue and proportions as the photo"],
     fidelity: 95,
   },
 );
@@ -135,6 +278,7 @@ export const CREATIVE_REJECTED = creativeAsset(
   "creative-draft",
   "snap2shelf/spikes/i2i_main/flux-2-flash-edit",
   "Draft take",
+  "A draft generated take that redesigned the test sneaker: a new side badge, a changed tongue logo and a ghost second shoe",
   "flux-2-flash-edit",
   7,
   {
@@ -164,22 +308,26 @@ export const CREATIVE_MODELS = [
 
 // ─── Kit assembly ─────────────────────────────────────────────────────────────
 
-export function heroAlt(p: ProductRecord, scene: Scene) {
+export function heroAlt(p: Pick<ProductRecord, "understanding">, scene: Pick<Scene, "title">) {
   const name = p.understanding?.name ?? "Your product";
-  return `${name}, staged in the ${scene.title} scene`;
+  return `${name}, staged on the ${scene.title} scene`;
 }
 
-function sampleKit(s: SampleProduct): Kit {
+/** Order the reel's clips: native 9:16 first, then the hero, colour variants, the banner. */
+export function reelClips(heroPublicId: string, assets: Pick<KitAsset, "id" | "publicId">[]): string[] {
+  const id = (k: string) => assets.find((a) => a.id === k)?.publicId;
+  const recolors = assets.filter((a) => a.id.startsWith("recolor-") && a.publicId).map((a) => a.publicId!);
+  return [id("story"), heroPublicId, ...recolors.slice(0, 2), id("banner")].filter((x): x is string => !!x).slice(0, 5);
+}
+
+function buildSample(s: SampleSpec): SampleProduct {
   const p = s.product;
+  const placement = p.understanding!.placement;
+  // the same defaults the studio starts from, so the replay's sliders match the saved hero
+  const controls = quantise(defaultControls(placement, s.scene.dna, p.cutout));
+
   const alt = heroAlt(p, s.scene);
-  const built = compositeUrl({
-    scenePublicId: s.scene.publicId,
-    dna: s.scene.dna,
-    cutout: p.cutout!,
-    placement: p.understanding!.placement,
-    controls: s.controls,
-    cloud: SHOWCASE_CLOUD,
-  });
+  const built = compositeUrl({ scenePublicId: s.scene.publicId, dna: s.scene.dna, cutout: p.cutout!, placement, controls, cloud: SHOWCASE_CLOUD });
   const hero: KitAsset = {
     id: "hero",
     format: "hero",
@@ -191,77 +339,151 @@ function sampleKit(s: SampleProduct): Kit {
     alt,
     xray: built,
     publicId: s.heroPublicId,
-    qa: { status: "approved", matched: ["product-visible"], reasons: ["Your real product pixels, untouched"] },
+    qa: s.qa,
   };
-  const pack = channelAssets({
+
+  const box = geometry(p.cutout!, s.scene.dna, controls, placement);
+  const assets = channelAssets({
     heroPublicId: s.heroPublicId,
     cutoutPublicId: p.cutout!.publicId,
     alt,
-    recolorPart: p.understanding!.recolorable_part,
+    recolorPart: s.recolorPart,
     swatches: s.swatches,
     offer: s.offer,
     textZone: s.scene.dna.text_zone,
+    productBox: box,
     cloud: SHOWCASE_CLOUD,
-  }).map((a) => (a.id.startsWith("recolor-") ? { ...a, label: recolorLabel(a.id), alt: `${alt}, recoloured ${swatchName(a.id.slice(8)).toLowerCase()}` } : a));
+  }).map((a): KitAsset => {
+    const pid = s.storedFormats[a.id];
+    const recolor = a.id.startsWith("recolor-");
+    const xray = recolor && "segments" in a.xray
+      ? { ...a.xray, segments: a.xray.segments.map((g) => (g.kind === "gen-ai" ? { ...g, label: recolorExplain(p.understanding) } : g)) }
+      : a.xray;
+    return {
+      ...a,
+      xray,
+      // AI formats show their stored copy: re-requesting the recipe would re-run (and re-bill) the AI step
+      ...(pid ? { url: stored(pid), publicId: pid } : {}),
+      ...(recolor
+        ? { label: recolorLabel(a.id, p.understanding), alt: `${alt}, in ${swatchName(a.id.slice(8)).toLowerCase()}` }
+        : {}),
+    };
+  });
 
-  return {
+  const reel = reelUrl({ images: reelClips(s.heroPublicId, assets), offer: s.offer, cloud: SHOWCASE_CLOUD });
+
+  const kit: Kit = {
     sku: s.sku,
     product: p,
     mode: "exact",
     scene: s.scene,
-    controls: s.controls,
+    controls,
     hero,
-    assets: [...pack, CREATIVE_APPROVED],
-    reel: reelUrl({
-      heroPublicId: s.heroPublicId,
-      extraShotPublicIds: [CREATIVE_APPROVED.publicId!],
-      closeUp: { scenePublicId: s.scene.publicId, cutoutPublicId: p.cutout!.publicId, placement: "standing" },
-      caption: s.offer.hindi,
-      cloud: SHOWCASE_CLOUD,
-    }),
+    assets,
+    reel: { url: reel.url, xray: reel, seconds: reel.seconds },
     cost: {
       generationCredits: 0, // Exact mode: no generation at all
       creditsSavedByReuse: s.scene.credits,
-      aiVisionTokens: 1690, // estimate: product reading ≈690 + QA ≈1000 (SPIKES.md §3)
-      transformationsEstimate: 215, // estimate: 2 × b_gen_fill + 2 × e_gen_recolor at 50 each, plus plain crops
-      bytesOriginal: 268847, // measured: saved hero master (the sample photo itself is already tiny)
-      bytesDelivered: 87598, // measured: same hero with f_auto,q_auto (WebP)
-      seconds: 24, // estimate until seeded kits land
+      aiVisionTokens: s.analyzeTokens + s.qaTokens,
+      transformationsEstimate: 50 * (2 + s.swatches.length) + 6, // b_gen_fill ×2 + recolor at 50 each, plus plain crops
+      bytesOriginal: p.rawBytes,
+      bytesDelivered: 0, // filled in by the studio when it measures the delivered hero
+      seconds: s.seconds,
     },
-    createdAt: "2026-09-30T00:05:00+05:30",
+    createdAt: "2026-09-30T09:00:00+05:30",
+  };
+
+  return {
+    sku: s.sku,
+    title: s.title,
+    blurb: s.blurb,
+    product: p,
+    scene: s.scene,
+    controls,
+    heroPublicId: s.heroPublicId,
+    beforePublicId: s.beforePublicId,
+    offer: s.offer,
+    swatches: s.swatches,
+    qa: s.qa,
+    qaTokens: s.qaTokens,
+    pace: s.pace,
+    kit,
   };
 }
 
-export const SHOWCASE_KITS: Kit[] = SAMPLES.map(sampleKit);
-export const FEATURED_KIT = SHOWCASE_KITS[0];
+/**
+ * Seeded showcase (data/showcase.json). When it lands, replace `null` with the
+ * imported data (`import { SHOWCASE } from "./showcase-data"`) and the samples
+ * below switch over; fromSeeded() maps its kits onto SampleProduct.
+ */
+interface SeededKit extends Kit {
+  title: string;
+  attempts?: { qa: QaResult; tokens: number }[];
+}
+interface SeededShowcase {
+  kits: SeededKit[];
+  beforeAfter?: { sku: Sku; rawAlignedUrl?: string }[];
+}
+const SEEDED: SeededShowcase | null = null;
+
+function fromSeeded(data: SeededShowcase): SampleProduct[] {
+  return data.kits
+    .filter((k) => k.scene && k.controls && k.hero.publicId && k.product.cutout)
+    .map((k) => {
+      const last = k.attempts?.[k.attempts.length - 1];
+      return {
+        sku: k.sku,
+        title: k.title,
+        blurb: "Sample phone photo",
+        product: k.product,
+        scene: k.scene!,
+        controls: k.controls!,
+        heroPublicId: k.hero.publicId!,
+        beforePublicId: undefined,
+        offer: { hindi: "", english: "" },
+        swatches: k.assets.filter((a) => a.id.startsWith("recolor-")).map((a) => a.id.slice(8)),
+        qa: k.hero.qa ?? last?.qa ?? QA_OK(k.createdAt),
+        qaTokens: last?.tokens ?? 0,
+        pace: { analyze: 1300, cutout: 1400, qa: 1200, pack: 2000 },
+        kit: k,
+      };
+    });
+}
+
+export const SAMPLES: SampleProduct[] = SEEDED ? fromSeeded(SEEDED) : SPECS.map(buildSample);
+
+export const getSample = (sku: string | null | undefined) => SAMPLES.find((s) => s.sku === sku);
+export const isSampleSku = (sku: string | null | undefined) => !!getSample(sku);
+
+export const SHOWCASE_KITS: Kit[] = SAMPLES.map((s) => s.kit);
+export const FEATURED = SAMPLES[0];
+export const FEATURED_KIT = FEATURED.kit;
 export const getShowcaseKit = (sku: string) => SHOWCASE_KITS.find((k) => k.sku === sku);
 
-// ─── Landing helpers ──────────────────────────────────────────────────────────
+// ─── Landing / page helpers ───────────────────────────────────────────────────
 
-/** Raw phone photo, cropped to the hero's 4:5 so the slider halves line up. */
-export function rawAt(p: ProductRecord, w: number) {
-  const align = getSample(p.sku)?.alignRaw;
-  const t = align ? `${align}/c_scale,w_${w}` : `c_fill,ar_4:5,g_auto,w_${w}`;
-  return `${deliveryBase(SHOWCASE_CLOUD)}/${t}/f_auto,q_auto/${p.rawPublicId}`;
-}
-
-/** The live composite at a given width (same recipe as the studio). */
+/** The saved hero at a given width (stored asset: cheap, cached, identical to the approved composite). */
 export function heroAt(kit: Kit, w: number) {
-  const s = getSample(kit.sku);
-  if (!s) return kit.hero.url;
-  return compositeUrl({
-    scenePublicId: s.scene.publicId,
-    dna: s.scene.dna,
-    cutout: s.product.cutout!,
-    placement: s.product.understanding!.placement,
-    controls: s.controls,
-    width: w,
-    cloud: SHOWCASE_CLOUD,
-  }).url;
+  return kit.hero.publicId ? stored(kit.hero.publicId, w) : kit.hero.url;
 }
 
-export const heroLqip = (kit: Kit) => lqip(kit.hero.publicId ?? kit.scene?.publicId ?? kit.product.rawPublicId, SHOWCASE_CLOUD);
+/** The phone photo, aligned with the hero for the wipe slider (falls back to a centre crop). */
+export function beforeAt(s: SampleProduct, w: number) {
+  if (s.beforePublicId) return stored(s.beforePublicId, w);
+  return `${deliveryBase(SHOWCASE_CLOUD)}/c_fill,ar_4:5,g_auto,w_${w}/f_auto,q_auto/${s.product.rawPublicId}`;
+}
 
-export function ogImageUrl(kit: Kit) {
-  return `${deliveryBase(SHOWCASE_CLOUD)}/c_fill,w_1200,h_630,g_auto/f_jpg,q_auto/${kit.hero.publicId ?? kit.product.rawPublicId}`;
+/** The raw phone photo, as taken (4:5 crop for tiles). */
+export function rawAt(p: Pick<ProductRecord, "rawPublicId">, w: number) {
+  return `${deliveryBase(SHOWCASE_CLOUD)}/c_fill,ar_4:5,g_auto,w_${w}/f_auto,q_auto/${p.rawPublicId}`;
+}
+
+/** Tiny blurred placeholder of a stored image (≈1 KB), painted under the real one. */
+export const lqipOf = (publicId: string) => `${deliveryBase(SHOWCASE_CLOUD)}/c_limit,w_32/e_blur:600,q_30/f_auto/${publicId}`;
+
+export const heroLqip = (kit: Kit) => lqipOf(kit.hero.publicId ?? kit.scene?.publicId ?? kit.product.rawPublicId);
+
+/** Link-preview image for the whole site: the sample heroes as cards under the name. */
+export function siteOgImage() {
+  return ogUrl({ heroes: SAMPLES.map((s) => s.heroPublicId), shopName: "Snap2Shelf", tagline: "One photo. A whole shelf.", cloud: SHOWCASE_CLOUD }).url;
 }
