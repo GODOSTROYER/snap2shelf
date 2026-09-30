@@ -4,15 +4,17 @@
  * it here (and re-measure) — never inline a figure in copy.
  */
 
-/** Live production run, 30 Sep 2026: file selected → ZIP link live (06_steel_bottle.png, desktop, Upload Widget). */
+/** Best live production run, 30 Sep 2026: file selected → ZIP link live (06_steel_bottle.png, desktop, Upload Widget). */
 export const MEASURED_PHOTO_TO_ZIP_S = 36;
 /**
- * Copy form of the headline speed claim. Live photo → ZIP runs measured 36–48 s
- * (30 Sep: 36 s production, 40.9 s / 47.5 s / 48 s on other runs), so the
- * headline promises what every run met; the caption gives the best measured run.
+ * Every timed live photo → ZIP run so far, 30 Sep 2026: 36 s (production), 40.9 s,
+ * 47.5 s, 48 s (local builds against the same Cloudinary) and 58.3 s (production,
+ * a 1.84 MB photo whose upload alone took 23.7 s). Most of the spread is upload time.
  */
-export const PHOTO_TO_KIT_COPY = "under a minute";
-export const PHOTO_TO_KIT_MEASURED_COPY = `${MEASURED_PHOTO_TO_ZIP_S} s photo → ZIP, measured on the live site`;
+export const MEASURED_PHOTO_TO_ZIP_RANGE_S = [36, 58] as const;
+/** Copy form of the headline speed claim: what every measured run met. */
+export const PHOTO_TO_KIT_COPY = "about a minute";
+export const PHOTO_TO_KIT_MEASURED_COPY = `${MEASURED_PHOTO_TO_ZIP_RANGE_S[0]}–${MEASURED_PHOTO_TO_ZIP_RANGE_S[1]} s photo → ZIP in our timed live runs (most of the spread is upload time)`;
 
 /**
  * The one duration story for a saved sample's receipt. Its "Cloudinary
@@ -21,7 +23,7 @@ export const PHOTO_TO_KIT_MEASURED_COPY = `${MEASURED_PHOTO_TO_ZIP_S} s photo �
  * end-to-end run. `qaChecks` is the number of QA attempts the run recorded.
  */
 export function sampleTimeNote(run: { seconds: number; qaChecks: number }): string {
-  const live = `${MEASURED_PHOTO_TO_ZIP_S} s end-to-end on the live site (photo → ZIP)`;
+  const live = `${MEASURED_PHOTO_TO_ZIP_RANGE_S[0]}–${MEASURED_PHOTO_TO_ZIP_RANGE_S[1]} s end-to-end in our timed live runs (photo → ZIP)`;
   const s = `${Math.round(run.seconds)} s`;
   const rejected = run.qaChecks - 1;
   if (rejected > 0) {
