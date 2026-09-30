@@ -98,12 +98,9 @@ export function ReelVideo({ src, poster, label, ready = true, className }: { src
 
   return (
     <div className={cn("group relative size-full bg-stage-2", className)}>
-      {/* The poster as a lazy image under the (transparent until playing) video: a
-          `poster` attribute is fetched at once at medium priority, even far below the fold. */}
-      {/* eslint-disable-next-line @next/next/no-img-element -- a Cloudinary still, already sized and formatted */}
-      <img src={poster} alt="" loading="lazy" decoding="async" className="absolute inset-0 size-full object-cover" />
       <video
         ref={ref}
+        poster={poster}
         muted
         loop
         playsInline
@@ -112,7 +109,7 @@ export function ReelVideo({ src, poster, label, ready = true, className }: { src
         onPlay={() => setPlaying(true)}
         onPause={() => setPlaying(false)}
         onError={() => ref.current?.getAttribute("src") && setPhase("failed")}
-        className="relative size-full object-cover"
+        className="size-full object-cover"
       />
       {phase === "rendering" ? (
         <p role="status" className="absolute inset-x-3 bottom-16 flex items-center justify-center gap-2 rounded-lg bg-black/70 px-2 py-1.5 text-center text-[0.75rem] font-semibold text-white backdrop-blur-sm">
