@@ -108,6 +108,8 @@ test("parseRateLimitReset reads the reset time in several formats, else the next
   const now = Date.parse("2026-09-30T04:31:10Z");
   const at = Date.parse("2026-09-30T05:00:00Z");
   for (const msg of [
+    // verbatim from the 30 Sep 04:30 UTC incident (dev log)
+    "Rate Limit Exceeded. Limit of 500 api operations reached. Try again on 2026-09-30 05:00:00 UTC",
     "Rate Limit Exceeded. Try again on 2026-09-30 05:00:00 UTC",
     "Rate Limit Exceeded, reset at 2026-09-30T05:00:00Z",
     "Rate Limit Exceeded until Wed, 30 Sep 2026 05:00:00 GMT",
