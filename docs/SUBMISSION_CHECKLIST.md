@@ -9,7 +9,7 @@ Work top to bottom. Nothing in this file is secret, and nothing secret may be ad
 | Item | State |
 |---|---|
 | Live site | **Live:** https://snap2shelf.vercel.app (sample replay, kits, `/present`, `/shelf/demo-studio`) |
-| Repository | **Public:** https://github.com/GODOSTROYER/snap2shelf, MIT `LICENSE` at the root |
+| Repository | **Public:** https://github.com/GODOSTROYER/snap2shelf, MIT `LICENSE` at the root. **Submitted** to HackIndia's team repo https://github.com/HackIndiaXYZ/pixels-to-products-cloudinary-ai-hackathon-2026-snap2shelf (`main` + tag `v1.0-submission`, 1 Oct). Keep both in sync: `git push origin master && git push submission master:main`. |
 | README | **Final pass done:** demo GIF at the top, a `## How it's built` section (anchor `#how-its-built`) with the architecture diagram and the key Cloudinary techniques, every number checked against `lib/claims.ts`, `SPIKES.md`, `data/showcase.json` and the code. One open slot: the video link. |
 | Demo GIF and social clip | **Rendered** from the live site: `docs/media/demo.gif` (800 px, 12 fps, loops, under 6 MB), `docs/media/demo-social.mp4` (1280×720 H.264, silent, about 20 s), `docs/media/poster.png`. Re-render after the final deploy: `npm run media:gif`. |
 | Demo video | **Finished (3:08, 1080p, voice-over + music + SFX, −14.6 LUFS), upload pending.** Outside the repo in `Z:\Projects\Cloudinary\video\`: `snap2shelf-walkthrough-final.mp4` (upload this) or `snap2shelf-walkthrough-final-captioned.mp4` (burned-in captions), `snap2shelf-walkthrough-captions.srt` (upload as YouTube captions), `CREDITS.txt` (paste into the YouTube description: the voice-over is AI-generated with Gemini TTS; music and SFX are procedural). Rebuild: `npm run media:video`, then `npm run media:audio`. |
@@ -31,7 +31,7 @@ Work top to bottom. Nothing in this file is secret, and nothing secret may be ad
 | Track | **Track 2 — Generative Content Workflows** |
 | Team | **Solo** · `<YOUR_NAME>` |
 | Short description | Snap2Shelf turns one phone photo and a one-line brief into a full, listing-ready shelf (hero, story, banner, marketplace-white image with a Readiness Score, WhatsApp tile, colour variants, Hindi/English offer, video reel, zip and a shareable shop page), staging the real product on AI-generated scenes and using Cloudinary AI Vision to reject any AI output that changes the product. |
-| Repository URL | **https://github.com/GODOSTROYER/snap2shelf** |
+| Repository URL | **https://github.com/HackIndiaXYZ/pixels-to-products-cloudinary-ai-hackathon-2026-snap2shelf** (HackIndia's team repo; mirror of https://github.com/GODOSTROYER/snap2shelf) |
 | Live demo URL | **https://snap2shelf.vercel.app** |
 | Demo video URL | `<VIDEO_URL>` <!-- TODO(final) --> |
 | LinkedIn post URL | `<LINKEDIN_POST_URL>` <!-- TODO(final): after posting docs/SOCIAL_POSTS.md --> |
