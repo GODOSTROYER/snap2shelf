@@ -1,4 +1,5 @@
 /* eslint-disable @next/next/no-img-element -- Cloudinary delivery URLs, already sized and formatted (f_auto,q_auto) */
+import type { Metadata } from "next";
 import { ArrowUpRight, Store, Timer } from "lucide-react";
 import Link from "next/link";
 import { StaticShelves } from "@/components/kit/static-shelves";
@@ -13,7 +14,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { DEMO_SHELF, PHOTO_TO_KIT_COPY, PHOTO_TO_KIT_MEASURED_COPY, SAMPLE_PHOTO_DISCLOSURE, SAMPLE_PHOTO_LABEL } from "@/lib/claims";
 import { isBuiltUrl, sizedUrl, srcSet } from "@/lib/client/img";
 import { kitContents } from "@/lib/client/kit-view";
-import { FEATURED, heroAt, landingBeforeAt, landingBeforeLqip, landingQaCatch, lqipOf } from "@/lib/showcase";
+import { FEATURED, heroAt, landingBeforeAt, landingBeforeLqip, landingQaCatch, lqipOf, siteOgImage } from "@/lib/showcase";
 
 /** One product, end to end: the hero, how it works, its URL, its kit on the shelves, and every "Try a sample". */
 const sample = FEATURED;
@@ -49,6 +50,20 @@ async function inlineLqip(url: string): Promise<string> {
     return jpg;
   }
 }
+
+/** The landing's own link-preview URL (pages inherit the layout's title, description and image). */
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+  openGraph: {
+    url: "/",
+    title: "Snap2Shelf — one photo, a whole shelf",
+    description: "One photo. A whole shelf. AI builds the stage — your product stays real.",
+    type: "website",
+    siteName: "Snap2Shelf",
+    locale: "en_IN",
+    images: [{ url: siteOgImage(), width: 1200, height: 630, type: "image/jpeg", alt: "Snap2Shelf: product photos staged on festive and studio scenes" }],
+  },
+};
 
 export default async function Home() {
   const hero = kit.hero;
