@@ -21,8 +21,8 @@ What it does, in order:
      claims to be a person or the builder; the rupee figure read in full) and TTS-only
      spellings ("Snap2Shelf" -> "Snap-to-Shelf", "ZIP" -> "zip", the URL spelled out).
   3. Gemini TTS (gemini-3.8-flash-tts through the Interactions API, one prebuilt voice, the
-     style as a speech_metadata annotation), ONE API key, paced and retried with backoff on
-     429. Every take is cached on disk, keyed by model + voice + style + text, so a re-run
+     style as a speech_metadata annotation), paced and retried with backoff; on a 429 the
+     owner's keys (GEMINI_API_KEYS) are rotated, at their request. Every take is cached on disk, keyed by model + voice + style + text, so a re-run
      makes no requests.
   4. Each clip: silence trimmed, 48 kHz, 80 Hz high-pass, de-essed, gently compressed,
      loudness-matched; placed at its timecode. A clip that overruns its window is
@@ -40,8 +40,9 @@ What it does, in order:
      back and diff it against the script.
 
 Inputs/outputs live in the "video" folder beside the repo (same rule as walkthrough.py; never
-inside the repo). One API key, GEMINI_API_KEY, is read from <video>/.gemini.env or the
-environment, and is never printed or written anywhere.
+inside the repo). GEMINI_API_KEY (and the owner's GEMINI_API_KEYS list, rotated on rate
+limits) are read from <video>/.gemini.env or the environment; keys are logged only as #n and
+never printed or written anywhere.
 
 Outputs: snap2shelf-walkthrough-final.mp4, snap2shelf-walkthrough-final-captioned.mp4,
 mix.wav, vo_only.wav, music_only.wav, sfx_only.wav, mix_waveform.png, CREDITS.txt, and a
@@ -242,7 +243,9 @@ class Gemini:
         self.cache.mkdir(parents=True, exist_ok=True)
         self.offline = offline
         self.keys = self._load_keys(video / ".gemini.env")
-        self._client = None
+        self._clients: dict = {}
+        self.ki = 0
+        self.benched: dict[int, float] = {}
         self.last = 0.0
         self.requests: list[dict] = []
         self.log_path = cache / "requests.jsonl"
@@ -256,8 +259,14 @@ class Gemini:
                 if row and not row.startswith("#") and "=" in row:
                     k, v = row.split("=", 1)
                     env[k.strip()] = v.strip().strip('"').strip("'")
-        key = os.environ.get("GEMINI_API_KEY") or env.get("GEMINI_API_KEY", "")
-        return [key] if key else []  # one key only: its own rate limits are respected, never spread across others
+        first = os.environ.get("GEMINI_API_KEY") or env.get("GEMINI_API_KEY", "")
+        pool = (os.environ.get("GEMINI_API_KEYS") or env.get("GEMINI_API_KEYS", "")).split(",")
+        keys: list[str] = []
+        for k in [first, *pool]:  # the owner's own keys, rotated when one is rate-limited (they asked for this)
+            k = k.strip()
+            if k and k not in keys:
+                keys.append(k)
+        return keys
 
     def redact(self, s: str) -> str:
         for k in self.keys:
@@ -265,16 +274,31 @@ class Gemini:
         return s
 
     @property
-    def client(self):
+    def key(self) -> str:
+        """The key in use now (rotated on rate limits; logged only as #n, never by value)."""
         if not self.keys:
             raise SystemExit("no GEMINI_API_KEY (in <video>/.gemini.env or the environment)")
-        if self._client is None:
-            if not self.keys:
-                raise SystemExit("no GEMINI_API_KEY (in <video>/.gemini.env or the environment)")
+        return self.keys[self.ki]
+
+    @property
+    def client(self):
+        if self.ki not in self._clients:
             from google import genai
 
-            self._client = genai.Client(api_key=self.keys[0])
-        return self._client
+            self._clients[self.ki] = genai.Client(api_key=self.key)
+        return self._clients[self.ki]
+
+    def _rotate(self, why: str, bench_s: float) -> bool:
+        """Bench the current key for bench_s and move to the next usable one. False when every key is benched."""
+        self.benched[self.ki] = time.time() + bench_s
+        now = time.time()
+        for step in range(1, len(self.keys) + 1):
+            j = (self.ki + step) % len(self.keys)
+            if self.benched.get(j, 0) <= now:
+                log(f"  key #{self.ki + 1} {why}; switching to key #{j + 1}")
+                self.ki = j
+                return True
+        return False
 
     def _call(self, what: str, fn, attempts: int = 8):
         """One logical request on the one key: paced; 429/5xx retried with backoff; an invalid key stops the run."""
@@ -286,7 +310,7 @@ class Gemini:
             if wait > 0:
                 time.sleep(wait)
             self.last = time.time()
-            rec = {"at": time.strftime("%H:%M:%S"), "what": what, "attempt": attempt + 1}
+            rec = {"at": time.strftime("%H:%M:%S"), "what": what, "attempt": attempt + 1, "key": f"#{self.ki + 1}"}
             try:
                 out = fn(self.client)
                 rec["status"] = "ok"
@@ -301,11 +325,17 @@ class Gemini:
                 rec["detail"] = (" ".join(a or b for a, b in quota) or msg[:200]) if code == 429 else msg[:200]
                 self.requests.append(rec)
                 self._log(rec)
-                if code in (400, 401, 403) and re.search(r"API[_ ]KEY[_ ]INVALID|API key not valid|API key expired|unregistered callers", msg, re.I):
-                    raise SystemExit("GEMINI_API_KEY was rejected as invalid; set a valid key in <video>/.gemini.env")
+                if code in (400, 401, 403) and re.search(r"API[_ ]KEY[_ ]INVALID|API key not valid|API key expired|unregistered callers|PERMISSION_DENIED|UNAUTHENTICATED", msg, re.I):
+                    if self._rotate("was rejected", 10**9):
+                        continue
+                    raise SystemExit("every Gemini key was rejected as invalid; set valid keys in <video>/.gemini.env")
                 if code == 429:
                     if re.search(r"PerDay|per day|daily", msg, re.I):
-                        raise SystemExit(f"Gemini daily quota exhausted for this key ({what}); re-run tomorrow — the cache keeps every clip made so far")
+                        if self._rotate("hit its daily quota", 24 * 3600):
+                            continue
+                        raise SystemExit(f"Gemini daily quota exhausted on every key ({what}); re-run tomorrow — the cache keeps every clip made so far")
+                    if self._rotate("is rate-limited", 65):
+                        continue
                     m = re.search(r"retry(?:Delay)?['\"]?\s*[:=]?\s*['\"]?(\d+(?:\.\d+)?)s", msg, re.I) or re.search(r"retry in (\d+(?:\.\d+)?)", msg, re.I)
                     sleep = max(float(m.group(1)) + 2 if m else delay, 5)
                     log(f"  429 rate-limited on {what}; waiting {sleep:.0f} s (attempt {attempt + 1})")
@@ -354,7 +384,7 @@ class Gemini:
             req = urllib.request.Request(
                 "https://generativelanguage.googleapis.com/v1beta/interactions",
                 data=json.dumps(body).encode(),
-                headers={"x-goog-api-key": self.keys[0], "Content-Type": "application/json"},
+                headers={"x-goog-api-key": self.key, "Content-Type": "application/json"},
                 method="POST",
             )
             try:
