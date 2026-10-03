@@ -41,7 +41,7 @@ Posting notes:
 >
 > Built with Cloudinary's Next.js AI Starter Kit and Skills Pack, with Claude Code running parallel agents in separate git worktrees. The README is written as a tutorial, with every transformation in it explained. (The sample products on the site start from AI-generated test photos; upload your own to see yours.)
 >
-> Demo: `<VIDEO_URL>`
+> Demo: https://youtu.be/Kws8VV_YOeM
 > Try it (no signup): https://snap2shelf.vercel.app
 > A shop shelf made with it: https://snap2shelf.vercel.app/shelf/demo-studio
 > Code: https://github.com/GODOSTROYER/snap2shelf
@@ -63,7 +63,7 @@ Length: about 2,850 characters with the placeholders filled, under LinkedIn's 3,
 > Snap2Shelf stages your real product on AI scenes; @cloudinary AI Vision rejects any AI take that changes it. Photo → zip in about a minute (35–58 s in our live runs).
 >
 > Try it, no signup: https://snap2shelf.vercel.app
-> Demo: `<VIDEO_URL>`
+> Demo: https://youtu.be/Kws8VV_YOeM
 >
 > cc @jenlooper `<HACKINDIA_OFFICIAL_HANDLE>`
 >

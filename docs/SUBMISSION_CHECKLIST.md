@@ -33,7 +33,7 @@ Work top to bottom. Nothing in this file is secret, and nothing secret may be ad
 | Short description | Snap2Shelf turns one phone photo and a one-line brief into a full, listing-ready shelf (hero, story, banner, marketplace-white image with a Readiness Score, WhatsApp tile, colour variants, Hindi/English offer, video reel, zip and a shareable shop page), staging the real product on AI-generated scenes and using Cloudinary AI Vision to reject any AI output that changes the product. |
 | Repository URL | **https://github.com/HackIndiaXYZ/pixels-to-products-cloudinary-ai-hackathon-2026-snap2shelf** (HackIndia's team repo; mirror of https://github.com/GODOSTROYER/snap2shelf) |
 | Live demo URL | **https://snap2shelf.vercel.app** |
-| Demo video URL | `<VIDEO_URL>` <!-- TODO(final) --> |
+| Demo video URL | https://youtu.be/Kws8VV_YOeM |
 | LinkedIn post URL | `<LINKEDIN_POST_URL>` <!-- TODO(final): after posting docs/SOCIAL_POSTS.md --> |
 | X post URL | `<X_POST_URL>` <!-- TODO(final) --> |
 | Cloudinary survey | Done: yes, on `<DATE>`; confirmation screenshot saved as `<FILE>` <!-- TODO(final) --> |

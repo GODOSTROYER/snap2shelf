@@ -25,7 +25,7 @@ Entry for **Pixels to Products — Cloudinary AI Hackathon 2026** (HackIndia) ·
 > 5. **Use your own product:** **Upload a photo** in the studio, or press **Snap with your phone** and scan the QR code. Our timed live runs took **35–58 s photo → ZIP** (30 Sep 2026; most of the spread is upload time). Live AI generation (Creative mode and new scenes) needs the access code in our submission form; everything else is open.
 
 <a id="demo-video"></a>
-**Video: coming Sat 3 Oct.** <!-- TODO(video): add YouTube link --> The three-minute walkthrough follows the [director's cut](https://snap2shelf.vercel.app/present), which you can already play chapter by chapter.
+**Video:** [watch the 3-minute walkthrough on YouTube](https://youtu.be/Kws8VV_YOeM). It follows the [director's cut](https://snap2shelf.vercel.app/present), which you can also play chapter by chapter.
 
 > [!NOTE]
 > **About the sample photos.** Every sample product in this README, in the studio's samples and on `/shelf/demo-studio` starts from an **AI-generated test photo**, not a real seller's photo. The samples show what the pipeline does: in every Exact-mode kit, the product pixels are the input photo's own pixels, cut out and layered, never redrawn. Only the stage is AI-generated. Upload your own photo to see your product.
